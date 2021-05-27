@@ -8,6 +8,7 @@ set(SOURCE_FILES
 	src/scene/scene.cu
 	src/shapes/shape.cpp
 	src/shapes/sphere.cpp
+	src/shapes/plane.cpp
 	src/intersect/ray.cpp)
 set(HEADER_FILES
 	raytracer.hpp
@@ -15,6 +16,7 @@ set(HEADER_FILES
 	include/scene/scene.hpp
 	include/shapes/shape.hpp
 	include/shapes/sphere.hpp
+	include/shapes/plane.hpp
 	include/intersect/ray.hpp
 	include/intersect/surface_interaction.hpp)
 

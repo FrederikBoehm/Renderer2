@@ -6,6 +6,7 @@
 
 #include "shapes/sphere.hpp"
 #include "intersect/ray.hpp"
+#include "shapes/plane.hpp"
 
 __global__ void kernel(float* vector, float* matrix, float* output) {
   printf("%f", vector[0]);
@@ -14,8 +15,8 @@ __global__ void kernel(float* vector, float* matrix, float* output) {
   glm::vec4 glm_output = glm_matrix * glm_vector;
   memcpy(output, glm::value_ptr(glm_output), 4 * sizeof(float));
 
-  rt::Sphere s(5.0f);
-  rt::Ray r(glm::vec3(-7, 3.0, 0.0), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)));
+  rt::Sphere s(glm::vec3(1.0f, 2.0f, 3.0f), 5.0f);
+  rt::Ray r(glm::vec3(0.0f, 2.0f, 3.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f)));
 
   rt::SurfaceInteraction si = s.intersect(r);
 
@@ -57,7 +58,15 @@ void main() {
   glm::vec4 expected = m * v;
 
   
+  rt::Sphere s(glm::vec3(1.0f, 2.0f, 3.0f), 5.0f);
+  rt::Ray r(glm::vec3(0.0f, 2.0f, 3.0f), glm::normalize(glm::vec3(1.0f, -0.5f, 0.5f)));
 
+  rt::SurfaceInteraction si = s.intersect(r);
+
+  rt::Plane p(glm::vec3(1.0f, 2.0f, 3.0f), 10.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+  rt::Ray r2(glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(glm::vec3(1.0f, 0.1f, 0.0f)));
+
+  rt::SurfaceInteraction si2 = p.intersect(r2);
 
 
 
