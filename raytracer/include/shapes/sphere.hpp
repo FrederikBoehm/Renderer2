@@ -37,7 +37,7 @@ namespace rt {
     // Check the intersection, there might be an error
     // Test with Sphere Origin (1.0, 2.0, 3.0), Radius 5
     // Ray Origin (0.0, 2.0, 3.0), Direction (1.0, 0.0, 0.0)
-    Ray rayModelSpace = ray.toObjectSpace(m_worldToModel);
+    Ray rayModelSpace = ray.transform(m_worldToModel);
     
     float a = glm::dot(rayModelSpace.m_direction, rayModelSpace.m_direction);
     float b = 2.0f * glm::dot(rayModelSpace.m_direction, rayModelSpace.m_origin);

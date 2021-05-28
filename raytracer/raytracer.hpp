@@ -16,6 +16,8 @@ namespace rt {
       std::vector<float> data;
     };
 
+    Raytracer();
+
     Frame renderFrame();
 	private:
     Scene m_scene;
