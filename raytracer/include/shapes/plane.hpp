@@ -1,36 +1,29 @@
+#ifndef PLANE_HPP
+#define PLANE_HPP
+
 #include "shape.hpp"
-#include "intersect/surface_interaction.hpp"
+#include "intersect/hit_information.hpp"
 #include "intersect/ray.hpp"
 
 namespace rt {
-  class Plane : public Shape { // Our plane is actually a circle, this simplifies intersection
+  class Plane : public CShape { // Our plane is actually a circle, this simplifies intersection
   public:
-    Plane(float radius);
-    Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
+    DH_CALLABLE Plane();
+    DH_CALLABLE Plane(float radius);
+    DH_CALLABLE Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
 
-    __device__ __host__ virtual SurfaceInteraction intersect(const Ray& ray) const override;
+    //DH_CALLABLE virtual SurfaceInteraction intersect(const Ray& ray) const override;
+    DH_CALLABLE SHitInformation intersect(const Ray& ray) const;
   
   private:
     float m_radius;
     glm::vec3 m_normal; // World space normal
   };
 
-  Plane::Plane(float radius):
-    Shape(), m_radius(radius), m_normal(glm::vec3(0.0f, 1.0f, 0.0f)) {
-
-  }
-
-  Plane::Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal):
-    Shape(worldPos),
-    m_radius(radius),
-    m_normal(normal) {
-
-  }
-
-  SurfaceInteraction Plane::intersect(const Ray& ray) const {
+  inline SHitInformation Plane::intersect(const Ray& ray) const {
     // TODO: Currently computation is done in world space -> maybe switch to object space
-    
-    SurfaceInteraction si;
+
+    SHitInformation si;
     si.hit = false;
 
     float denominator = dot(ray.m_direction, m_normal);
@@ -45,6 +38,7 @@ namespace rt {
         if (distance < m_radius) {
           si.hit = true;
           si.pos = ray.m_origin + t * ray.m_direction;
+          si.t = t;
         }
       }
     }
@@ -53,4 +47,11 @@ namespace rt {
   }
 
   
+
+  
+
+  
 }
+
+#endif // !PLANE_HPP
+

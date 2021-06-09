@@ -1,7 +1,7 @@
 #ifndef SHAPE_HPP
 #define SHAPE_HPP
 
-#include "cuda_runtime.h"
+#include "utility/qualifiers.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -9,19 +9,27 @@
 //#include "intersect/ray.hpp"
 
 namespace rt {
+  enum EShape {
+    SPHERE,
+    PLANE
+  };
+
   class SurfaceInteraction;
   class Ray;
 
-  class Shape {
+  class CShape {
   public:
-    __device__ __host__ virtual SurfaceInteraction intersect(const Ray& ray) const = 0;
+    //DH_CALLABLE virtual SurfaceInteraction intersect(const Ray& ray) const = 0;
 
+    DH_CALLABLE EShape shape() const;
+
+    DH_CALLABLE virtual ~CShape();
   protected:
     //__device__ __host__ Shape(float* modelToWorld, float* worldToModel, float* worldPos);
-    __device__ __host__ Shape(const glm::vec3& worldPos);
-    __device__ __host__ Shape();
-    __device__ __host__ virtual ~Shape();
+    DH_CALLABLE CShape(EShape shape, const glm::vec3& worldPos);
+    DH_CALLABLE CShape(EShape shape);
 
+    const EShape m_shape;
     glm::vec3 m_worldPos;
     glm::mat4 m_modelToWorld;
     glm::mat4 m_worldToModel;
@@ -33,19 +41,8 @@ namespace rt {
 
   //}
 
-  inline Shape::Shape(const glm::vec3& worldPos) :
-    m_worldPos(worldPos),
-    m_modelToWorld(glm::translate(glm::mat4(1.0f), worldPos)),
-    m_worldToModel(glm::inverse(m_modelToWorld)) {
-
-  }
-
-  inline Shape::Shape() :
-    m_modelToWorld(glm::mat4(1.0f)), m_worldToModel(glm::mat4(1.0f)), m_worldPos(glm::vec3(0.0f)) {
-
-  }
-
-  inline Shape::~Shape() {
+  inline EShape CShape::shape() const {
+    return m_shape;
   }
 }
 #endif // !SHAPE_HPP

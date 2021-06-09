@@ -1,6 +1,8 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
+#include "cuda_runtime.h"
+
 #include <cstdint>
 #include <vector>
 
@@ -8,21 +10,44 @@
 #include "camera/camera.hpp"
 
 namespace rt {
+  struct SFrame {
+    uint16_t width;
+    uint16_t height;
+    uint8_t bpp;
+    float* data;
+  };
+
+  struct SHostFrame {
+    uint16_t width;
+    uint16_t height;
+    uint8_t bpp;
+    std::vector<float> data;
+  };
+
 	class Raytracer {
   public:
-    struct Frame {
-      uint16_t width;
-      uint16_t height;
-      std::vector<float> data;
-    };
 
     Raytracer();
+    ~Raytracer();
 
-    Frame renderFrame();
+    SHostFrame renderFrame();
 	private:
-    Scene m_scene;
-    Camera m_camera;
+    CHostScene m_scene;
+    CCamera m_hostCamera;
+    CCamera* m_deviceCamera;
+    SFrame* m_deviceFrame;
+    float* m_deviceFrameData;
+
+    static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);
+
+    void allocateDeviceMemory();
+    void copyToDevice();
+    void initDeviceData();
+    void freeDeviceMemory();
+
+    SHostFrame retrieveFrame() const;
 	};
+
 }
 
 #endif // !RAYTRACER_H
