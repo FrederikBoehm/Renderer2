@@ -1,6 +1,7 @@
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <iostream>
 
 #include "device_launch_parameters.h"
 
@@ -11,8 +12,7 @@ namespace rt {
     camera->initCurandState();
   }
 
-  __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, SFrame* frame) {
-    //SSurfaceInteraction si = scene->intersect(Ray(glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+  __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x;
     uint16_t numSamples = 1;
@@ -27,21 +27,22 @@ namespace rt {
         pixelColor.b += si.surfaceAlbedo.b;
       }
       pixelColor /= numSamples;
-      uint32_t currentPixel = y * frame->width + x;
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
       frame->data[currentPixel + 0] = pixelColor.r;
       frame->data[currentPixel + 1] = pixelColor.g;
       frame->data[currentPixel + 2] = pixelColor.b;
     }
-    //uint32_t num = scene->m_numSceneobjects;
-    //printf("Render Frame");
   }
 
-  Raytracer::Raytracer() :
+  Raytracer::Raytracer(uint16_t frameWidth, uint16_t frameHeight) :
+    m_frameWidth(frameWidth),
+    m_frameHeight(frameHeight),
+    m_bpp(3),
     m_scene(),
-    m_hostCamera(1920, 1080, 90, glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_deviceCamera(nullptr) {
     // Add scene objects
-    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 10.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f)));
+    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f)));
     float lightness = 100.0f / 255.0f;
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 0, 6), 0.05f, glm::vec3(), glm::vec3(lightness, lightness, 1.0f)));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 1, 6), 0.05f, glm::vec3(), glm::vec3(1.0f, lightness, 1.0f)));
@@ -59,14 +60,14 @@ namespace rt {
     freeDeviceMemory();
   }
 
-  SHostFrame Raytracer::renderFrame() {
+  SFrame Raytracer::renderFrame() {
     // TODO: Measure execution time
-    //cudaDeviceSynchronize();
-    //CDeviceScene* scene = m_scene.deviceScene();
-    //dim3 grid(m_hostCamera.sensorWidth(), m_hostCamera.sensorHeight());
-    //rt::renderFrame << <grid, 1 >> > (scene, m_deviceCamera, m_deviceFrame);
-    //cudaError_t error = cudaDeviceSynchronize();
-    SHostFrame frame = retrieveFrame();
+    cudaDeviceSynchronize();
+    CDeviceScene* scene = m_scene.deviceScene();
+    dim3 grid(m_frameWidth, m_frameHeight);
+    rt::renderFrame << <grid, 1 >> > (scene, m_deviceCamera, m_deviceFrame);
+    cudaError_t error = cudaDeviceSynchronize();
+    SFrame frame = retrieveFrame();
     return frame;
   }
 
@@ -80,21 +81,20 @@ namespace rt {
   void Raytracer::allocateDeviceMemory() {
     m_scene.allocateDeviceMemory();
     cudaMalloc(&m_deviceCamera, sizeof(CCamera));
-    cudaMalloc(&m_deviceFrame, sizeof(SFrame));
-    uint16_t bpp = 3;
-    cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*bpp);
+    cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
+    cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
   }
 
   void Raytracer::copyToDevice() {
     m_scene.copyToDevice();
     cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
     
-    SFrame f;
+    SDeviceFrame f;
     f.width = m_hostCamera.sensorWidth();
     f.height = m_hostCamera.sensorHeight();
-    f.bpp = 3; // TODO: initialize bpp for whole raytracer class
+    f.bpp = m_bpp;
     f.data = m_deviceFrameData;
-    cudaMemcpy(m_deviceFrame, &f, sizeof(SFrame), cudaMemcpyHostToDevice);
+    cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice);
   }
 
   void Raytracer::initDeviceData() {
@@ -107,9 +107,12 @@ namespace rt {
     cudaFree(m_deviceFrameData);
     cudaFree(m_deviceFrame);
   }
-  SHostFrame Raytracer::retrieveFrame() const {
-    SHostFrame frame;
-    uint32_t entries = m_hostCamera.sensorWidth() * m_hostCamera.sensorHeight() * 3;
+  SFrame Raytracer::retrieveFrame() const {
+    SFrame frame;
+    uint32_t entries = m_frameWidth * m_frameHeight * m_bpp;
+    frame.width = m_frameWidth;
+    frame.height = m_frameHeight;
+    frame.bpp = m_bpp;
     frame.data.resize(entries);
     cudaMemcpy(frame.data.data(), m_deviceFrameData, entries * sizeof(float), cudaMemcpyDeviceToHost);
     return frame;

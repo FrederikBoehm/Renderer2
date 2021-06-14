@@ -49,22 +49,8 @@ namespace rt {
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
     CSceneConnection m_hostDeviceConnection;
-    //CDeviceScene* m_deviceScene;
-    //CSceneobject* m_deviceSceneobjects; // Only temporary storage
 	};
 
-  inline SSurfaceInteraction CDeviceScene::intersect(const Ray& ray) const {
-    SSurfaceInteraction closestInteraction;
-    closestInteraction.surfaceAlbedo = glm::vec3(0.0f);
-    closestInteraction.hitInformation.t = 1e+10;
-    for (uint8_t i = 0; i < m_numSceneobjects; ++i) {
-      SSurfaceInteraction currentInteraction = m_sceneobjects[i].intersect(ray);
-      if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
-        closestInteraction = currentInteraction;
-      }
-    }
-    return closestInteraction;
-  }
 
   inline const std::vector<CHostSceneobject>& CHostScene::sceneobjects() const {
     return m_sceneobjects;

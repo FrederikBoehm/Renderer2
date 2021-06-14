@@ -18,29 +18,30 @@ namespace rt {
 
   }
 
-  //SHitInformation Plane::intersect(const Ray& ray) const {
-  //  // TODO: Currently computation is done in world space -> maybe switch to object space
 
-  //  SHitInformation si;
-  //  si.hit = false;
+  SHitInformation Plane::intersect(const Ray& ray) const {
+    // TODO: Currently computation is done in world space -> maybe switch to object space
 
-  //  float denominator = dot(ray.m_direction, m_normal);
+    SHitInformation si;
+    si.hit = false;
 
-  //  if (denominator != 0.0f) { // We have one hit
+    float denominator = dot(ray.m_direction, m_normal);
 
-  //    float t = glm::dot(m_worldPos - ray.m_origin, m_normal) / denominator;
-  //    if (t > 0.0f) {
+    if (denominator != 0.0f) { // We have one hit
 
-  //      glm::vec3 intersectionPos = ray.m_origin + t * ray.m_direction;
-  //      float distance = glm::length(intersectionPos - m_worldPos);
-  //      if (distance < m_radius) {
-  //        si.hit = true;
-  //        si.pos = ray.m_origin + t * ray.m_direction;
-  //        si.t = t;
-  //      }
-  //    }
-  //  }
+      float t = glm::dot(m_worldPos - ray.m_origin, m_normal) / denominator;
+      if (t > 0.0f) {
 
-  //  return si;
-  //}
+        glm::vec3 intersectionPos = ray.m_origin + t * ray.m_direction;
+        float distance = glm::length(intersectionPos - m_worldPos);
+        if (distance < m_radius) {
+          si.hit = true;
+          si.pos = ray.m_origin + t * ray.m_direction;
+          si.t = t;
+        }
+      }
+    }
+
+    return si;
+  }
 }

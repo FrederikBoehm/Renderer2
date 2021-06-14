@@ -12,7 +12,7 @@ namespace rt {
     friend class CSceneobjectConnection;
   public:
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
-  
+
   private:
     CShape* m_shape;
     CMaterial m_material;
@@ -23,6 +23,7 @@ namespace rt {
   class CSceneobjectConnection {
   public:
     CSceneobjectConnection(CHostSceneobject* hostSceneobject);
+    CSceneobjectConnection(const CSceneobjectConnection&& connection);
     void allocateDeviceMemory();
     void setDeviceSceneobject(CDeviceSceneobject* destination);
     void copyToDevice();
@@ -38,8 +39,7 @@ namespace rt {
     friend class CSceneobjectConnection;
   public:
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& albedo);
-
-    //SurfaceInteraction intersect(const Ray& ray) const;
+    CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject);
 
     void allocateDeviceMemory();
     void setDeviceSceneobject(CDeviceSceneobject* destination);
@@ -52,21 +52,6 @@ namespace rt {
 
     static CShape* getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
   };
-
-  inline SSurfaceInteraction CDeviceSceneobject::intersect(const Ray& ray) const {
-    SSurfaceInteraction si;
-    switch (m_shape->shape()) {
-    case EShape::PLANE:
-      si.hitInformation = ((Plane*)m_shape)->intersect(ray);
-      break;
-    case EShape::SPHERE:
-      si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
-      break;
-    }
-    si.surfaceAlbedo = si.hitInformation.hit ? m_material.albedo() : glm::vec3(0.0f);
-    return si;
-    //return m_shape->intersect(ray);
-  }
 
   inline void CHostSceneobject::allocateDeviceMemory() {
     m_hostDeviceConnection.allocateDeviceMemory();

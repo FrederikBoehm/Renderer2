@@ -1,8 +1,20 @@
-project(visualisation LANGUAGES CXX)
+#project(visualisation LANGUAGES CXX)
 
-set(SOURCE_FILES)
-set(HEADER_FILES visualisation.hpp)
+set(SOURCE_FILES visualisation.cpp src/gl_visualiser.cpp)
+set(HEADER_FILES visualisation.hpp include/gl_visualiser.hpp)
 
 add_library(visualisation STATIC ${SOURCE_FILES} ${HEADER_FILES})
 
-set_target_properties(visualisation PROPERTIES LINKER_LANGUAGE CXX)
+#install(TARGETS visualisation DESTINATION lib)
+
+#set_target_properties(visualisation PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(visualisation PRIVATE include)
+target_include_directories(visualisation PRIVATE "../3rdparty/glm")
+target_include_directories(visualisation PRIVATE "../3rdparty/glad")
+target_include_directories(visualisation PRIVATE "../3rdparty/glfw")
+
+target_link_libraries(visualisation PRIVATE glm)
+target_link_libraries(visualisation PRIVATE glad)
+target_link_libraries(visualisation PRIVATE glfw)
+
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES})

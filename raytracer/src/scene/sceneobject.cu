@@ -1,4 +1,5 @@
 #include "scene/sceneobject.hpp"
+#include <iostream>
 
 #include "shapes/plane.hpp"
 #include "shapes/sphere.hpp"
@@ -18,10 +19,20 @@ namespace rt {
     m_shape(getShape(shape, worldPos, radius, normal)),
     m_material(CMaterial(albedo)),
     m_hostDeviceConnection(this) {
-    
   }
+
+  CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
+    m_shape(std::move(sceneobject.m_shape)),
+    m_material(std::move(sceneobject.m_material)),
+    m_hostDeviceConnection(this) {
+  }
+
   CSceneobjectConnection::CSceneobjectConnection(CHostSceneobject* hostSceneobject):
     m_hostSceneobject(hostSceneobject) {
+  }
+
+  CSceneobjectConnection::CSceneobjectConnection(const CSceneobjectConnection&& connection) :
+    m_hostSceneobject(std::move(connection.m_hostSceneobject)) {
   }
   void CSceneobjectConnection::allocateDeviceMemory() {
     switch (m_hostSceneobject->m_shape->shape()) {
@@ -52,5 +63,19 @@ namespace rt {
 
   void CSceneobjectConnection::freeDeviceMemory() {
     cudaFree(m_deviceShape);
+  }
+
+  SSurfaceInteraction CDeviceSceneobject::intersect(const Ray& ray) const {
+    SSurfaceInteraction si;
+    switch (m_shape->shape()) {
+    case EShape::PLANE:
+      si.hitInformation = ((Plane*)m_shape)->intersect(ray);
+      break;
+    case EShape::SPHERE:
+      si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
+      break;
+    }
+    si.surfaceAlbedo = m_material.albedo();
+    return si;
   }
 }

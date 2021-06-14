@@ -8,34 +8,32 @@
 
 #include "scene/scene.hpp"
 #include "camera/camera.hpp"
+#include "../common/frame.hpp"
 
 namespace rt {
-  struct SFrame {
+  struct SDeviceFrame {
     uint16_t width;
     uint16_t height;
     uint8_t bpp;
     float* data;
   };
 
-  struct SHostFrame {
-    uint16_t width;
-    uint16_t height;
-    uint8_t bpp;
-    std::vector<float> data;
-  };
-
 	class Raytracer {
   public:
 
-    Raytracer();
+    Raytracer(uint16_t frameWidth, uint16_t frameHeight);
     ~Raytracer();
 
-    SHostFrame renderFrame();
+    SFrame renderFrame();
 	private:
+    uint16_t m_frameWidth;
+    uint16_t m_frameHeight;
+    uint8_t m_bpp;
+
     CHostScene m_scene;
     CCamera m_hostCamera;
     CCamera* m_deviceCamera;
-    SFrame* m_deviceFrame;
+    SDeviceFrame* m_deviceFrame;
     float* m_deviceFrameData;
 
     static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);
@@ -45,7 +43,7 @@ namespace rt {
     void initDeviceData();
     void freeDeviceMemory();
 
-    SHostFrame retrieveFrame() const;
+    SFrame retrieveFrame() const;
 	};
 
 }

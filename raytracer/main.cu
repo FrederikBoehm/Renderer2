@@ -1,13 +1,20 @@
 #include "raytracer.hpp"
+#include "../visualisation/visualisation.hpp"
 
 void main() {
   using namespace rt;
-  rt::Raytracer raytracer;
+  const uint16_t WIDTH = 1920;
+  const uint16_t HEIGHT = 1080;
 
+  rt::Raytracer raytracer(WIDTH, HEIGHT);
+  vis::CVisualisation visualizer(WIDTH, HEIGHT);
 
-  raytracer.renderFrame();
+  SFrame frame = raytracer.renderFrame();
+
+  visualizer.render(frame);
   while (true) {
-    raytracer.renderFrame();
+    visualizer.render(frame);
+    //raytracer.renderFrame();
   }
 
 }
