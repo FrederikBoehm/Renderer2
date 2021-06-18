@@ -1,5 +1,5 @@
 #include "scene/scene.hpp"
-#include "intersect/surface_interaction.hpp"
+#include "scene/surface_interaction.hpp"
 #include "cuda_runtime.h"
 
 namespace rt {
@@ -50,7 +50,6 @@ namespace rt {
 
   SSurfaceInteraction CDeviceScene::intersect(const Ray& ray) const {
     SSurfaceInteraction closestInteraction;
-    closestInteraction.surfaceAlbedo = glm::vec3(0.0f);
     closestInteraction.hitInformation.t = 1e+10;
     CDeviceSceneobject* sceneobjects = m_sceneobjects;
     for (uint8_t i = 0; i < m_numSceneobjects; ++i) {

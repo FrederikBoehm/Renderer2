@@ -2,11 +2,12 @@
 #define SURFACE_INTERACTION_HXX
 
 #include "intersect/hit_information.hpp"
+#include "material/material.hpp"
 
 namespace rt {
   struct SSurfaceInteraction {
     SHitInformation hitInformation;
-    glm::vec3 surfaceAlbedo;
+    CMaterial material;
   };
 }
 

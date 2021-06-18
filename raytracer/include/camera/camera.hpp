@@ -1,13 +1,11 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include <random>
-#include "curand_kernel.h"
-
 #include <glm/glm.hpp>
 
 #include "intersect/ray.hpp"
 #include "utility/qualifiers.hpp"
+#include "sampling/sampler.hpp"
 
 namespace rt {
   class CCamera {
@@ -22,7 +20,7 @@ namespace rt {
       lookAt: world position of the target that the cam looks to
       up: world direction of the up vector
     */
-    DH_CALLABLE CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up);
+    DH_CALLABLE CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up, CSampler* sampler = nullptr);
 
     /*
       Samples the specified pixel randomly. Returns a ray in world space.
@@ -30,10 +28,10 @@ namespace rt {
     */
     D_CALLABLE Ray samplePixel(uint16_t x, uint16_t y);
 
-    D_CALLABLE void initCurandState();
-
     DH_CALLABLE uint16_t sensorWidth() const;
     DH_CALLABLE uint16_t sensorHeight() const;
+
+    H_CALLABLE void setSampler(CSampler* sampler);
   private:
 
     //static std::random_device s_rd;
@@ -52,7 +50,7 @@ namespace rt {
     glm::mat4 m_worldToView;
     glm::mat4 m_viewToWorld;
 
-    curandState_t m_curandState;
+    CSampler* m_sampler;
 
     DH_CALLABLE static float getNearPlaneDistance(uint16_t sensorWidth, float fov, float pixelSize);
 
@@ -64,6 +62,10 @@ namespace rt {
 
   inline uint16_t CCamera::sensorHeight() const {
     return m_sensorHeight;
+  }
+
+  inline void CCamera::setSampler(CSampler* sampler) {
+    m_sampler = sampler;
   }
 
 }

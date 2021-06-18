@@ -10,7 +10,10 @@ set(SOURCE_FILES
 	src/shapes/sphere.cu
 	src/shapes/plane.cu
 	src/intersect/ray.cu
-	src/material/material.cpp)
+	src/material/material.cu
+	src/material/lambertian_brdf.cu
+	src/material/specular_brdf.cu
+	src/sampling/sampler.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/camera/camera.hpp
@@ -23,13 +26,17 @@ set(HEADER_FILES
 	include/intersect/ray.hpp
 	include/intersect/hit_information.hpp
 	include/material/material.hpp
-	include/utility/qualifiers.hpp)
+	include/material/lambertian_brdf.hpp
+	include/material/specular_brdf.hpp
+	include/utility/qualifiers.hpp
+	include/sampling/sampler.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
 set_property(TARGET raytracer PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_include_directories(raytracer PRIVATE include)
 target_include_directories(raytracer PRIVATE "../3rdparty/glm")
+target_include_directories(raytracer PRIVATE "../3rdparty")
 
 target_link_libraries(raytracer PRIVATE glm)
 target_link_libraries(raytracer PRIVATE visualisation)

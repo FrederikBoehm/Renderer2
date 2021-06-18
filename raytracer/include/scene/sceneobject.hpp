@@ -11,7 +11,7 @@ namespace rt {
   class CDeviceSceneobject {
     friend class CSceneobjectConnection;
   public:
-    D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
+    D_CALLABLE SSurfaceInteraction intersect(const Ray& ray);
 
   private:
     CShape* m_shape;
@@ -38,7 +38,8 @@ namespace rt {
   class CHostSceneobject {
     friend class CSceneobjectConnection;
   public:
-    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& albedo);
+    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le);
+    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, const glm::vec3& specularReflection, float shininess);
     CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject);
 
     void allocateDeviceMemory();

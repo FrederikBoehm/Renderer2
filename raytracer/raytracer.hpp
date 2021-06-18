@@ -18,6 +18,8 @@ namespace rt {
     float* data;
   };
 
+  class CSampler;
+
 	class Raytracer {
   public:
 
@@ -32,9 +34,11 @@ namespace rt {
 
     CHostScene m_scene;
     CCamera m_hostCamera;
+    uint16_t m_numSamples;
     CCamera* m_deviceCamera;
     SDeviceFrame* m_deviceFrame;
     float* m_deviceFrameData;
+    CSampler* m_deviceSampler;
 
     static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);
 

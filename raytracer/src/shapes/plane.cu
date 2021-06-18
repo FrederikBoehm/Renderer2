@@ -37,6 +37,7 @@ namespace rt {
         if (distance < m_radius) {
           si.hit = true;
           si.pos = ray.m_origin + t * ray.m_direction;
+          si.normal = m_normal;
           si.t = t;
         }
       }

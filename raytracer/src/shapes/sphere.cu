@@ -35,6 +35,7 @@ namespace rt {
         si.hit = true;
         glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + t * rayModelSpace.m_direction;
         si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
+        si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
         si.t = t;
       }
     }
@@ -51,12 +52,14 @@ namespace rt {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + minimum * rayModelSpace.m_direction;
           si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
+          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
           si.t = minimum;
         }
         else {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + maximum * rayModelSpace.m_direction;
           si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
+          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
           si.t = maximum;
         }
       }

@@ -15,10 +15,17 @@ namespace rt {
     }
   }
 
-  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& albedo):
+  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le):
     m_shape(getShape(shape, worldPos, radius, normal)),
-    m_material(CMaterial(albedo)),
+    m_material(CMaterial(le)),
     m_hostDeviceConnection(this) {
+  }
+
+  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, const glm::vec3& specularReflection, float shininess):
+    m_shape(getShape(shape, worldPos, radius, normal)),
+    m_material(CMaterial(CLambertianBRDF(diffuseReflection), CSpecularBRDF(specularReflection, shininess))),
+    m_hostDeviceConnection(this) {
+
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -65,7 +72,7 @@ namespace rt {
     cudaFree(m_deviceShape);
   }
 
-  SSurfaceInteraction CDeviceSceneobject::intersect(const Ray& ray) const {
+  SSurfaceInteraction CDeviceSceneobject::intersect(const Ray& ray) {
     SSurfaceInteraction si;
     switch (m_shape->shape()) {
     case EShape::PLANE:
@@ -75,7 +82,7 @@ namespace rt {
       si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
       break;
     }
-    si.surfaceAlbedo = m_material.albedo();
+    si.material = m_material;
     return si;
   }
 }
