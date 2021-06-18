@@ -35,6 +35,7 @@ namespace rt {
     CHostScene m_scene;
     CCamera m_hostCamera;
     uint16_t m_numSamples;
+    float m_tonemappingFactor;
     CCamera* m_deviceCamera;
     SDeviceFrame* m_deviceFrame;
     float* m_deviceFrameData;

@@ -17,7 +17,6 @@ namespace rt {
   __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, CSampler* sampler, uint16_t numSamples, SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x;
-    float* data = frame->data;
 
     if (y < frame->height && x < frame->width) {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
@@ -59,6 +58,23 @@ namespace rt {
     }
   }
 
+  __global__ void applyTonemapping(SDeviceFrame* frame, float tonemapFactor) {
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x;
+
+    if (y < frame->height && x < frame->width) {
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+    
+      float r = frame->data[currentPixel + 0];
+      float g = frame->data[currentPixel + 1];
+      float b = frame->data[currentPixel + 2];
+
+      frame->data[currentPixel + 0] = r / (r + tonemapFactor);
+      frame->data[currentPixel + 1] = g / (g + tonemapFactor);
+      frame->data[currentPixel + 2] = b / (b + tonemapFactor);
+    }
+  }
+
   Raytracer::Raytracer(uint16_t frameWidth, uint16_t frameHeight) :
     m_frameWidth(frameWidth),
     m_frameHeight(frameHeight),
@@ -66,6 +82,7 @@ namespace rt {
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(10),
+    m_tonemappingFactor(1.0f),
     m_deviceCamera(nullptr),
     m_deviceFrameData(nullptr),
     m_deviceSampler(nullptr) {
@@ -98,6 +115,9 @@ namespace rt {
       rt::renderFrame << <grid, 1 >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       cudaError_t error = cudaDeviceSynchronize();
     }
+    rt::applyTonemapping << <grid, 1 >> > (m_deviceFrame, m_tonemappingFactor);
+    cudaDeviceSynchronize();
+
     SFrame frame = retrieveFrame();
     return frame;
   }
