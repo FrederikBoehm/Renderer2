@@ -75,27 +75,45 @@ namespace rt {
     }
   }
 
+  __global__ void correctGamma(SDeviceFrame* frame, float gamma) {
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x;
+
+    if (y < frame->height && x < frame->width) {
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+
+      float r = frame->data[currentPixel + 0];
+      float g = frame->data[currentPixel + 1];
+      float b = frame->data[currentPixel + 2];
+
+      frame->data[currentPixel + 0] = glm::pow(r, 1 / gamma);
+      frame->data[currentPixel + 1] = glm::pow(g, 1 / gamma);
+      frame->data[currentPixel + 2] = glm::pow(b, 1 / gamma);
+    }
+  }
+
   Raytracer::Raytracer(uint16_t frameWidth, uint16_t frameHeight) :
     m_frameWidth(frameWidth),
     m_frameHeight(frameHeight),
     m_bpp(3),
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_numSamples(10),
+    m_numSamples(100),
     m_tonemappingFactor(1.0f),
+    m_gamma(2.0f),
     m_deviceCamera(nullptr),
     m_deviceFrameData(nullptr),
     m_deviceSampler(nullptr) {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.7f), glm::vec3(0.8f), 2.0f));
-    float lightness = 100.0f / 255.0f;
+    float lightness = 50.0f / 255.0f;
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 0, 6), 0.05f, glm::vec3(), glm::vec3(lightness, lightness, 0.85f), glm::vec3(0.9f), 1000.0f));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 1, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, 0.85f), glm::vec3(0.9f), 1000.0f));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 2, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, lightness), glm::vec3(0.9f), 1000.0f));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 3, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, 0.85f, lightness), glm::vec3(0.9f), 1000.0f));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 4, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, lightness), glm::vec3(0.9f), 1000.0f));
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 5, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, 0.85f), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.3f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(5.0f))); // Light
+    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.3f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(3.0f))); // Light
 
     allocateDeviceMemory();
     copyToDevice();
@@ -112,10 +130,14 @@ namespace rt {
     CDeviceScene* scene = m_scene.deviceScene();
     dim3 grid(m_frameWidth, m_frameHeight);
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
+      std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
       rt::renderFrame << <grid, 1 >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       cudaError_t error = cudaDeviceSynchronize();
     }
     rt::applyTonemapping << <grid, 1 >> > (m_deviceFrame, m_tonemappingFactor);
+    cudaDeviceSynchronize();
+
+    rt::correctGamma << <grid, 1 >> > (m_deviceFrame, m_gamma);
     cudaDeviceSynchronize();
 
     SFrame frame = retrieveFrame();
