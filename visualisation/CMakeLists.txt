@@ -1,7 +1,7 @@
 #project(visualisation LANGUAGES CXX)
 
-set(SOURCE_FILES visualisation.cpp src/gl_visualiser.cpp)
-set(HEADER_FILES visualisation.hpp include/gl_visualiser.hpp)
+set(SOURCE_FILES visualisation.cpp src/gl_visualiser.cpp src/image_writer.cpp)
+set(HEADER_FILES visualisation.hpp include/gl_visualiser.hpp include/image_writer.hpp)
 
 add_library(visualisation STATIC ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -12,6 +12,7 @@ target_include_directories(visualisation PRIVATE include)
 target_include_directories(visualisation PRIVATE "../3rdparty/glm")
 target_include_directories(visualisation PRIVATE "../3rdparty/glad")
 target_include_directories(visualisation PRIVATE "../3rdparty/glfw")
+target_include_directories(visualisation PRIVATE "../3rdparty/stb")
 
 target_link_libraries(visualisation PRIVATE glm)
 target_link_libraries(visualisation PRIVATE glad)
