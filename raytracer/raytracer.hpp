@@ -16,6 +16,7 @@ namespace rt {
     uint16_t height;
     uint8_t bpp;
     float* data;
+    uint8_t* dataBytes;
   };
 
   class CSampler;
@@ -40,6 +41,7 @@ namespace rt {
     CCamera* m_deviceCamera;
     SDeviceFrame* m_deviceFrame;
     float* m_deviceFrameData;
+    uint8_t* m_deviceFrameDataBytes;
     CSampler* m_deviceSampler;
 
     static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);

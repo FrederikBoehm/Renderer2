@@ -7,5 +7,6 @@ struct SFrame {
   uint16_t height;
   uint8_t bpp;
   std::vector<float> data;
+  std::vector<uint8_t> dataBytes;
 };
 #endif // !FRAME_HPP

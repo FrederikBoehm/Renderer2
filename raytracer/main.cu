@@ -1,7 +1,8 @@
 #include "raytracer.hpp"
 #include "../visualisation/visualisation.hpp"
+#include <iostream>
 
-void main() {
+int main() {
   using namespace rt;
   const uint16_t WIDTH = 1280;
   const uint16_t HEIGHT = 720;
@@ -11,10 +12,11 @@ void main() {
 
   SFrame frame = raytracer.renderFrame();
 
-
+  visualizer.writeToFile("./", frame, vis::EImageFormat::JPG);
+  visualizer.writeToFile("./", frame, vis::EImageFormat::PNG);
   visualizer.render(frame);
-  while (true) {
-    visualizer.render(frame);
-  }
+  bool finish;
+  std::cin >> finish;
+  return 0;
 
 }

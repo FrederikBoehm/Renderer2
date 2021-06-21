@@ -92,6 +92,19 @@ namespace rt {
     }
   }
 
+  __global__ void fillByteFrame(SDeviceFrame* frame) {
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x;
+
+    if (y < frame->height && x < frame->width) {
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+
+      frame->dataBytes[currentPixel + 0] = glm::round(frame->data[currentPixel + 0] * 255.0f);
+      frame->dataBytes[currentPixel + 1] = glm::round(frame->data[currentPixel + 1] * 255.0f);
+      frame->dataBytes[currentPixel + 2] = glm::round(frame->data[currentPixel + 2] * 255.0f);
+    }
+  }
+
   Raytracer::Raytracer(uint16_t frameWidth, uint16_t frameHeight) :
     m_frameWidth(frameWidth),
     m_frameHeight(frameHeight),
@@ -140,6 +153,9 @@ namespace rt {
     rt::correctGamma << <grid, 1 >> > (m_deviceFrame, m_gamma);
     cudaDeviceSynchronize();
 
+    rt::fillByteFrame << <grid, 1 >> > (m_deviceFrame);
+    cudaDeviceSynchronize();
+
     SFrame frame = retrieveFrame();
     return frame;
   }
@@ -157,6 +173,7 @@ namespace rt {
     cudaMalloc(&m_deviceCamera, sizeof(CCamera));
     cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
     cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
+    cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
   }
 
   void Raytracer::copyToDevice() {
@@ -170,6 +187,7 @@ namespace rt {
     f.height = m_hostCamera.sensorHeight();
     f.bpp = m_bpp;
     f.data = m_deviceFrameData;
+    f.dataBytes = m_deviceFrameDataBytes;
     cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice);
   }
 
@@ -191,6 +209,8 @@ namespace rt {
     frame.bpp = m_bpp;
     frame.data.resize(entries);
     cudaMemcpy(frame.data.data(), m_deviceFrameData, entries * sizeof(float), cudaMemcpyDeviceToHost);
+    frame.dataBytes.resize(entries);
+    cudaMemcpy(frame.dataBytes.data(), m_deviceFrameDataBytes, entries * sizeof(uint8_t), cudaMemcpyDeviceToHost);
     return frame;
   }
 }
