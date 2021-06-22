@@ -3,6 +3,7 @@
 set(SOURCE_FILES 
 	main.cu
 	raytracer.cu
+	src/utility/performance_monitoring.cpp
 	src/camera/camera.cu
 	src/scene/scene.cu
 	src/scene/sceneobject.cu
@@ -16,6 +17,7 @@ set(SOURCE_FILES
 	src/sampling/sampler.cu)
 set(HEADER_FILES
 	raytracer.hpp
+	include/utility/performance_monitoring.hpp
 	include/camera/camera.hpp
 	include/scene/scene.hpp
 	include/scene/sceneobject.hpp
