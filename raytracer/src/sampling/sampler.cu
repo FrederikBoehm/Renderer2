@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include "..\..\include\sampling\sampler.hpp"
+#include "sampling/sampler.hpp"
 
 namespace rt {
   void CSampler::init() {

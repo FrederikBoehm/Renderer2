@@ -46,4 +46,8 @@ source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES})
 target_compile_options(raytracer PRIVATE "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-G>")
 target_compile_features(raytracer PRIVATE cxx_std_17)
 
+if (GUI)
+target_compile_definitions(raytracer PRIVATE GUI_PLATFORM)
+endif()
+
 set_target_properties(raytracer PROPERTIES CUDA_SEPERABLE_COMPILATION ON)

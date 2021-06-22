@@ -2,8 +2,11 @@
 
 #include <iostream>
 #include <vector>
+
+#ifdef GUI_PLATFORM
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#endif
 
 namespace vis {
 
@@ -16,10 +19,13 @@ namespace vis {
   }
 
   CGLVisualiser::~CGLVisualiser() {
+#ifdef GUI_PLATFORM
     glfwTerminate();
+#endif
   }
 
   void CGLVisualiser::render(const SFrame& frame) {
+#ifdef GUI_PLATFORM
     glfwPollEvents();
 
 
@@ -39,6 +45,7 @@ namespace vis {
 
     // Swap the screen buffers
     glfwSwapBuffers(m_window);
+#endif
   }
 
   void CGLVisualiser::init() {
@@ -49,6 +56,9 @@ namespace vis {
   }
 
   void CGLVisualiser::initGL() {
+#ifdef GUI_PLATFORM
+
+
     glfwInit();
     // Set all the required options for GLFW
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -75,9 +85,13 @@ namespace vis {
 
     // Define the viewport dimensions
     glViewport(0, 0, m_width, m_height);
+#endif // GUI_PLATFORM
   }
 
   void CGLVisualiser::setupVertices() {
+#ifdef GUI_PLATFORM
+
+
     glGenVertexArrays(1, &m_vao);
     glBindVertexArray(m_vao);
 
@@ -104,9 +118,13 @@ namespace vis {
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
+#endif // GUI_PLATFORM
   }
 
   void CGLVisualiser::setupShaders() {
+#ifdef GUI_PLATFORM
+
+
     const char* vertexSource = "\n"
       "#version 450 core\n"
       "layout(location = 0) in vec3 aPos;\n"
@@ -181,9 +199,13 @@ namespace vis {
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+#endif // GUI_PLATFORM
   }
 
   void CGLVisualiser::setupTexture() {
+#ifdef GUI_PLATFORM
+
+
     glGenTextures(1, &m_texture);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -197,11 +219,16 @@ namespace vis {
     glUseProgram(m_program);
     glUniform1i(glGetUniformLocation(m_program, "tex"), 0);
     glUseProgram(0);
+#endif // GUI_PLATFORM
   }
 
   void CGLVisualiser::release() const {
+#ifdef GUI_PLATFORM
+
+
     glDeleteVertexArrays(1, &m_vao);
     glDeleteBuffers(1, &m_vbo);
     glDeleteBuffers(1, &m_ebo);
+#endif // GUI_PLATFORM
   }
 }

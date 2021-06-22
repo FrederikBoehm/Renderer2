@@ -1,6 +1,7 @@
 #ifndef FRAME_HPP
 #define FRAME_HPP
 #include <vector>
+#include <cstdint>
 
 struct SFrame {
   uint16_t width;
