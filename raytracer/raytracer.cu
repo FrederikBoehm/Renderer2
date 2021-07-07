@@ -12,18 +12,27 @@
 #include "utility/performance_monitoring.hpp"
 
 namespace rt {
-  __global__ void init(CSampler* sampler) {
-    sampler->init();
+  __global__ void init(CSampler* sampler, SDeviceFrame* frame) {
+    //sampler->init();
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
+
+    uint32_t samplerId = y * frame->width + x;
+    sampler[samplerId].init(samplerId, 0);
   }
 
   __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, CSampler* sampler, uint16_t numSamples, SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (y < frame->height && x < frame->width) {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+      uint32_t samplerId = y * frame->width + x;
 
-      Ray eyeRay = camera->samplePixel(x, y);
+      //sampler->init(currentPixel);
+
+      Ray eyeRay = camera->samplePixel(x, y, sampler[samplerId]);
+
       SSurfaceInteraction si = scene->intersect(eyeRay);
       if (si.hitInformation.hit) {
         if (si.material.Le() != glm::vec3(0.0f)) {
@@ -33,7 +42,7 @@ namespace rt {
           frame->data[currentPixel + 2] += le.b;
         }
         else {
-          glm::vec3 tangentSpaceDirection = sampler->uniformSampleHemisphere();
+          glm::vec3 tangentSpaceDirection = sampler[samplerId].uniformSampleHemisphere();
           // Construct tangent space
           glm::vec3 notN = normalize(glm::vec3(si.hitInformation.normal.x + 1.0f, si.hitInformation.normal.x + 2.0f, si.hitInformation.normal.x + 3.0f));
           glm::vec3 tangent = glm::normalize(glm::cross(notN, si.hitInformation.normal));
@@ -49,12 +58,17 @@ namespace rt {
           glm::vec3 f = si.material.f(si.hitInformation, -eyeRay.m_direction, shadowRay.m_direction);
           glm::vec3 Le = si2.material.Le();
           float cosine = glm::max(glm::dot(si.hitInformation.normal, shadowRay.m_direction), 0.0f);
-          float pdf = sampler->uniformHemispherePdf();
+          float pdf = sampler[currentPixel].uniformHemispherePdf();
 
           glm::vec3 L = f * Le * cosine / ((float)numSamples * pdf);
           frame->data[currentPixel + 0] += L.r;
           frame->data[currentPixel + 1] += L.g;
           frame->data[currentPixel + 2] += L.b;
+          //curandState_t m_curandState;
+          //curand_init(currentPixel, 0, 0, &m_curandState);
+          //frame->data[currentPixel + 0] += sampler[samplerId].uniformSample01();
+          //frame->data[currentPixel + 1] += 0;
+          //frame->data[currentPixel + 2] += 0;
         }
       }
     }
@@ -62,7 +76,7 @@ namespace rt {
 
   __global__ void applyTonemapping(SDeviceFrame* frame, float tonemapFactor) {
     uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (y < frame->height && x < frame->width) {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
@@ -79,7 +93,7 @@ namespace rt {
 
   __global__ void correctGamma(SDeviceFrame* frame, float gamma) {
     uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (y < frame->height && x < frame->width) {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
@@ -96,7 +110,7 @@ namespace rt {
 
   __global__ void fillByteFrame(SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (y < frame->height && x < frame->width) {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
@@ -113,12 +127,13 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_numSamples(100),
+    m_numSamples(10000),
     m_tonemappingFactor(1.0f),
     m_gamma(2.0f),
     m_deviceCamera(nullptr),
     m_deviceFrameData(nullptr),
-    m_deviceSampler(nullptr) {
+    m_deviceSampler(nullptr),
+    m_blockSize(128) {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.7f), glm::vec3(0.8f), 2.0f));
     float lightness = 50.0f / 255.0f;
@@ -141,33 +156,31 @@ namespace rt {
 
   SFrame Raytracer::renderFrame() {
     // TODO: Measure execution time
-    //CPerformanceMonitoring::startMeasurement("renderFrame (Method)");
     CDeviceScene* scene = m_scene.deviceScene();
-    dim3 grid(m_frameWidth, m_frameHeight);
+    dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
       //CPerformanceMonitoring::startMeasurement("renderFrame");
-      rt::renderFrame << <grid, 1 >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
+      rt::renderFrame << <grid, m_blockSize >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       cudaDeviceSynchronize();
       //CPerformanceMonitoring::endMeasurement("renderFrame");
     }
     //CPerformanceMonitoring::startMeasurement("applyTonemapping");
-    rt::applyTonemapping << <grid, 1 >> > (m_deviceFrame, m_tonemappingFactor);
+    rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_tonemappingFactor);
     cudaDeviceSynchronize();
     //CPerformanceMonitoring::endMeasurement("applyTonemapping");
 
     //CPerformanceMonitoring::startMeasurement("correctGamma");
-    rt::correctGamma << <grid, 1 >> > (m_deviceFrame, m_gamma);
+    rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
     cudaDeviceSynchronize();
     //CPerformanceMonitoring::endMeasurement("correctGamma");
 
     //CPerformanceMonitoring::startMeasurement("fillByteFrame");
-    rt::fillByteFrame << <grid, 1 >> > (m_deviceFrame);
+    rt::fillByteFrame << <grid, m_blockSize >> > (m_deviceFrame);
     cudaDeviceSynchronize();
     //CPerformanceMonitoring::endMeasurement("fillByteFrame");
 
     SFrame frame = retrieveFrame();
-    //CPerformanceMonitoring::endMeasurement("renderFrame (Method)");
     return frame;
   }
 
@@ -180,7 +193,7 @@ namespace rt {
 
   void Raytracer::allocateDeviceMemory() {
     m_scene.allocateDeviceMemory();
-    cudaMalloc(&m_deviceSampler, sizeof(CSampler));
+    cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight);
     cudaMalloc(&m_deviceCamera, sizeof(CCamera));
     cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
     cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
@@ -190,7 +203,7 @@ namespace rt {
   void Raytracer::copyToDevice() {
     m_scene.copyToDevice();
     CCamera deviceCamera = m_hostCamera;
-    deviceCamera.setSampler(m_deviceSampler);
+    //deviceCamera.setSampler(m_deviceSampler);
     cudaMemcpy(m_deviceCamera, &deviceCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
     
     SDeviceFrame f;
@@ -204,7 +217,8 @@ namespace rt {
 
   void Raytracer::initDeviceData() {
     //CPerformanceMonitoring::startMeasurement("init");
-    init << <1, 1 >> > (m_deviceSampler);
+    dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
+    init << <grid, m_blockSize >> > (m_deviceSampler, m_deviceFrame);
     cudaDeviceSynchronize();
     //CPerformanceMonitoring::endMeasurement("init");
   }

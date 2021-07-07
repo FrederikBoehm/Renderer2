@@ -26,7 +26,7 @@ namespace rt {
       Samples the specified pixel randomly. Returns a ray in world space.
       Origin (0, 0) is bottom left.
     */
-    D_CALLABLE Ray samplePixel(uint16_t x, uint16_t y);
+    D_CALLABLE Ray samplePixel(uint16_t x, uint16_t y, CSampler& sampler);
 
     DH_CALLABLE uint16_t sensorWidth() const;
     DH_CALLABLE uint16_t sensorHeight() const;

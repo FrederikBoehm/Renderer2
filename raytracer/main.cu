@@ -22,8 +22,7 @@ int main() {
   //std::fstream s("./renderFrame_method.csv", std::fstream::out);
   //std::string output = rt::CPerformanceMonitoring::toString();
   //s.write(output.c_str(), output.size());
-
-
+  //std::cout << output << std::endl;
   SFrame frame = raytracer.renderFrame();
   visualizer.writeToFile("./", frame, vis::EImageFormat::JPG);
   visualizer.writeToFile("./", frame, vis::EImageFormat::PNG);

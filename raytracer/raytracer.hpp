@@ -43,6 +43,7 @@ namespace rt {
     float* m_deviceFrameData;
     uint8_t* m_deviceFrameDataBytes;
     CSampler* m_deviceSampler;
+    const uint16_t m_blockSize;
 
     static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);
 
