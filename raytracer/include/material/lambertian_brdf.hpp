@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include "utility/qualifiers.hpp"
+#define PI 3.14159265359f
 namespace rt {
 
   struct SHitInformation;
@@ -16,5 +17,9 @@ namespace rt {
   private:
     glm::vec3 m_albedo;
   };
+
+  //inline glm::vec3 CLambertianBRDF::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
+  //  return m_albedo / PI;
+  //}
 }
 #endif

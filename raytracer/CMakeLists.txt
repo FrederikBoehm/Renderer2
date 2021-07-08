@@ -1,4 +1,4 @@
-
+cmake_policy(SET CMP0105 NEW)
 
 set(SOURCE_FILES 
 	main.cu
@@ -36,6 +36,7 @@ set(HEADER_FILES
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
 set_property(TARGET raytracer PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+#set_target_properties(raytracer PROPERTIES CUDA_SEPERABLE_COMPILATION ON)
 target_include_directories(raytracer PRIVATE include)
 target_include_directories(raytracer PRIVATE "../3rdparty/glm")
 target_include_directories(raytracer PRIVATE "../3rdparty")
@@ -48,8 +49,13 @@ source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES})
 target_compile_options(raytracer PRIVATE "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-G>")
 target_compile_features(raytracer PRIVATE cxx_std_17)
 
+if (UNIX)
+set_target_properties(raytracer PROPERTIES CUDA_ARCHITECTURES "75")
+endif()
+
+target_link_options(raytracer PRIVATE "$<DEVICE_LINK:-dlto>")
+
 if (GUI)
 target_compile_definitions(raytracer PRIVATE GUI_PLATFORM)
 endif()
 
-set_target_properties(raytracer PROPERTIES CUDA_SEPERABLE_COMPILATION ON)

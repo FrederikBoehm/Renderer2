@@ -27,5 +27,6 @@ rm -rf $LOCAL_TEMP
 
 
 cd build
-cmake -DCMAKE_CUDA_FLAGS="-arch=sm_52" -DGUI:BOOL=true -A x64 ../
+#cmake -DCMAKE_CUDA_FLAGS="-arch=sm_52" -DGUI:BOOL=true -A x64 ../
+cmake -DCMAKE_CUDA_FLAGS="-gencode=arch=compute_52,code=[compute_52,lto_52]" -DGUI:BOOL=true -A x64 ../
 

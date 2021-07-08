@@ -75,6 +75,19 @@ namespace rt {
   inline CDeviceScene* CSceneConnection::deviceScene() {
     return m_deviceScene;
   }
+
+  //inline SSurfaceInteraction CDeviceScene::intersect(const Ray& ray) const {
+  //  SSurfaceInteraction closestInteraction;
+  //  closestInteraction.hitInformation.t = 1e+10;
+  //  CDeviceSceneobject* sceneobjects = m_sceneobjects;
+  //  for (uint8_t i = 0; i < m_numSceneobjects; ++i) {
+  //    SSurfaceInteraction currentInteraction = m_sceneobjects[i].intersect(ray);
+  //    if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
+  //      closestInteraction = currentInteraction;
+  //    }
+  //  }
+  //  return closestInteraction;
+  //}
 }
 
 #endif

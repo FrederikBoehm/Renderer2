@@ -7,6 +7,10 @@ namespace rt {
     curand_init(0, 0, 0, &m_curandState);
   }
 
+  void CSampler::init(uint64_t seed, uint64_t sequence) {
+    curand_init(seed, sequence, 0, &m_curandState);
+  }
+
   float CSampler::uniformSample01() {
     return curand_uniform(&m_curandState);
   }

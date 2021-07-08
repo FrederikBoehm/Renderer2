@@ -11,6 +11,7 @@
 #include <cmath>
 #include <unordered_set>
 #include <algorithm>
+#include <vector>
 
 namespace rt {
   class CPerformanceMonitoring {

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 project(map_raytracer LANGUAGES CXX CUDA)
 
 set(GUI false CACHE BOOL "Setup project with available GUI")
