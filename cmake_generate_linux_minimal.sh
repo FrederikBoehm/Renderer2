@@ -20,6 +20,13 @@ rm -rf $LOCAL_TEMP
 
 
 cd build
-#cmake -DCMAKE_CUDA_FLAGS="-arch=sm_75" -DCMAKE_BUILD_TYPE="Release" -DGUI:BOOL=false ../
-cmake -DCMAKE_CUDA_FLAGS="-gencode=arch=compute_75,code=[compute_75,lto_75]" -DCMAKE_BUILD_TYPE="Release" -DGUI:BOOL=false ../
+
+case "$1" in
+    -lto)
+		cmake -DCMAKE_CUDA_FLAGS="-gencode=arch=compute_75,code=[compute_75,lto_75]" -DCMAKE_BUILD_TYPE="Release" -DGUI:BOOL=false ../
+        ;;
+    *)
+		cmake -DCMAKE_CUDA_FLAGS="-arch=sm_75" -DCMAKE_BUILD_TYPE="Release" -DGUI:BOOL=false ../
+        ;;
+esac
 
