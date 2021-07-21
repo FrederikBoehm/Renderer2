@@ -21,9 +21,5 @@ namespace rt {
     float m_shininess;
   };
 
-  //inline glm::vec3 CSpecularBRDF::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
-  //  glm::vec3 h = normalize(wo + wi);
-  //  return (m_shininess + 8.0f) / (8.0f*PI) * m_specular * glm::pow(glm::max(glm::dot(hitInformation.normal, h), 0.0f), m_shininess);
-  //}
 }
 #endif 

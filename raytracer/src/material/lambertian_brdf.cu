@@ -14,6 +14,7 @@ namespace rt {
 
   }
 
+  // BRDF for diffuse lighting
   glm::vec3 CLambertianBRDF::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
     return m_albedo / PI;
   }

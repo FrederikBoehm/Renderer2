@@ -12,8 +12,8 @@
 #include "utility/performance_monitoring.hpp"
 
 namespace rt {
+  // Initializes cuRAND random number generators
   __global__ void init(CSampler* sampler, SDeviceFrame* frame) {
-    //sampler->init();
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -21,6 +21,7 @@ namespace rt {
     sampler[samplerId].init(samplerId, 0);
   }
 
+  // Raytracing
   __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, CSampler* sampler, uint16_t numSamples, SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -29,13 +30,11 @@ namespace rt {
       uint32_t currentPixel = frame->bpp * (y * frame->width + x);
       uint32_t samplerId = y * frame->width + x;
 
-      //sampler->init(currentPixel);
-
       Ray eyeRay = camera->samplePixel(x, y, sampler[samplerId]);
 
       SSurfaceInteraction si = scene->intersect(eyeRay);
       if (si.hitInformation.hit) {
-        if (si.material.Le() != glm::vec3(0.0f)) {
+        if (si.material.Le() != glm::vec3(0.0f)) { // Hit on light source
           glm::vec3 le = si.material.Le() / (float)numSamples; // TODO: Maybe divide by numSamples at the very end
           frame->data[currentPixel + 0] += le.r;
           frame->data[currentPixel + 1] += le.g;
@@ -64,16 +63,12 @@ namespace rt {
           frame->data[currentPixel + 0] += L.r;
           frame->data[currentPixel + 1] += L.g;
           frame->data[currentPixel + 2] += L.b;
-          //curandState_t m_curandState;
-          //curand_init(currentPixel, 0, 0, &m_curandState);
-          //frame->data[currentPixel + 0] += sampler[samplerId].uniformSample01();
-          //frame->data[currentPixel + 1] += 0;
-          //frame->data[currentPixel + 2] += 0;
         }
       }
     }
   }
 
+  // Map colors to [0.0f, 1.0f]
   __global__ void applyTonemapping(SDeviceFrame* frame, float tonemapFactor) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -91,6 +86,7 @@ namespace rt {
     }
   }
 
+  // Corrects nonliniar monitor output
   __global__ void correctGamma(SDeviceFrame* frame, float gamma) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -108,6 +104,7 @@ namespace rt {
     }
   }
 
+  // Maps [0.0f, 1.0f] to [0, 255]
   __global__ void fillByteFrame(SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -127,7 +124,7 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_numSamples(10000),
+    m_numSamples(100),
     m_tonemappingFactor(1.0f),
     m_gamma(2.0f),
     m_deviceCamera(nullptr),
@@ -154,8 +151,8 @@ namespace rt {
     freeDeviceMemory();
   }
 
+  // Renderpipeline
   SFrame Raytracer::renderFrame() {
-    // TODO: Measure execution time
     CDeviceScene* scene = m_scene.deviceScene();
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
@@ -184,6 +181,7 @@ namespace rt {
     return frame;
   }
 
+  // Distributes N spheres evenly around circle
   glm::vec3 Raytracer::getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres) {
     float x = 4.0f * sphereRadius * std::cos(2 * M_PI / maxSpheres * index);
     float z = -4.0f * sphereRadius * std::sin(2 * M_PI / maxSpheres * index);
@@ -203,7 +201,6 @@ namespace rt {
   void Raytracer::copyToDevice() {
     m_scene.copyToDevice();
     CCamera deviceCamera = m_hostCamera;
-    //deviceCamera.setSampler(m_deviceSampler);
     cudaMemcpy(m_deviceCamera, &deviceCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
     
     SDeviceFrame f;

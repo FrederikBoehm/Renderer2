@@ -74,18 +74,5 @@ namespace rt {
     m_hostDeviceConnection.freeDeviceMemory();
   }
 
-  //inline SSurfaceInteraction CDeviceSceneobject::intersect(const Ray& ray) {
-  //  SSurfaceInteraction si;
-  //  switch (m_shape->shape()) {
-  //  case EShape::PLANE:
-  //    si.hitInformation = ((Plane*)m_shape)->intersect(ray);
-  //    break;
-  //  case EShape::SPHERE:
-  //    si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
-  //    break;
-  //  }
-  //  si.material = m_material;
-  //  return si;
-  //}
 }
 #endif // !SCENEOBJECT_HPP

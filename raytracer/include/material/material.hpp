@@ -31,11 +31,5 @@ namespace rt {
     return m_Le;
   }
 
-  //inline glm::vec3 CMaterial::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
-  //  glm::vec3 lambertian = m_lambertianBRDF.f(hitInformation, wo, wi);
-  //  glm::vec3 microfacet = m_specularBRDF.f(hitInformation, wo, wi);
-  //  return lambertian + microfacet;
-  //}
-
 }
 #endif // !MATERIAL_HXX
