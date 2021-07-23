@@ -5,6 +5,8 @@
 #include "shapes/sphere.hpp"
 #include "material/material.hpp"
 #include "surface_interaction.hpp"
+#include <memory>
+
 namespace rt {
   class CHostSceneobject;
 
@@ -47,11 +49,11 @@ namespace rt {
     void copyToDevice();
     void freeDeviceMemory();
   private:
-    CShape* m_shape;
+    std::shared_ptr<CShape> m_shape;
     CMaterial m_material;
     CSceneobjectConnection m_hostDeviceConnection;
 
-    static CShape* getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
+    static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
   };
 
   inline void CHostSceneobject::allocateDeviceMemory() {

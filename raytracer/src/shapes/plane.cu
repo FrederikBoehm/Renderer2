@@ -20,8 +20,6 @@ namespace rt {
 
 
   SHitInformation Plane::intersect(const Ray& ray) const {
-    // TODO: Currently computation is done in world space -> maybe switch to object space
-
     SHitInformation si;
     si.hit = false;
 

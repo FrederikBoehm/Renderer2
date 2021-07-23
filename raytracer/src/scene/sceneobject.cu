@@ -5,13 +5,13 @@
 #include "shapes/sphere.hpp"
 
 namespace rt {
-  CShape* CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
+  std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
     switch (shape) {
     case EShape::PLANE:
-      return new Plane(worldPos, radius, normal); // TODO: Allocate from host
+      return std::make_shared<Plane>(worldPos, radius, normal);
       break;
     case EShape::SPHERE:
-      return new Sphere(worldPos, radius);
+      return std::make_shared<Sphere>(worldPos, radius);
     }
   }
 
@@ -54,10 +54,10 @@ namespace rt {
   void CSceneobjectConnection::copyToDevice() {
     switch (m_hostSceneobject->m_shape->shape()) {
     case EShape::PLANE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape, sizeof(Plane), cudaMemcpyHostToDevice);
+      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Plane), cudaMemcpyHostToDevice);
       break;
     case EShape::SPHERE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape, sizeof(Sphere), cudaMemcpyHostToDevice);
+      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice);
       break;
     }
     if (m_deviceSceneobject) {

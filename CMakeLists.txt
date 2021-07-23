@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(map_raytracer LANGUAGES CXX CUDA)
 
 set(GUI false CACHE BOOL "Setup project with available GUI")
+set(LTO false CACHE BOOL "Setup project with link time optimization")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)

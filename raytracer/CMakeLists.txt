@@ -53,7 +53,9 @@ if (UNIX)
 set_target_properties(raytracer PROPERTIES CUDA_ARCHITECTURES "75")
 endif()
 
+if (LTO)
 target_link_options(raytracer PRIVATE "$<DEVICE_LINK:-dlto>")
+endif()
 
 if (GUI)
 target_compile_definitions(raytracer PRIVATE GUI_PLATFORM)

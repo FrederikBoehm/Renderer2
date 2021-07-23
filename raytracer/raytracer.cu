@@ -35,7 +35,7 @@ namespace rt {
       SSurfaceInteraction si = scene->intersect(eyeRay);
       if (si.hitInformation.hit) {
         if (si.material.Le() != glm::vec3(0.0f)) { // Hit on light source
-          glm::vec3 le = si.material.Le() / (float)numSamples; // TODO: Maybe divide by numSamples at the very end
+          glm::vec3 le = si.material.Le() / (float)numSamples;
           frame->data[currentPixel + 0] += le.r;
           frame->data[currentPixel + 1] += le.g;
           frame->data[currentPixel + 2] += le.b;
@@ -104,7 +104,7 @@ namespace rt {
     }
   }
 
-  // Maps [0.0f, 1.0f] to [0, 255]
+  // Maps [0.0f, 1.0f] to [0, 255], required for jpg/png output
   __global__ void fillByteFrame(SDeviceFrame* frame) {
     uint16_t y = blockIdx.y;
     uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -124,7 +124,7 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(0.0f, 0.25f, 0.5f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_numSamples(100),
+    m_numSamples(100), // higher -> less noise
     m_tonemappingFactor(1.0f),
     m_gamma(2.0f),
     m_deviceCamera(nullptr),
@@ -134,12 +134,12 @@ namespace rt {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.7f), glm::vec3(0.8f), 2.0f));
     float lightness = 50.0f / 255.0f;
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 0, 6), 0.05f, glm::vec3(), glm::vec3(lightness, lightness, 0.85f), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 1, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, 0.85f), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 2, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, lightness), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 3, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, 0.85f, lightness), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 4, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, lightness), glm::vec3(0.9f), 1000.0f));
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 5, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, 0.85f), glm::vec3(0.9f), 1000.0f));
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 0, 6), 0.05f, glm::vec3(), glm::vec3(lightness, lightness, 0.85f), glm::vec3(0.9f), 1000.0f)); // blue sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 1, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, 0.85f), glm::vec3(0.9f), 1000.0f)); // violet sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 2, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, lightness, lightness), glm::vec3(0.9f), 1000.0f)); // red sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 3, 6), 0.05f, glm::vec3(), glm::vec3(0.85f, 0.85f, lightness), glm::vec3(0.9f), 1000.0f)); // yellow sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 4, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, lightness), glm::vec3(0.9f), 1000.0f)); // green sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 5, 6), 0.05f, glm::vec3(), glm::vec3(lightness, 0.85f, 0.85f), glm::vec3(0.9f), 1000.0f)); // cyan sphere
     m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.3f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(3.0f))); // Light
 
     allocateDeviceMemory();
