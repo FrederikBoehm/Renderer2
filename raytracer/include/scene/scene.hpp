@@ -7,12 +7,15 @@
 
 namespace rt {
   class CHostScene;
+  class CSampler;
 
   class CDeviceScene {
     friend class CSceneConnection;
   public:
     //DH_CALLABLE CDeviceScene();
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
+    D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler) const;
+    D_CALLABLE float CDeviceScene::lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const;
 
   private:
     uint16_t m_numSceneobjects;

@@ -1,7 +1,7 @@
 #ifndef SAMPLER_HPP
 #define SAMPLER_HPP
-#define _USE_MATH_DEFINES
-#include <cmath>
+//#define _USE_MATH_DEFINES
+//#include <cmath>
 
 #include "curand_kernel.h"
 #include "utility/qualifiers.hpp"
@@ -16,6 +16,7 @@ namespace rt {
     D_CALLABLE float uniformSample01();
     D_CALLABLE glm::vec3 uniformSampleHemisphere();
     D_CALLABLE float uniformHemispherePdf() const;
+    D_CALLABLE glm::vec3 concentricSampleDisk();
   private:
     curandState_t m_curandState;
   };

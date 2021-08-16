@@ -13,8 +13,13 @@ set(SOURCE_FILES
 	src/intersect/ray.cu
 	src/material/material.cu
 	src/material/lambertian_brdf.cu
+	src/material/blinn_phong_brdf.cu
+	src/sampling/sampler.cu
 	src/material/specular_brdf.cu
-	src/sampling/sampler.cu)
+	src/material/oren_nayar_brdf.cu
+	src/material/microfacet_brdf.cu
+	src/material/fresnel.cu
+	src/material/microfacet_distribution.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -29,9 +34,15 @@ set(HEADER_FILES
 	include/intersect/hit_information.hpp
 	include/material/material.hpp
 	include/material/lambertian_brdf.hpp
-	include/material/specular_brdf.hpp
+	include/material/blinn_phong_brdf.hpp
 	include/utility/qualifiers.hpp
-	include/sampling/sampler.hpp)
+	include/sampling/sampler.hpp
+	include/material/specular_brdf.hpp
+	include/material/oren_nayar_brdf.hpp
+	include/material/brdf_functions.hpp
+	include/material/microfacet_brdf.hpp
+	include/material/fresnel.hpp
+	include/material/microfacet_distribution.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})

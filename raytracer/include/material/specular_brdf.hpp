@@ -1,25 +1,16 @@
-#ifndef MICROFACET_BRDF_HPP
-#define MICROFACET_BRDF_HPP
+#ifndef SPECULAR_BRDF_H
+#define SPECULAR_BRDF_H
 
 #include <glm/glm.hpp>
-
 #include "utility/qualifiers.hpp"
-#include "intersect/hit_information.hpp"
 
-#define PI 3.14159265359f
 
-namespace rt {
-  struct SHitInformation;
+class CSpecularBRDF {
+  D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) {
+    return glm::vec3(0.0f);
+  }
 
-  class CSpecularBRDF {
-  public:
-    DH_CALLABLE CSpecularBRDF();
-    DH_CALLABLE CSpecularBRDF(const glm::vec3& specular, float shininess);
-    D_CALLABLE glm::vec3 f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const;
-  private:
-    glm::vec3 m_specular;
-    float m_shininess;
-  };
+};
 
-}
-#endif 
+#endif // !SPECULAR_BRDF_H
+

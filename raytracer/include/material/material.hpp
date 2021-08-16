@@ -4,7 +4,9 @@
 
 #include "utility/qualifiers.hpp"
 #include "lambertian_brdf.hpp"
-#include "specular_brdf.hpp"
+#include "oren_nayar_brdf.hpp"
+#include "blinn_phong_brdf.hpp"
+#include "microfacet_brdf.hpp"
 namespace rt {
   class SHitInformation;
 
@@ -12,7 +14,9 @@ namespace rt {
   public:
     DH_CALLABLE CMaterial();
     DH_CALLABLE CMaterial(const glm::vec3& le);
-    DH_CALLABLE CMaterial(CLambertianBRDF lambertian, CSpecularBRDF specular);
+    DH_CALLABLE CMaterial(CLambertianBRDF lambertian, CBlinnPhongBRDF specular);
+    DH_CALLABLE CMaterial(COrenNayarBRDF diffuse, CBlinnPhongBRDF specular);
+    DH_CALLABLE CMaterial(COrenNayarBRDF diffuse, CMicrofacetBRDF glossy);
 
     DH_CALLABLE const glm::vec3& Le() const;
 
@@ -23,7 +27,9 @@ namespace rt {
   private:
     glm::vec3 m_Le; // Emissive light if light source
     CLambertianBRDF m_lambertianBRDF;
-    CSpecularBRDF m_specularBRDF;
+    COrenNayarBRDF m_orenNayarBRDF;
+    CBlinnPhongBRDF m_specularBRDF;
+    CMicrofacetBRDF m_microfacetBRDF;
   };
 
 

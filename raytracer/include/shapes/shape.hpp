@@ -14,7 +14,7 @@ namespace rt {
     PLANE
   };
 
-  class SurfaceInteraction;
+  class SSurfaceInteraction;
   class Ray;
 
   class CShape {

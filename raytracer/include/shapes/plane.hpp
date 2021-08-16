@@ -6,6 +6,8 @@
 #include "intersect/ray.hpp"
 
 namespace rt {
+  class CSampler;
+
   class Plane : public CShape { // Our plane is actually a circle, this simplifies intersection
   public:
     DH_CALLABLE Plane();
@@ -13,6 +15,9 @@ namespace rt {
     DH_CALLABLE Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
 
     DH_CALLABLE SHitInformation intersect(const Ray& ray) const;
+    D_CALLABLE glm::vec3 sample(CSampler& sampler) const;
+    DH_CALLABLE float pdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const;
+
   
   private:
     float m_radius;

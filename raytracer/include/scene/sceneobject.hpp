@@ -14,6 +14,7 @@ namespace rt {
     friend class CSceneobjectConnection;
   public:
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray);
+    D_CALLABLE const CShape* shape() const;
 
   private:
     CShape* m_shape;
@@ -42,6 +43,7 @@ namespace rt {
   public:
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le);
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, const glm::vec3& specularReflection, float shininess);
+    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
     CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject);
 
     void allocateDeviceMemory();
@@ -55,6 +57,10 @@ namespace rt {
 
     static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
   };
+
+  inline const CShape* CDeviceSceneobject::shape() const {
+    return m_shape;
+  }
 
   inline void CHostSceneobject::allocateDeviceMemory() {
     m_hostDeviceConnection.allocateDeviceMemory();

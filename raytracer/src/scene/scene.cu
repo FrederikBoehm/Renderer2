@@ -60,4 +60,20 @@ namespace rt {
     }
     return closestInteraction;
   }
+
+  glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler) const {
+    const CShape* lightGeometry = m_sceneobjects[m_numSceneobjects - 1].shape();
+    switch (lightGeometry->shape()) {
+    case EShape::PLANE:
+      return ((const Plane*)lightGeometry)->sample(sampler);
+    }
+  }
+
+  float CDeviceScene::lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
+    const CShape* lightGeometry = m_sceneobjects[m_numSceneobjects - 1].shape();
+    switch (lightGeometry->shape()) {
+    case EShape::PLANE:
+      return ((const Plane*)lightGeometry)->pdf(lightHit, shadowRay);
+    }
+  }
 }

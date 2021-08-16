@@ -1,4 +1,9 @@
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "shapes/plane.hpp"
+#include "sampling/sampler.hpp"
+#include "scene/surface_interaction.hpp"
 
 namespace rt {
   Plane::Plane() :
@@ -42,5 +47,24 @@ namespace rt {
     }
 
     return si;
+  }
+
+  glm::vec3 Plane::sample(CSampler& sampler) const {
+    glm::vec3 pd = m_radius * sampler.concentricSampleDisk();
+    return glm::vec3(m_modelToWorld * glm::vec4(pd, 1.0f));
+  }
+
+  float Plane::pdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
+    float distance = glm::length(lightHit.hitInformation.pos - shadowRay.m_origin);
+    return 1 / (m_radius * m_radius * M_PI);
+    //float cosine = glm::abs(glm::dot(lightHit.hitInformation.normal, -shadowRay.m_direction));
+    //if (cosine == 0.0f && lightHit.material.Le() != glm::vec3(0.0f)) {
+    //  return 1 / (m_radius * m_radius * M_PI);
+    //}
+    //else {
+
+    //  float area = m_radius * m_radius * M_PI;
+    //  return distance * distance / (cosine * area);
+    //}
   }
 }
