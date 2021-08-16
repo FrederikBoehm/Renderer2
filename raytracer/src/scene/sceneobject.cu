@@ -21,9 +21,9 @@ namespace rt {
     m_hostDeviceConnection(this) {
   }
 
-  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, const glm::vec3& specularReflection, float shininess):
+  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
     m_shape(getShape(shape, worldPos, radius, normal)),
-    m_material(CMaterial(CLambertianBRDF(diffuseReflection), CSpecularBRDF(specularReflection, shininess))),
+    m_material(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT))),
     m_hostDeviceConnection(this) {
 
   }

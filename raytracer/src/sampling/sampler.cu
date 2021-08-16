@@ -21,7 +21,7 @@ namespace rt {
 
     float r = glm::sqrt(glm::max(0.0f, 1.0f - rand1 * rand1));
     float phi = 2.0 * M_PI * rand2;
-    return glm::vec3(r * glm::cos(phi), r * glm::sin(phi), rand1);
+    return glm::vec3(r * glm::cos(phi), rand1, r * glm::sin(phi));
   }
 
   float CSampler::uniformHemispherePdf() const {
