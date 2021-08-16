@@ -41,7 +41,7 @@ namespace rt {
     friend class CSceneobjectConnection;
   public:
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le);
-    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, const glm::vec3& specularReflection, float shininess);
+    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
     CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject);
 
     void allocateDeviceMemory();
