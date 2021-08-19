@@ -13,7 +13,7 @@ namespace rt {
     D_CALLABLE void init();
     D_CALLABLE void init(uint64_t seed, uint64_t sequence);
 
-    D_CALLABLE float uniformSample01();
+    DH_CALLABLE float uniformSample01();
     D_CALLABLE glm::vec3 uniformSampleHemisphere();
     D_CALLABLE float uniformHemispherePdf() const;
   private:

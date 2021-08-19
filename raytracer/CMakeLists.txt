@@ -18,7 +18,8 @@ set(SOURCE_FILES
 	src/material/oren_nayar_brdf.cu
 	src/material/microfacet_brdf.cu
 	src/material/fresnel.cu
-	src/material/microfacet_distribution.cu)
+	src/material/microfacet_distribution.cu
+	src/sampling/distribution_1d.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -40,7 +41,9 @@ set(HEADER_FILES
 	include/material/brdf_functions.hpp
 	include/material/microfacet_brdf.hpp
 	include/material/fresnel.hpp
-	include/material/microfacet_distribution.hpp)
+	include/material/microfacet_distribution.hpp
+	include/sampling/distribution_1d.hpp
+	include/utility/functions.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
