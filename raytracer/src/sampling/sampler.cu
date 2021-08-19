@@ -12,7 +12,12 @@ namespace rt {
   }
 
   float CSampler::uniformSample01() {
+    // TODO: Make sampler work on host
+#ifdef __CUDA_ARCH__
     return curand_uniform(&m_curandState);
+#else 
+    return 0.0f;
+#endif
   }
 
   glm::vec3 CSampler::uniformSampleHemisphere() {
