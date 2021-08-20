@@ -9,6 +9,7 @@
 
 namespace rt {
   class CCamera {
+    friend class CPixelSampler;
     
   public:
     /*
@@ -22,16 +23,8 @@ namespace rt {
     */
     DH_CALLABLE CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up, CSampler* sampler = nullptr);
 
-    /*
-      Samples the specified pixel randomly. Returns a ray in world space.
-      Origin (0, 0) is bottom left.
-    */
-    D_CALLABLE Ray samplePixel(uint16_t x, uint16_t y, CSampler& sampler);
-
     DH_CALLABLE uint16_t sensorWidth() const;
     DH_CALLABLE uint16_t sensorHeight() const;
-
-    H_CALLABLE void setSampler(CSampler* sampler);
   private:
 
     const float m_pixelSize;
@@ -46,8 +39,6 @@ namespace rt {
     glm::mat4 m_worldToView;
     glm::mat4 m_viewToWorld;
 
-    CSampler* m_sampler;
-
     DH_CALLABLE static float getNearPlaneDistance(uint16_t sensorWidth, float fov, float pixelSize);
 
   };
@@ -58,10 +49,6 @@ namespace rt {
 
   inline uint16_t CCamera::sensorHeight() const {
     return m_sensorHeight;
-  }
-
-  inline void CCamera::setSampler(CSampler* sampler) {
-    m_sampler = sampler;
   }
 
 }
