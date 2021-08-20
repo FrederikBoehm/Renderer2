@@ -19,7 +19,9 @@ set(SOURCE_FILES
 	src/material/microfacet_brdf.cu
 	src/material/fresnel.cu
 	src/material/microfacet_distribution.cu
-	src/sampling/distribution_1d.cu)
+	src/sampling/distribution_1d.cu
+	src/integrators/direct_lighting_integrator.cu
+	src/camera/pixel_sampler.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -43,7 +45,9 @@ set(HEADER_FILES
 	include/material/fresnel.hpp
 	include/material/microfacet_distribution.hpp
 	include/sampling/distribution_1d.hpp
-	include/utility/functions.hpp)
+	include/utility/functions.hpp
+	include/integrators/direct_lighting_integrator.hpp
+	include/camera/pixel_sampler.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
