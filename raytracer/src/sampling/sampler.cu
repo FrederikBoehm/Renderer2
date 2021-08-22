@@ -33,4 +33,28 @@ namespace rt {
     return 1.0f / (2 * M_PI);
   }
 
+  glm::vec3 CSampler::concentricSampleDisk() {
+    float rand1 = curand_uniform(&m_curandState);
+    float rand2 = curand_uniform(&m_curandState);
+
+    glm::vec2 uOffset = 2.0f * glm::vec2(rand1, rand2) - glm::vec2(1.0f);
+
+    if (uOffset.x == 0 && uOffset.y == 0) {
+      return glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+
+    float theta;
+    float r;
+    if (glm::abs(uOffset.x) > glm::abs(uOffset.y)) {
+      r = uOffset.x;
+      theta = M_PI_4 * (uOffset.y / uOffset.x);
+    }
+    else {
+      r = uOffset.y;
+      theta = M_PI_2 - M_PI_4 * (uOffset.x / uOffset.y);
+    }
+
+    return r * glm::vec3(glm::cos(theta), 0.0f, glm::sin(theta));
+  }
+
 }

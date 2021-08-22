@@ -11,8 +11,7 @@ namespace rt {
     m_position(pos),
     m_nearPlaneDistance(CCamera::getNearPlaneDistance(sensorWidth, m_fov, m_pixelSize)),
     m_worldToView(glm::lookAt(m_position, lookAt, up)),
-    m_viewToWorld(glm::inverse(m_worldToView)),
-    m_sampler(sampler){
+    m_viewToWorld(glm::inverse(m_worldToView)){
 
   }
 
