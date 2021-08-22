@@ -7,16 +7,22 @@
 
 namespace rt {
   class CHostScene;
+  class CDistribution1D;
 
   class CDeviceScene {
     friend class CSceneConnection;
   public:
     //DH_CALLABLE CDeviceScene();
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
+    D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
+    D_CALLABLE float lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const;
 
   private:
     uint16_t m_numSceneobjects;
     CDeviceSceneobject* m_sceneobjects;
+    uint16_t m_numLights;
+    CDeviceSceneobject* m_lights; // For now lights are also sceneobjects
+    CDistribution1D* m_lightDist;
   };
 
 
@@ -32,7 +38,8 @@ namespace rt {
     CDeviceScene* m_deviceScene;
     
     CDeviceSceneobject* m_deviceSceneobjects;
-
+    CDeviceSceneobject* m_deviceLights;
+    CDistribution1D* m_deviceLightDist;
   };
 
   class CHostScene { 
@@ -41,6 +48,7 @@ namespace rt {
     H_CALLABLE CHostScene();
     H_CALLABLE const std::vector<CHostSceneobject>& sceneobjects() const;
     H_CALLABLE void addSceneobject(CHostSceneobject&& sceneobject);
+    H_CALLABLE void addLightsource(CHostSceneobject&& lightsource);
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE void copyToDevice();
@@ -48,6 +56,8 @@ namespace rt {
     H_CALLABLE CDeviceScene* deviceScene();
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
+    std::vector<CHostSceneobject> m_lights;
+    CDistribution1D* m_lightDist;
     CSceneConnection m_hostDeviceConnection;
 	};
 

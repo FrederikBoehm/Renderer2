@@ -11,7 +11,7 @@ namespace rt {
       return std::make_shared<Plane>(worldPos, radius, normal);
       break;
     case EShape::SPHERE:
-      return std::make_shared<Sphere>(worldPos, radius);
+      return std::make_shared<Sphere>(worldPos, radius, normal);
     }
   }
 
@@ -83,6 +83,20 @@ namespace rt {
       break;
     }
     si.material = m_material;
+    si.object = this;
     return si;
+  }
+
+  float CHostSceneobject::power() const {
+    glm::vec3 L = m_material.Le();
+    switch (m_shape->shape()) {
+    case EShape::PLANE:
+      return (L.x + L.y + L.z) * ((Plane*)m_shape.get())->area();
+    }
+    return 0.0f;
+  }
+
+  CShape* CDeviceSceneobject::shape() const {
+    return m_shape;
   }
 }

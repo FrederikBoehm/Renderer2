@@ -12,8 +12,8 @@ namespace rt {
   Sphere::Sphere(float radius) : CShape(EShape::SPHERE), m_radius(radius) {
   }
 
-  Sphere::Sphere(const glm::vec3& worldPos, float radius) :
-    CShape(EShape::SPHERE, worldPos),
+  Sphere::Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
+    CShape(EShape::SPHERE, worldPos, normal),
     m_radius(radius) {
 
   }

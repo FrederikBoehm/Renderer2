@@ -23,14 +23,17 @@ namespace rt {
 
     DH_CALLABLE virtual ~CShape();
   protected:
-    DH_CALLABLE CShape(EShape shape, const glm::vec3& worldPos);
+    DH_CALLABLE CShape(EShape shape, const glm::vec3& worldPos, const glm::vec3& normal);
     DH_CALLABLE CShape(EShape shape);
 
     const EShape m_shape;
     glm::vec3 m_worldPos;
+    glm::vec3 m_normal;
     glm::mat4 m_modelToWorld;
     glm::mat4 m_worldToModel;
 
+  private:
+    glm::mat4 getRotation(const glm::vec3& normal);
   };
 
   inline EShape CShape::shape() const {

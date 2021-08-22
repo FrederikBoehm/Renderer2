@@ -1,20 +1,21 @@
 #include "shapes/plane.hpp"
+#include "sampling/sampler.hpp"
+#include "scene/surface_interaction.hpp"
 
 namespace rt {
   Plane::Plane() :
-    CShape(EShape::PLANE), m_radius(1.0f), m_normal(glm::vec3(0.0f, 1.0f, 0.0f)) {
+    CShape(EShape::PLANE), m_radius(1.0f) {
 
   }
 
   Plane::Plane(float radius) :
-    CShape(EShape::PLANE), m_radius(radius), m_normal(glm::vec3(0.0f, 1.0f, 0.0f)) {
+    CShape(EShape::PLANE), m_radius(radius) {
 
   }
 
   Plane::Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
-    CShape(EShape::PLANE, worldPos),
-    m_radius(radius),
-    m_normal(normal) {
+    CShape(EShape::PLANE, worldPos, normal),
+    m_radius(radius) {
 
   }
 
@@ -42,5 +43,19 @@ namespace rt {
     }
 
     return si;
+  }
+
+  glm::vec3 Plane::sample(CSampler& sampler) const {
+    glm::vec3 pd = m_radius * sampler.concentricSampleDisk();
+    return glm::vec3(m_modelToWorld * glm::vec4(pd, 1.0f));
+  }
+
+  float Plane::pdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
+    float distance = glm::length(lightHit.hitInformation.pos - shadowRay.m_origin);
+    return 1 / area();
+  }
+
+  float Plane::area() const {
+    return m_radius * m_radius * M_PI;
   }
 }
