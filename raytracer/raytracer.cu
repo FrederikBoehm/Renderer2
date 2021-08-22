@@ -114,7 +114,20 @@ namespace rt {
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 3, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // yellow sphere
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 4, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // green sphere
     m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 5, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
-    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.3f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(3.0f))); // Light
+    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(3.0f))); // Light
+    glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));
+    glm::vec3 light2Pos = getSpherePosition(0.1f, 1, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light2Pos, 0.05f, -glm::normalize(light2Pos), glm::vec3(10.0f)));
+    glm::vec3 light3Pos = getSpherePosition(0.1f, 2, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light3Pos, 0.05f, -glm::normalize(light3Pos), glm::vec3(10.0f)));
+    glm::vec3 light4Pos = getSpherePosition(0.1f, 3, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light4Pos, 0.05f, -glm::normalize(light4Pos), glm::vec3(10.0f)));
+    glm::vec3 light5Pos = getSpherePosition(0.1f, 4, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light5Pos, 0.05f, -glm::normalize(light5Pos), glm::vec3(10.0f)));
+    glm::vec3 light6Pos = getSpherePosition(0.1f, 5, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
+    m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light6Pos, 0.05f, -glm::normalize(light6Pos), glm::vec3(10.0f)));
+
 
     allocateDeviceMemory();
     copyToDevice();
