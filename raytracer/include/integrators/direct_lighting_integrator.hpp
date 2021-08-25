@@ -8,7 +8,8 @@
 namespace rt {
   enum EIntegrationStrategy {
     UNIFORM_SAMPLE_HEMISPHERE,
-    IMPORTANCE_SAMPLE_LIGHTSOURCES
+    IMPORTANCE_SAMPLE_LIGHTSOURCES,
+    IMPORTANCE_SAMPLE_COSINE
   };
 
   class CDeviceScene;

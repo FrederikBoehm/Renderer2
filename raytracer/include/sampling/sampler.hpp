@@ -17,6 +17,8 @@ namespace rt {
     D_CALLABLE glm::vec3 uniformSampleHemisphere();
     D_CALLABLE float uniformHemispherePdf() const;
     D_CALLABLE glm::vec3 concentricSampleDisk();
+    D_CALLABLE glm::vec3 cosineSampleHemisphere();
+    D_CALLABLE float cosineHemispherePdf(float cosTheta);
   private:
     curandState_t m_curandState;
   };
