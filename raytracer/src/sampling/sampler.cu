@@ -57,4 +57,14 @@ namespace rt {
     return r * glm::vec3(glm::cos(theta), 0.0f, glm::sin(theta));
   }
 
+  glm::vec3 CSampler::cosineSampleHemisphere() {
+    glm::vec3 d = concentricSampleDisk();
+    float y = std::sqrt(std::fmax(0.f, 1.f - d.x * d.x - d.z * d.z));
+    return glm::vec3(d.x, y, d.z);
+  }
+
+  float CSampler::cosineHemispherePdf(float cosTheta) {
+    return cosTheta * M_1_PI;
+  }
+
 }
