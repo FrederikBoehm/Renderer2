@@ -16,6 +16,7 @@ namespace rt {
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
     D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
     D_CALLABLE float lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const;
+    D_CALLABLE float lightSourcesPdf(const SSurfaceInteraction& lightHit) const;
 
   private:
     uint16_t m_numSceneobjects;

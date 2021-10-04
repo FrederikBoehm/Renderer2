@@ -13,13 +13,19 @@ namespace rt {
   CDistribution1D::CDistribution1D(std::vector<float>& f):
     m_func(nullptr),
     m_cdf(nullptr),
-    m_deviceResource(nullptr) {
+    m_deviceResource(nullptr),
+    m_integral(0){
     m_nFunc = f.size();
     m_func = new float[f.size()];
     memcpy(m_func, f.data(), f.size() * sizeof(float));
 
     m_nCdf = f.size() + 1;
     m_cdf = new float[m_nCdf];
+
+
+    for (size_t i = 0; i < f.size(); ++i) {
+      m_integral += f[i];
+    }
 
     m_cdf[0] = 0;
     for (size_t i = 1; i < m_nCdf; ++i) {
@@ -115,6 +121,7 @@ namespace rt {
     temp.m_cdf = m_deviceResource->d_cdf;
     temp.m_funcInt = m_funcInt;
     temp.m_deviceResource = nullptr;
+    temp.m_integral = m_integral;
 
     cudaMemcpy(dst, &temp, sizeof(CDistribution1D), cudaMemcpyHostToDevice);
 

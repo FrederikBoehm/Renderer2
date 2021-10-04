@@ -20,7 +20,7 @@ namespace rt {
   // BRDF for specular reflections
   glm::vec3 CBlinnPhongBRDF::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
     glm::vec3 h = normalize(wo + wi);
-    return (m_shininess + 8.0f) / (float)(8.0f*M_PI) * m_specular * glm::pow(glm::max(glm::dot(glm::vec3(0.0f, 1.0f, 0.0f), h), 0.0f), m_shininess);
+    return (m_shininess + 8.0f) / (float)(8.0f*M_PI) * m_specular * glm::pow(glm::max(glm::dot(glm::vec3(0.0f, 0.0f, 1.0f), h), 0.0f), m_shininess);
   }
 
 

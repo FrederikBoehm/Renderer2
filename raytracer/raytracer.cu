@@ -34,7 +34,7 @@ namespace rt {
 
       CPixelSampler pixelSampler(camera, x, y, &(sampler[samplerId]));
       CDirectLightingIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
-      glm::vec3 L = integrator.Li(EIntegrationStrategy::IMPORTANCE_SAMPLE_LIGHTSOURCES);
+      glm::vec3 L = integrator.Li(EIntegrationStrategy::MULTIPLE_IMPORTANCE_SAMPLE);
 
       frame->data[currentPixel + 0] += L.r;
       frame->data[currentPixel + 1] += L.g;

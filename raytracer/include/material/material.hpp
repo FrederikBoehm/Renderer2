@@ -16,7 +16,9 @@ namespace rt {
 
     DH_CALLABLE const glm::vec3& Le() const;
 
-    D_CALLABLE glm::vec3 f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const;
+    D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
+    D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
+    D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
 
     DH_CALLABLE CMaterial& operator=(const CMaterial& material);
 

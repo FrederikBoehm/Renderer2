@@ -14,7 +14,7 @@ namespace rt {
     DH_CALLABLE COrenNayarBRDF(const glm::vec3& albedo, float roughness);
 
     // Expects incident and outgoing directions in tangent space
-    DH_CALLABLE glm::vec3 f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const;
+    DH_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
 
   private:
     glm::vec3 m_albedo;

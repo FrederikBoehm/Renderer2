@@ -5,15 +5,15 @@
 
 namespace rt {
   DH_CALLABLE inline float cosTheta(const glm::vec3& w) {
-    return w.y;
+    return w.z;
   }
 
   DH_CALLABLE inline float cos2Theta(const glm::vec3& w) {
-    return w.y * w.y;
+    return w.z * w.z;
   }
 
   DH_CALLABLE inline float absCosTheta(const glm::vec3& w) {
-    return glm::abs(w.y);
+    return glm::abs(w.z);
   }
 
   DH_CALLABLE inline float sin2Theta(const glm::vec3& w) {
@@ -39,7 +39,7 @@ namespace rt {
 
   DH_CALLABLE inline float sinPhi(const glm::vec3& w) {
     float sinThetaEvaluated = sinTheta(w);
-    return (sinThetaEvaluated == 0.0f) ? 0.0f : glm::clamp(w.z / sinThetaEvaluated, -1.0f, 1.0f);
+    return (sinThetaEvaluated == 0.0f) ? 0.0f : glm::clamp(w.y / sinThetaEvaluated, -1.0f, 1.0f);
   }
 
   DH_CALLABLE inline float cos2Phi(const glm::vec3& w) {

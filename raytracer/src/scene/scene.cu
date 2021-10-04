@@ -116,6 +116,15 @@ namespace rt {
     return glm::vec3(0.0f);
   }
 
+  float CDeviceScene::lightSourcesPdf(const SSurfaceInteraction& lightHit) const {
+    if (lightHit.object) {
+      float power = lightHit.object->power();
+      float totalPower = m_lightDist->integral();
+      return power / totalPower;
+    }
+    return 1.0f;
+  }
+
   float CDeviceScene::lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
     if (lightHit.object) {
       const CShape* lightGeometry = lightHit.object->shape();
