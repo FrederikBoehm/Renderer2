@@ -26,7 +26,7 @@ namespace rt {
 
     float r = glm::sqrt(glm::max(0.0f, 1.0f - rand1 * rand1));
     float phi = 2.0 * M_PI * rand2;
-    return glm::vec3(r * glm::cos(phi), rand1, r * glm::sin(phi));
+    return glm::vec3(r * glm::cos(phi), r * glm::sin(phi), rand1);
   }
 
   float CSampler::uniformHemispherePdf() const {
@@ -54,13 +54,13 @@ namespace rt {
       theta = M_PI_2 - M_PI_4 * (uOffset.x / uOffset.y);
     }
 
-    return r * glm::vec3(glm::cos(theta), 0.0f, glm::sin(theta));
+    return r * glm::vec3(glm::cos(theta), glm::sin(theta), 0.0f);
   }
 
   glm::vec3 CSampler::cosineSampleHemisphere() {
     glm::vec3 d = concentricSampleDisk();
-    float y = std::sqrt(std::fmax(0.f, 1.f - d.x * d.x - d.z * d.z));
-    return glm::vec3(d.x, y, d.z);
+    float z = std::sqrt(std::fmax(0.f, 1.f - d.x * d.x - d.y * d.y));
+    return glm::vec3(d.x, d.y, z);
   }
 
   float CSampler::cosineHemispherePdf(float cosTheta) {

@@ -99,4 +99,13 @@ namespace rt {
   CShape* CDeviceSceneobject::shape() const {
     return m_shape;
   }
+
+  float CDeviceSceneobject::power() const {
+    glm::vec3 L = m_material.Le();
+    switch (m_shape->shape()) {
+    case EShape::PLANE:
+      return (L.x + L.y + L.z) * ((Plane*)m_shape)->area();
+    }
+    return 0.0f;
+  }
 }

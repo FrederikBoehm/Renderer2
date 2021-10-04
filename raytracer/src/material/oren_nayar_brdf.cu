@@ -19,7 +19,7 @@ namespace rt {
     m_B = 0.45f * sigma2 / (sigma2 + 0.09f);
   }
 
-  glm::vec3 COrenNayarBRDF::f(const SHitInformation& hitInformation, const glm::vec3& wo, const glm::vec3& wi) const {
+  glm::vec3 COrenNayarBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
     float sinThetaI = sinTheta(wi);
     float sinThetaO = sinTheta(wo);
 

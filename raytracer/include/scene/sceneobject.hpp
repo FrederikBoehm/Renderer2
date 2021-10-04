@@ -15,6 +15,7 @@ namespace rt {
   public:
     D_CALLABLE SSurfaceInteraction intersect(const Ray& ray);
     D_CALLABLE CShape* shape() const;
+    D_CALLABLE float power() const;
 
   private:
     CShape* m_shape;

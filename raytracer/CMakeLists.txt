@@ -47,7 +47,8 @@ set(HEADER_FILES
 	include/sampling/distribution_1d.hpp
 	include/utility/functions.hpp
 	include/integrators/direct_lighting_integrator.hpp
-	include/camera/pixel_sampler.hpp)
+	include/camera/pixel_sampler.hpp
+	include/sampling/mis.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
