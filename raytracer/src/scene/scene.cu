@@ -1,8 +1,7 @@
 #include "scene/scene.hpp"
-#include "scene/surface_interaction.hpp"
+#include "scene/interaction.hpp"
 #include "cuda_runtime.h"
 #include "sampling/distribution_1d.hpp"
-#include "scene/surface_interaction.hpp"
 
 namespace rt {
 
@@ -86,22 +85,28 @@ namespace rt {
     cudaFree(m_deviceScene);
   }
 
-  SSurfaceInteraction CDeviceScene::intersect(const Ray& ray) const {
-    SSurfaceInteraction closestInteraction;
+  SInteraction CDeviceScene::intersect(const CRay& ray) const {
+    SInteraction closestInteraction;
+    closestInteraction.hitInformation.hit = false;
     closestInteraction.hitInformation.t = 1e+10;
     closestInteraction.object = nullptr;
+    closestInteraction.material = nullptr;
+    closestInteraction.medium = nullptr;
     CDeviceSceneobject* sceneobjects = m_sceneobjects;
     for (uint8_t i = 0; i < m_numSceneobjects; ++i) {
-      SSurfaceInteraction currentInteraction = m_sceneobjects[i].intersect(ray);
+      SInteraction currentInteraction = m_sceneobjects[i].intersect(ray);
       if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
         closestInteraction = currentInteraction;
       }
     }
     for (uint8_t i = 0; i < m_numLights; ++i) {
-      SSurfaceInteraction currentInteraction = m_lights[i].intersect(ray);
+      SInteraction currentInteraction = m_lights[i].intersect(ray);
       if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
         closestInteraction = currentInteraction;
       }
+    }
+    if (closestInteraction.hitInformation.hit) {
+      ray.m_t_max = closestInteraction.hitInformation.t;
     }
     return closestInteraction;
   }
@@ -116,16 +121,16 @@ namespace rt {
     return glm::vec3(0.0f);
   }
 
-  float CDeviceScene::lightSourcesPdf(const SSurfaceInteraction& lightHit) const {
+  float CDeviceScene::lightSourcesPdf(const SInteraction& lightHit) const {
     if (lightHit.object) {
       float power = lightHit.object->power();
       float totalPower = m_lightDist->integral();
       return power / totalPower;
     }
-    return 1.0f;
+    return 0.0f;
   }
 
-  float CDeviceScene::lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
+  float CDeviceScene::lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const {
     if (lightHit.object) {
       const CShape* lightGeometry = lightHit.object->shape();
       switch (lightGeometry->shape()) {
@@ -135,6 +140,65 @@ namespace rt {
       }
       }
     }
-    return 1.0f;
+    return 0.0f;
+  }
+
+  bool CDeviceScene::occluded(const CRay& ray) const {
+    return intersect(ray).hitInformation.hit;
+  }
+
+  glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler) const {
+    glm::vec3 p0 = ray.m_origin;
+    const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
+    glm::vec3 Tr(1.f);
+    while (true) {
+      CRay r = CRay::spawnRay(p0, p1);
+      SInteraction interaction = intersect(r);
+      if (interaction.hitInformation.hit && interaction.material) {
+        return glm::vec3(0.f);
+      }
+      if (interaction.medium) {
+        Tr *= interaction.medium->tr(r, sampler);
+      }
+
+      if (!interaction.hitInformation.hit) {
+        break;
+      }
+
+      p0 = interaction.hitInformation.pos;
+    }
+    return Tr;
+  }
+
+  SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const {
+    *Tr = glm::vec3(1.f);
+    glm::vec3 p0 = ray.m_origin;
+    const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
+    while (true) {
+      CRay r = CRay::spawnRay(p0, p1);
+
+      SInteraction interaction = intersect(r);
+      if (interaction.medium) {
+        *Tr *= interaction.medium->tr(r, sampler);
+      }
+
+      //bool one = !interaction.hitInformation.hit;
+      //bool two = interaction.material;
+      //bool eval = one || two;
+      if (!interaction.hitInformation.hit || interaction.material) {
+      //if (interaction.material) {
+      //if (eval) {
+        return interaction;
+      }
+
+      //if (!eval) {
+      //  bool v = false;
+      //}
+      //else {
+      //  return interaction;
+      //}
+
+      p0 = interaction.hitInformation.pos;
+    }
   }
 }

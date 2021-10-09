@@ -3,14 +3,24 @@
 
 #include "intersect/hit_information.hpp"
 #include "material/material.hpp"
+#include "medium/medium.hpp"
 
 namespace rt {
   class CDeviceSceneobject;
-  struct SSurfaceInteraction {
+  struct SInteraction {
     SHitInformation hitInformation;
-    CMaterial material;
     CDeviceSceneobject* object;
+    CMaterial* material;
+    const CMedium* medium;
   };
+
+  //struct SSurfaceInteraction : public SInteraction {
+  //  CMaterial* material;
+  //};
+
+  //struct SMediumInteraction : public SInteraction {
+
+  //};
 }
 
 #endif // !SURFACE_INTERACTION_HXX

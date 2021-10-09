@@ -18,7 +18,7 @@ namespace rt {
       Samples a pixel randomly. Returns a ray in world space.
       Origin (0, 0) is bottom left.
     */
-    D_CALLABLE Ray samplePixel() const;
+    D_CALLABLE CRay samplePixel() const;
 
   private:
     CCamera* m_camera;

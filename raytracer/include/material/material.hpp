@@ -14,7 +14,7 @@ namespace rt {
     DH_CALLABLE CMaterial(const glm::vec3& le);
     DH_CALLABLE CMaterial(const COrenNayarBRDF& diffuse, const CMicrofacetBRDF& glossy);
 
-    DH_CALLABLE const glm::vec3& Le() const;
+    DH_CALLABLE glm::vec3 Le() const;
 
     D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
     D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
@@ -29,7 +29,7 @@ namespace rt {
   };
 
 
-  inline const glm::vec3& CMaterial::Le() const {
+  DH_CALLABLE inline glm::vec3 CMaterial::Le() const {
     return m_Le;
   }
 

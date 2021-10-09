@@ -59,7 +59,7 @@ namespace rt {
 
   glm::vec3 CSampler::cosineSampleHemisphere() {
     glm::vec3 d = concentricSampleDisk();
-    float z = std::sqrt(std::fmax(0.f, 1.f - d.x * d.x - d.y * d.y));
+    float z = glm::sqrt(glm::max(0.f, 1.f - d.x * d.x - d.y * d.y));
     return glm::vec3(d.x, d.y, z);
   }
 

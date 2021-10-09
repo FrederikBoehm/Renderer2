@@ -18,8 +18,8 @@ namespace rt {
 
   }
 
-  SHitInformation Sphere::intersect(const Ray& ray) const {
-    Ray rayModelSpace = ray.transform(m_worldToModel);
+  SHitInformation Sphere::intersect(const CRay& ray) const {
+    CRay rayModelSpace = ray.transform(m_worldToModel);
 
     float a = glm::dot(rayModelSpace.m_direction, rayModelSpace.m_direction);
     float b = 2.0f * glm::dot(rayModelSpace.m_direction, rayModelSpace.m_origin);
@@ -31,7 +31,7 @@ namespace rt {
     float discriminant = b * b - 4 * a * c;
     if (discriminant == 0.0f) {
       float t = (-b + glm::sqrt(discriminant)) / (2 * a);
-      if (t > 0) { // Intersection in front of ray origin
+      if (t > 0 && t <= ray.m_t_max) { // Intersection in front of ray origin
         si.hit = true;
         glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + t * rayModelSpace.m_direction;
         si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
@@ -48,14 +48,14 @@ namespace rt {
       float minimum = glm::min(t1, t2);
       float maximum = glm::max(t1, t2);
       if (maximum > 0.0f) {
-        if (minimum > 0.0f) {
+        if (minimum > 0.0f && minimum <= ray.m_t_max) {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + minimum * rayModelSpace.m_direction;
           si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
           si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
           si.t = minimum;
         }
-        else {
+        else if (minimum <= 0.0f && maximum <= ray.m_t_max) {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + maximum * rayModelSpace.m_direction;
           si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));

@@ -47,17 +47,17 @@ namespace rt {
 
   void CMicrofacetDistribution::sample11(float cosTheta, float u1, float u2, float* slopeX, float* slopeY) const {
     if (cosTheta > .9999) {
-      float r = std::sqrt(u1 / (1 - u1));
+      float r = glm::sqrt(u1 / (1 - u1));
       float phi = 6.28318530718 * u2;
-      *slopeX = r * std::cos(phi);
-      *slopeY = r * std::sin(phi);
+      *slopeX = r * glm::cos(phi);
+      *slopeY = r * glm::sin(phi);
       return;
     }
 
-    float sinTheta = std::sqrt(std::max(0.f, 1.f - cosTheta * cosTheta));
+    float sinTheta = glm::sqrt(glm::max(0.f, 1.f - cosTheta * cosTheta));
     float tanTheta = sinTheta / cosTheta;
     float a = 1 / tanTheta;
-    float G1 = 2 / (1 + std::sqrt(1.f + 1.f / (a * a)));
+    float G1 = 2 / (1 + glm::sqrt(1.f + 1.f / (a * a)));
 
     float A = 2 * u1 / G1 - 1;
     float tmp = 1.f / (A * A - 1.f);
@@ -66,7 +66,7 @@ namespace rt {
     }
 
     float B = tanTheta;
-    float D = std::sqrt(std::max(B * B * tmp * tmp - (A * A - B * B) * tmp, 0.f));
+    float D = glm::sqrt(glm::max(B * B * tmp * tmp - (A * A - B * B) * tmp, 0.f));
     float slope_x_1 = B * tmp - D;
     float slope_x_2 = B * tmp + D;
     *slopeX = (A < 0 || slope_x_2 > 1.f / tanTheta) ? slope_x_1 : slope_x_2;
@@ -113,7 +113,7 @@ namespace rt {
   }
 
   float CMicrofacetDistribution::pdf(const glm::vec3& wo, const glm::vec3 wh) const {
-    return D(wh) * G1(wo) * std::abs(glm::dot(wo, wh)) / absCosTheta(wo);
+    return D(wh) * G1(wo) * glm::abs(glm::dot(wo, wh)) / absCosTheta(wo);
   }
 
 }
