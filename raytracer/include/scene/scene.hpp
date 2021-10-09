@@ -13,10 +13,14 @@ namespace rt {
     friend class CSceneConnection;
   public:
     //DH_CALLABLE CDeviceScene();
-    D_CALLABLE SSurfaceInteraction intersect(const Ray& ray) const;
+    D_CALLABLE SInteraction intersect(const CRay& ray) const;
     D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
-    D_CALLABLE float lightSourcePdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const;
-    D_CALLABLE float lightSourcesPdf(const SSurfaceInteraction& lightHit) const;
+    D_CALLABLE float lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const;
+    D_CALLABLE float lightSourcesPdf(const SInteraction& lightHit) const;
+
+    D_CALLABLE bool occluded(const CRay& ray) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE SInteraction intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const;
 
   private:
     uint16_t m_numSceneobjects;

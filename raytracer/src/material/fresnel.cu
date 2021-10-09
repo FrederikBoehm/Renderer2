@@ -26,7 +26,7 @@ namespace rt {
       return glm::vec3(1.0f);
     }
 
-    float cosThetaT = std::sqrt(glm::max(0.0f, 1.0f - sinThetaT * sinThetaT));
+    float cosThetaT = glm::sqrt(glm::max(0.0f, 1.0f - sinThetaT * sinThetaT));
 
     float rParallel = ((etaT * cosThetaI) - (etaI * cosThetaT)) / ((etaT * cosThetaI) + (etaI * cosThetaT));
     float rPerpendicular = ((etaI * cosThetaI) - (etaT * cosThetaT)) / ((etaI * cosThetaI) + (etaT * cosThetaT));

@@ -1,6 +1,6 @@
 #include "shapes/plane.hpp"
 #include "sampling/sampler.hpp"
-#include "scene/surface_interaction.hpp"
+#include "scene/interaction.hpp"
 
 namespace rt {
   Plane::Plane() :
@@ -20,7 +20,7 @@ namespace rt {
   }
 
 
-  SHitInformation Plane::intersect(const Ray& ray) const {
+  SHitInformation Plane::intersect(const CRay& ray) const {
     SHitInformation si;
     si.hit = false;
 
@@ -29,7 +29,7 @@ namespace rt {
     if (denominator != 0.0f) { // We have one hit
 
       float t = glm::dot(m_worldPos - ray.m_origin, m_normal) / denominator;
-      if (t > 0.0f) {
+      if (t > 0.0f && t <= ray.m_t_max) {
 
         glm::vec3 intersectionPos = ray.m_origin + t * ray.m_direction;
         float distance = glm::length(intersectionPos - m_worldPos);
@@ -50,7 +50,7 @@ namespace rt {
     return glm::vec3(m_modelToWorld * glm::vec4(pd, 1.0f));
   }
 
-  float Plane::pdf(const SSurfaceInteraction& lightHit, const Ray& shadowRay) const {
+  float Plane::pdf(const SInteraction& lightHit, const CRay& shadowRay) const {
     float distance = glm::length(lightHit.hitInformation.pos - shadowRay.m_origin);
     return 1 / area();
   }

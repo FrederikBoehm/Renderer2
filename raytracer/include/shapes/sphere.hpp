@@ -13,7 +13,7 @@ namespace rt {
     DH_CALLABLE Sphere(float radius);
     DH_CALLABLE Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
 
-    DH_CALLABLE SHitInformation intersect(const Ray& ray) const;
+    DH_CALLABLE SHitInformation intersect(const CRay& ray) const;
 
 
   private:

@@ -11,7 +11,7 @@ namespace rt {
 
   }
 
-  Ray CPixelSampler::samplePixel() const {
+  CRay CPixelSampler::samplePixel() const {
     float randomHorizontal = m_sampler->uniformSample01();
     float horizontal = (m_pixelX - m_camera->m_sensorWidth / 2 + randomHorizontal) * m_camera->m_pixelSize;
     float randomVertical = m_sampler->uniformSample01();
@@ -20,7 +20,7 @@ namespace rt {
 
     glm::vec4 rayDir = glm::vec4(glm::normalize(glm::vec3(horizontal, vertical, depth)), 0.0f);
     glm::vec4 rayOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    Ray viewSpaceRay(rayOrigin, rayDir);
+    CRay viewSpaceRay(rayOrigin, rayDir);
     return viewSpaceRay.transform(m_camera->m_viewToWorld);
   }
 }

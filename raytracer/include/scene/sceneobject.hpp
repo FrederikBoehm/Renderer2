@@ -4,22 +4,29 @@
 #include "shapes/plane.hpp"
 #include "shapes/sphere.hpp"
 #include "material/material.hpp"
-#include "surface_interaction.hpp"
+#include "interaction.hpp"
 #include <memory>
 
 namespace rt {
   class CHostSceneobject;
 
+  enum ESceneobjectFlag {
+    GEOMETRY,
+    VOLUME
+  };
+
   class CDeviceSceneobject {
     friend class CSceneobjectConnection;
   public:
-    D_CALLABLE SSurfaceInteraction intersect(const Ray& ray);
+    D_CALLABLE SInteraction intersect(const CRay& ray);
     D_CALLABLE CShape* shape() const;
     D_CALLABLE float power() const;
 
   private:
     CShape* m_shape;
-    CMaterial m_material;
+    CMaterial* m_material;
+    CMedium* m_medium;
+    ESceneobjectFlag m_flag;
 
     //CDeviceSceneobject() {}
   };
@@ -37,6 +44,8 @@ namespace rt {
     CDeviceSceneobject* m_deviceSceneobject = nullptr;
 
     CShape* m_deviceShape = nullptr;
+    CMaterial* m_deviceMaterial = nullptr;
+    CMedium* m_deviceMedium = nullptr;
   };
 
   class CHostSceneobject {
@@ -44,6 +53,7 @@ namespace rt {
   public:
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le);
     CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
+    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& absorption, const glm::vec3&outScattering, float asymmetry);
     CHostSceneobject(CHostSceneobject&& sceneobject);
 
     float power() const;
@@ -54,7 +64,11 @@ namespace rt {
     void freeDeviceMemory();
   private:
     std::shared_ptr<CShape> m_shape;
-    CMaterial m_material;
+    std::shared_ptr<CMaterial> m_material;
+    std::shared_ptr<CMedium> m_medium;
+    ESceneobjectFlag m_flag;
+    float m_absorption;
+
     CSceneobjectConnection m_hostDeviceConnection;
 
     static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);

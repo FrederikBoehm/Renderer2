@@ -21,14 +21,16 @@ set(SOURCE_FILES
 	src/material/microfacet_distribution.cu
 	src/sampling/distribution_1d.cu
 	src/integrators/direct_lighting_integrator.cu
-	src/camera/pixel_sampler.cu)
+	src/camera/pixel_sampler.cu
+	src/medium/medium.cu
+	src/medium/henyey_greenstein_phase_function.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
 	include/camera/camera.hpp
 	include/scene/scene.hpp
 	include/scene/sceneobject.hpp
-	include/scene/surface_interaction.hpp
+	include/scene/interaction.hpp
 	include/shapes/shape.hpp
 	include/shapes/sphere.hpp
 	include/shapes/plane.hpp
@@ -48,7 +50,9 @@ set(HEADER_FILES
 	include/utility/functions.hpp
 	include/integrators/direct_lighting_integrator.hpp
 	include/camera/pixel_sampler.hpp
-	include/sampling/mis.hpp)
+	include/sampling/mis.hpp
+	include/medium/medium.hpp
+	include/medium/henyey_greenstein_phase_function.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
