@@ -2,11 +2,13 @@
 #include "scene/interaction.hpp"
 #include "cuda_runtime.h"
 #include "sampling/distribution_1d.hpp"
+#include "scene/environmentmap.hpp"
 
 namespace rt {
 
   CHostScene::CHostScene() :
     m_lightDist(nullptr),
+    m_envMap(nullptr),
     m_hostDeviceConnection(this) {
 
   }
@@ -29,8 +31,22 @@ namespace rt {
     m_lightDist = new CDistribution1D(powers);
   }
 
+  void CHostScene::setEnvironmentMap(CEnvironmentMap&& envMap) {
+    if (!m_envMap) {
+      m_envMap = new CEnvironmentMap(std::move(envMap));
+    }
+    else {
+      *m_envMap = std::move(envMap);
+    }
+  }
+
   CSceneConnection::CSceneConnection(CHostScene* hostScene) :
-    m_hostScene(hostScene) {
+    m_hostScene(hostScene),
+    m_deviceScene(nullptr),
+    m_deviceSceneobjects(nullptr),
+    m_deviceLights(nullptr),
+    m_deviceLightDist(nullptr),
+    m_deviceEnvMap(nullptr) {
 
   }
 
@@ -38,7 +54,12 @@ namespace rt {
     cudaMalloc(&m_deviceScene, sizeof(CDeviceScene));
     cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject));
     cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject));
-    cudaMalloc(&m_deviceLightDist, sizeof(CDistribution1D));
+    //cudaMalloc(&m_deviceLightDist, sizeof(CDistribution1D));
+
+    if (m_hostScene->m_envMap) {
+      cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap));
+      m_hostScene->m_envMap->allocateDeviceMemory();
+    }
 
     for (auto& sceneObject : m_hostScene->m_sceneobjects) {
       sceneObject.allocateDeviceMemory();
@@ -56,6 +77,7 @@ namespace rt {
     deviceScene.m_numLights = m_hostScene->m_lights.size();
     deviceScene.m_lights = m_deviceLights;
     deviceScene.m_lightDist = m_deviceLightDist;
+    deviceScene.m_envMap = m_deviceEnvMap;
     cudaMemcpy(m_deviceScene, &deviceScene, sizeof(CDeviceScene), cudaMemcpyHostToDevice);
     for (size_t i = 0; i < m_hostScene->m_sceneobjects.size(); ++i) {
       m_hostScene->m_sceneobjects[i].setDeviceSceneobject(&m_deviceSceneobjects[i]);
@@ -65,8 +87,11 @@ namespace rt {
       m_hostScene->m_lights[i].setDeviceSceneobject(&m_deviceLights[i]);
       m_hostScene->m_lights[i].copyToDevice();
     }
-    cudaMemcpy(m_deviceLightDist, m_hostScene->m_lightDist, sizeof(CDistribution1D), cudaMemcpyHostToDevice);
-    m_hostScene->m_lightDist->copyToDevice(m_deviceLightDist);
+    //cudaMemcpy(m_deviceLightDist, m_hostScene->m_lightDist, sizeof(CDistribution1D), cudaMemcpyHostToDevice);
+    //m_hostScene->m_lightDist->copyToDevice(m_deviceLightDist);
+    if (m_hostScene->m_envMap) {
+      m_hostScene->m_envMap->copyToDevice(m_deviceEnvMap);
+    }
   }
 
   void CSceneConnection::freeDeviceMemory() {
@@ -76,6 +101,10 @@ namespace rt {
 
     for (auto& light : m_hostScene->m_lights) {
       light.freeDeviceMemory();
+    }
+
+    if (m_hostScene->m_envMap) {
+      m_hostScene->m_envMap->freeDeviceMemory();
     }
 
     cudaFree(m_deviceLightDist);
@@ -111,14 +140,28 @@ namespace rt {
     return closestInteraction;
   }
 
-  glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, float* pdf) const {
-    size_t index = m_lightDist->sampleDiscrete(sampler, pdf);
-    const CShape* lightGeometry = m_lights[index].shape();
-    switch (lightGeometry->shape()) {
-    case EShape::PLANE:
-      return ((const Plane*)lightGeometry)->sample(sampler);
+  //glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, float* pdf) const {
+  //  size_t index = m_lightDist->sampleDiscrete(sampler, pdf);
+  //  const CShape* lightGeometry = m_lights[index].shape();
+  //  switch (lightGeometry->shape()) {
+  //  case EShape::PLANE:
+  //    return ((const Plane*)lightGeometry)->sample(sampler);
+  //  }
+  //  return glm::vec3(0.0f);
+  //}
+
+  glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const {
+    if (m_envMap) {
+      return m_envMap->sample(sampler, direction, pdf);
     }
-    return glm::vec3(0.0f);
+    return glm::vec3(0.f);
+  }
+
+  glm::vec3 CDeviceScene::le(const glm::vec3& direction, float* pdf) const {
+    if (m_envMap) {
+      return m_envMap->le(direction, pdf);
+    }
+    return glm::vec3(0.f);
   }
 
   float CDeviceScene::lightSourcesPdf(const SInteraction& lightHit) const {

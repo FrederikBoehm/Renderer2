@@ -4,6 +4,9 @@
 #include <fstream>
 #include "utility/performance_monitoring.hpp"
 
+
+#include <vector>
+
 int main() {
   using namespace rt;
   const uint16_t WIDTH = 1920;

@@ -104,6 +104,13 @@ namespace rt {
     return m_func[index] / (m_funcInt * count());
   }
 
+  float CDistribution1D::pdf(float pos) const {
+    size_t lowerIndex = pos * m_nFunc;
+    size_t upperIndex = glm::ceil(pos * m_nFunc);
+    float interpolation = pos * m_nFunc - lowerIndex;
+    return (m_func[lowerIndex] * (1 - interpolation) + m_func[upperIndex] * interpolation) / m_funcInt;
+  }
+
   void CDistribution1D::copyToDevice(CDistribution1D* dst) {
     if (!m_deviceResource) {
       m_deviceResource = new SDistribution1D_DeviceResource();

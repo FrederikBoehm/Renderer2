@@ -23,7 +23,10 @@ set(SOURCE_FILES
 	src/integrators/direct_lighting_integrator.cu
 	src/camera/pixel_sampler.cu
 	src/medium/medium.cu
-	src/medium/henyey_greenstein_phase_function.cu)
+	src/medium/henyey_greenstein_phase_function.cu
+	src/texture/texture.cu
+	src/sampling/distribution_2d.cu
+	src/scene/environmentmap.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -52,7 +55,10 @@ set(HEADER_FILES
 	include/camera/pixel_sampler.hpp
 	include/sampling/mis.hpp
 	include/medium/medium.hpp
-	include/medium/henyey_greenstein_phase_function.hpp)
+	include/medium/henyey_greenstein_phase_function.hpp
+	include/texture/texture.hpp
+	include/sampling/distribution_2d.hpp
+	include/scene/environmentmap.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})
