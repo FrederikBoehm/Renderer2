@@ -21,7 +21,10 @@ namespace rt {
     DH_CALLABLE size_t sampleDiscrete(CSampler& sampler, float* pdf = nullptr, float* uRemapped = nullptr) const;
     DH_CALLABLE size_t count() const;
     DH_CALLABLE float discretePdf(size_t index) const;
+    DH_CALLABLE float pdf(float pos) const;
     DH_CALLABLE float integral() const;
+    DH_CALLABLE float func(size_t pos) const;
+    DH_CALLABLE float funcInt() const;
 
     // CUDA stuff
     H_CALLABLE void copyToDevice(CDistribution1D* dst);
@@ -44,6 +47,14 @@ namespace rt {
 
   DH_CALLABLE inline float CDistribution1D::integral() const {
     return m_integral;
+  }
+
+  DH_CALLABLE inline float CDistribution1D::func(size_t pos) const {
+    return m_func[pos];
+  }
+
+  DH_CALLABLE inline float CDistribution1D::funcInt() const {
+    return m_funcInt;
   }
 }
 

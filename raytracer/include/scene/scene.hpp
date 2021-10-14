@@ -8,13 +8,16 @@
 namespace rt {
   class CHostScene;
   class CDistribution1D;
+  class CEnvironmentMap;
 
   class CDeviceScene {
     friend class CSceneConnection;
   public:
     //DH_CALLABLE CDeviceScene();
     D_CALLABLE SInteraction intersect(const CRay& ray) const;
-    D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
+    //D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
+    D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const;
+    D_CALLABLE glm::vec3 le(const glm::vec3& direction, float* pdf) const;
     D_CALLABLE float lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const;
     D_CALLABLE float lightSourcesPdf(const SInteraction& lightHit) const;
 
@@ -28,6 +31,8 @@ namespace rt {
     uint16_t m_numLights;
     CDeviceSceneobject* m_lights; // For now lights are also sceneobjects
     CDistribution1D* m_lightDist;
+  public:
+    CEnvironmentMap* m_envMap;
   };
 
 
@@ -45,6 +50,7 @@ namespace rt {
     CDeviceSceneobject* m_deviceSceneobjects;
     CDeviceSceneobject* m_deviceLights;
     CDistribution1D* m_deviceLightDist;
+    CEnvironmentMap* m_deviceEnvMap;
   };
 
   class CHostScene { 
@@ -54,6 +60,7 @@ namespace rt {
     H_CALLABLE const std::vector<CHostSceneobject>& sceneobjects() const;
     H_CALLABLE void addSceneobject(CHostSceneobject&& sceneobject);
     H_CALLABLE void addLightsource(CHostSceneobject&& lightsource);
+    H_CALLABLE void setEnvironmentMap(CEnvironmentMap&& envMap);
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE void copyToDevice();
@@ -63,6 +70,8 @@ namespace rt {
     std::vector<CHostSceneobject> m_sceneobjects;
     std::vector<CHostSceneobject> m_lights;
     CDistribution1D* m_lightDist;
+    CEnvironmentMap* m_envMap;
+
     CSceneConnection m_hostDeviceConnection;
 	};
 
