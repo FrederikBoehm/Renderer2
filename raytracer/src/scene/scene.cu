@@ -215,6 +215,7 @@ namespace rt {
 
   SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const {
     *Tr = glm::vec3(1.f);
+    //*Tr = glm::vec3(0.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
     while (true) {
@@ -223,6 +224,7 @@ namespace rt {
       SInteraction interaction = intersect(r);
       if (interaction.medium) {
         *Tr *= interaction.medium->tr(r, sampler);
+        //*Tr += r.m_t_max * glm::length(r.m_direction);
       }
 
       //bool one = !interaction.hitInformation.hit;

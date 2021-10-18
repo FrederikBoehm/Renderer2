@@ -38,49 +38,57 @@ namespace rt {
       CDirectLightingIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
       glm::vec3 L = integrator.Li(EIntegrationStrategy::MULTIPLE_IMPORTANCE_SAMPLE);
 
-      //float u = (float)x / frame->width;
-      //float v = (float)y / frame->height;
-      //glm::vec3 envMap = scene->m_envMap->m_texture(u, v);
-
-      //uint32_t pixelX = L.x * frame->width;
-      //uint32_t pixelY = (L.y) * frame->height;
-      //float mask = 0;
-      //if (x == pixelX && y == pixelY) {
-      //  frame->data[currentPixel + 0] += 100000.f;
-      //  //mask = 100000.f;
-      //}
-      //frame->data[currentPixel + 0] += envMap.r / 100000000000.f;
-      //frame->data[currentPixel + 1] += envMap.g / 100000000000.f;
-      //frame->data[currentPixel + 2] += envMap.b / 100000000000.f;
       frame->data[currentPixel + 0] += L.r;
       frame->data[currentPixel + 1] += L.g;
       frame->data[currentPixel + 2] += L.b;
+
+      //glm::vec3 dir;
+      //float p;
+      //glm::vec3 texCoord = scene->m_envMap->sample(*sampler, &dir, &p);
+      //uint16_t texX = texCoord.x * frame->width;
+      //uint16_t texY = ((float)(frame->height - 1) / frame->height - texCoord.y) * frame->height;
+      ////glm::vec3 L = scene->m_envMap->m_texture((float)x / frame->width, (float)(frame->height - 1) / frame->height - (float)y / frame->height);
+      //if (texX == x && texY == y) {
+      //  frame->data[currentPixel + 1] += 1e+14f;
+      //}
+      //float l = 1e+10;
+      //if (L.r > l || L.g > l || L.b > l) {
+      //  frame->data[currentPixel + 1] += 1.0f;
+      //}
+
+      //frame->data[currentPixel + 0] += L.r;
+      //frame->data[currentPixel + 1] += L.g;
+      //frame->data[currentPixel + 2] += L.b;
     }
   }
 
-  D_CALLABLE inline glm::vec3 computeTonemapFactor(SDeviceFrame* frame, uint16_t x, uint16_t y) {
-    constexpr uint8_t filterSize = 7;
+  D_CALLABLE inline float computeTonemapFactor(SDeviceFrame* frame, uint16_t x, uint16_t y) {
+    constexpr uint8_t filterSize = 11;
     float filterHalf = (float)filterSize / 2;
-    float alpha = -glm::log(0.02f) / (filterHalf * filterHalf); // 0.02: From webers law
-    glm::vec3 weights[filterSize][filterSize];
-    glm::vec3 sum(0.f);
+    float alpha = -glm::log(0.5f) / (filterHalf * filterHalf); // 0.02: From webers law
+    //glm::vec3 weights[filterSize][filterSize];
+    //glm::vec3 sum(0.f);
+    float weights[filterSize][filterSize];
+    float sum = 0.f;
     for (int8_t dX = 0; dX < filterSize; ++dX) {
       for (int8_t dY = 0; dY < filterSize; ++dY) {
         int32_t currX = x + dX - filterHalf;
         int32_t currY = y + dY - filterHalf;
         if (currX < 0 || currX >= frame->width || currY < 0 || currY >= frame->height) {
-          weights[dY][dX] = glm::vec3(0.f);
+          //weights[dY][dX] = glm::vec3(0.f);
+          weights[dY][dX] = 0.f;
         }
         else {
           float distance = (float)dX * dX + (float)dY * dY;
-          glm::vec3 weight = glm::vec3(glm::exp(-alpha * distance));
+          //glm::vec3 weight = glm::vec3(glm::exp(-alpha * distance));
+          float weight = glm::exp(-alpha * distance);
           sum += weight;
           weights[dY][dX] = weight;
         }
       }
     }
 
-    glm::vec3 sigma(0.f);
+    float sigma(0.f);
     for (int8_t dX = 0; dX < filterSize; ++dX) {
       for (int8_t dY = 0; dY < filterSize; ++dY) {
         int32_t currX = x + dX - filterHalf;
@@ -91,13 +99,27 @@ namespace rt {
           float r = frame->data[currentPixel + 0];
           float g = frame->data[currentPixel + 1];
           float b = frame->data[currentPixel + 2];
-          sigma += glm::vec3(r, g, b) * weights[dY][dX] / sum;
+          sigma += glm::log(r + g + b) * weights[dY][dX] / sum;
         }
         
       }
     }
 
-    return sigma;
+    return glm::exp(sigma);
+  }
+
+  __global__ void filterFrame(SDeviceFrame* frame) {
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (y < frame->height && x < frame->width) {
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+      float sigma = computeTonemapFactor(frame, x, y);
+      
+      frame->filtered[currentPixel + 0] = sigma;
+      //frame->filtered[currentPixel + 1] = sigma.g;
+      //frame->filtered[currentPixel + 2] = sigma.b;
+    }
   }
 
   __global__ void computeGlobalTonemapping1(SDeviceFrame* frame, float* avg) {
@@ -109,11 +131,13 @@ namespace rt {
       avg[x] = 0.f;
       for (uint16_t yIter = y; yIter < frame->height; ++yIter) {
           uint32_t currentPixel = frame->bpp * (yIter * frame->width + x);
-          //if (currentPixel < frame->bpp * frame->width * frame->height) {
-            avg[x] += (frame->data[currentPixel + 0] + frame->data[currentPixel + 1] + frame->data[currentPixel + 2]) / divisor;
+          //if (frame->data[currentPixel + 0] != 1.f || frame->data[currentPixel + 1] != 1.f || frame->data[currentPixel + 2] != 1.f) {
+          //  float r = frame->data[currentPixel + 0];
+          //  float g = frame->data[currentPixel + 1];
+          //  float b = frame->data[currentPixel + 2];
+          //  float sum = glm::log(r + g + b);
           //}
-          //printf("Average Block %i, y %i: %f\n", x, yIter, avg[x]);
-          //avg[x] += 1.0f;
+          avg[x] += glm::log(frame->data[currentPixel + 0] + frame->data[currentPixel + 1] + frame->data[currentPixel + 2] + FLT_MIN) / divisor;
       }
     }
   }
@@ -123,7 +147,7 @@ namespace rt {
     for (uint16_t i = 0; i < frame->width; ++i) {
       result += avg[i];
     }
-    *tonemappingFactor = result;
+    *tonemappingFactor = glm::exp(result);
   }
 
   // Map colors to [0.0f, 1.0f]
@@ -137,18 +161,32 @@ namespace rt {
       float r = frame->data[currentPixel + 0];
       float g = frame->data[currentPixel + 1];
       float b = frame->data[currentPixel + 2];
+      //float r = frame->filtered[currentPixel + 0];
+      //float g = frame->filtered[currentPixel + 1];
+      //float b = frame->filtered[currentPixel + 2];
 
-      //glm::vec3 sigma = computeTonemapFactor(frame, x, y);
+      float sigma = frame->filtered[currentPixel + 0];
+      //float sigmaG = frame->filtered[currentPixel + 1];
+      //float sigmaB = frame->filtered[currentPixel + 2];
+
+      //float sigma = computeTonemapFactor(frame, x, y);
+
       frame->data[currentPixel + 0] = r / (r + *tonemapFactor);
       frame->data[currentPixel + 1] = g / (g + *tonemapFactor);
       frame->data[currentPixel + 2] = b / (b + *tonemapFactor);
+      //frame->data[currentPixel + 0] = r / (r + sigma);
+      //frame->data[currentPixel + 1] = g / (g + sigma);
+      //frame->data[currentPixel + 2] = b / (b + sigma);
+      //frame->data[currentPixel + 0] = r / (r + 1e+14);
+      //frame->data[currentPixel + 1] = g / (g + 1e+14);
+      //frame->data[currentPixel + 2] = b / (b + 1e+14);
+      //frame->data[currentPixel + 0] = r / (r + sigma);
+      //frame->data[currentPixel + 1] = g / (g + sigma);
+      //frame->data[currentPixel + 2] = b / (b + sigma);
+      //frame->data[currentPixel + 0] = r;
+      //frame->data[currentPixel + 1] = g;
+      //frame->data[currentPixel + 2] = b;
 
-      //frame->data[currentPixel + 0] = r / (r + sigma.r);
-      //frame->data[currentPixel + 1] = g / (g + sigma.g);
-      //frame->data[currentPixel + 2] = b / (b + sigma.b);
-      //frame->data[currentPixel + 0] = sigma.r;
-      //frame->data[currentPixel + 1] = sigma.g / (sigma.g + tonemapFactor);
-      //frame->data[currentPixel + 2] = sigma.b / (sigma.b + tonemapFactor);
     }
   }
 
@@ -192,6 +230,7 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.25f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(100), // higher -> less noise
     m_tonemappingFactor(100.f),
     m_gamma(2.0f),
@@ -200,15 +239,15 @@ namespace rt {
     m_deviceSampler(nullptr),
     m_blockSize(128) {
     // Add scene objects
-    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.9f, 0.9f, 0.9f), 0.99f, glm::vec3(0.9f), 0.99f, 0.99f, 1.00029f, 1.2f));
-    float lightness = 0.85f / 255.0f;
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 0, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, lightness, 0.95f), 0.01f, glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // blue sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 1, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.95f, lightness, 0.95f), 0.01f,  glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // violet sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 2, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.95f, lightness, lightness), 0.01f,  glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // red sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 3, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.95f, 0.95f, lightness), 0.01f,  glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // yellow sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 4, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.95f, lightness), 0.01f,  glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // green sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.05f, 5, 6), 0.05f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.95f, 0.95f), 0.01f, glm::vec3(0.99f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
-    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, glm::vec3(0.f, 0.15f, 0.0f), 0.15f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(5.f, 5.0f, 5.0f), glm::vec3(0.f, 0.0f, 0.0f), 0.99f)); // volume
+    m_scene.addSceneobject(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.6f), 0.99f, 0.99f, 1.00029f, 1.2f));
+    float lightness = 0.75f / 255.0f;
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 0, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // blue sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 1, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, lightness, 0.85f), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // violet sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 2, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, lightness, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // red sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 3, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // yellow sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 4, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // green sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 5, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
+    m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, glm::vec3(0.f, 0.15f, 0.0f), 0.15f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.f, 0.0f, 0.0f), glm::vec3(20.f, 20.0f, 20.0f), 0.99f)); // volume
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f))); // Light
     //glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));
@@ -229,6 +268,7 @@ namespace rt {
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light3Pos, 0.05f, -glm::normalize(light3Pos), glm::vec3(2.0f)));
 
     // Add environment map
+    //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));
     m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/envmap.hdr"));
 
     allocateDeviceMemory();
@@ -252,6 +292,8 @@ namespace rt {
       e = cudaDeviceSynchronize();
       //CPerformanceMonitoring::endMeasurement("renderFrame");
     }
+    rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
+
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
     e = cudaDeviceSynchronize();
@@ -293,6 +335,7 @@ namespace rt {
     cudaMalloc(&m_deviceCamera, sizeof(CCamera));
     cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
     cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
+    cudaMalloc(&m_deviceFilteredFrame, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
     cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
     cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth);
     cudaMalloc(&m_deviceTonemappingValue, sizeof(float));
@@ -308,6 +351,7 @@ namespace rt {
     f.height = m_hostCamera.sensorHeight();
     f.bpp = m_bpp;
     f.data = m_deviceFrameData;
+    f.filtered = m_deviceFilteredFrame;
     f.dataBytes = m_deviceFrameDataBytes;
     cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice);
   }
