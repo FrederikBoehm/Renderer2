@@ -25,12 +25,10 @@ namespace rt {
   }
 
   glm::vec3 CTexture::operator()(float x, float y) const {
-    int lowerRowIndex = y * (m_height - 1);
-    //int upperRowIndex = glm::min(lowerRowIndex + 1, m_height - 1);
+    int lowerRowIndex = y * (m_height-1);
     int upperRowIndex = lowerRowIndex + 1;
 
-    int lowerColumnIndex = x * (m_width - 1);
-    //int upperColumnIndex = glm::min(lowerColumnIndex + 1, m_width - 1);
+    int lowerColumnIndex = x * (m_width-1);
     int upperColumnIndex = lowerColumnIndex + 1;
 
     glm::vec3 lowerRowInterpolation = glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 1)) +
@@ -39,7 +37,6 @@ namespace rt {
                                       glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 1) - lowerColumnIndex);
 
     return lowerRowInterpolation * (upperRowIndex - y * (m_height - 1)) + upperRowInterpolation * (y * (m_height - 1) - lowerRowIndex);
-    //return glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]);
   }
 
   void CTexture::allocateDeviceMemory() {

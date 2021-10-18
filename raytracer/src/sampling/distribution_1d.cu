@@ -63,6 +63,7 @@ namespace rt {
     float u = sampler.uniformSample01();
 
     auto& predicate = [&] (int index) { return m_cdf[index] <= u; };
+    //auto& predicate = [&](int index) { return !(u <= m_cdf[index]); };
     int offset = findInterval(m_nCdf, predicate);
     
     if (off) {

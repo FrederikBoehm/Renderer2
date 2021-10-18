@@ -16,6 +16,7 @@ namespace rt {
     uint16_t height;
     uint8_t bpp;
     float* data;
+    float* filtered;
     uint8_t* dataBytes;
   };
 
@@ -41,6 +42,7 @@ namespace rt {
     CCamera* m_deviceCamera;
     SDeviceFrame* m_deviceFrame;
     float* m_deviceFrameData;
+    float* m_deviceFilteredFrame;
     uint8_t* m_deviceFrameDataBytes;
     CSampler* m_deviceSampler;
     float* m_deviceAverage;
