@@ -17,6 +17,10 @@ namespace rt {
 
   }
 
+  DH_CALLABLE glm::vec3 faceforward(const glm::vec3& v, const glm::vec3& v2) {
+    return (glm::dot(v, v2) < 0.f) ? -v : v;
+  }
+
   glm::vec3 CMicrofacetBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
     float cosThetaO = absCosTheta(wo);
     float cosThetaI = absCosTheta(wi);
@@ -32,14 +36,22 @@ namespace rt {
     }
 
     h = glm::normalize(h);
-    glm::vec3 F = m_fresnel.evaluate(glm::dot(wi, h));
+    glm::vec3 F = m_fresnel.evaluate(glm::dot(wi, faceforward(h, glm::vec3(0.f, 0.f, 1.f))));
     return m_glossy * m_distribution.D(h) * m_distribution.G(wo, wi) * F / (4.0f * cosThetaI * cosThetaO);
   }
 
   glm::vec3 CMicrofacetBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+    if (wo.z == 0) {
+      return glm::vec3(0.f);
+    }
     glm::vec3 h = m_distribution.sampleH(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+
+    if (glm::dot(wo, h) < 0.f) {
+      return glm::vec3(0.f);
+    }
+    
     *wi = glm::reflect(-wo, h);
-    if (!(wo.z * wi->z) > 0) {
+    if (!(wo.z * wi->z > 0)) {
       return glm::vec3(0.f);
     }
     *pdf = m_distribution.pdf(wo, h) / 4 * glm::dot(wo, h);

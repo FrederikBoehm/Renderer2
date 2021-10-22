@@ -11,18 +11,18 @@ namespace rt {
     curand_init(seed, sequence, 0, &m_curandState);
   }
 
-  float CSampler::uniformSample01() {
+  float CSampler::uniformSample01() { // produces random numbers in the interval [0, 1)
     // TODO: Make sampler work on host
 #ifdef __CUDA_ARCH__
-    return curand_uniform(&m_curandState);
+    return glm::clamp(curand_uniform(&m_curandState) / (1.f - FLT_EPSILON - FLT_MIN) - FLT_MIN, 0.f, 1.f - FLT_EPSILON); // Because curand_unfiform produces random numbers in (0.f, 1.f] we have to scale and shift to get numbers in [0.f, 1.f)
 #else 
     return 0.0f;
 #endif
   }
 
   glm::vec3 CSampler::uniformSampleHemisphere() {
-    float rand1 = curand_uniform(&m_curandState);
-    float rand2 = curand_uniform(&m_curandState);
+    float rand1 = uniformSample01();
+    float rand2 = uniformSample01();
 
     float r = glm::sqrt(glm::max(0.0f, 1.0f - rand1 * rand1));
     float phi = 2.0 * M_PI * rand2;
@@ -34,8 +34,8 @@ namespace rt {
   }
 
   glm::vec3 CSampler::concentricSampleDisk() {
-    float rand1 = curand_uniform(&m_curandState);
-    float rand2 = curand_uniform(&m_curandState);
+    float rand1 = uniformSample01();
+    float rand2 = uniformSample01();
 
     glm::vec2 uOffset = 2.0f * glm::vec2(rand1, rand2) - glm::vec2(1.0f);
 

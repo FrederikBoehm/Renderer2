@@ -26,7 +26,8 @@ set(SOURCE_FILES
 	src/medium/henyey_greenstein_phase_function.cu
 	src/texture/texture.cu
 	src/sampling/distribution_2d.cu
-	src/scene/environmentmap.cu)
+	src/scene/environmentmap.cu
+	src/integrators/path_integrator.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -58,7 +59,10 @@ set(HEADER_FILES
 	include/medium/henyey_greenstein_phase_function.hpp
 	include/texture/texture.hpp
 	include/sampling/distribution_2d.hpp
-	include/scene/environmentmap.hpp)
+	include/scene/environmentmap.hpp
+	include/integrators/path_integrator.hpp
+	include/integrators/objects.hpp
+	include/utility/debugging.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})

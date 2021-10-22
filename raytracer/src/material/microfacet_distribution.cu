@@ -16,7 +16,7 @@ namespace rt {
   float CMicrofacetDistribution::D(const glm::vec3& h) const {
     // Trowbridge-Reitz
     float vTan2Theta = tan2Theta(h);
-    if (isinf(vTan2Theta)) {
+    if (glm::isinf(vTan2Theta)) {
       return 0.0f;
     }
     const float vCos2Theta = cos2Theta(h);
@@ -37,7 +37,7 @@ namespace rt {
   float CMicrofacetDistribution::lambda(const glm::vec3& w) const {
     // Trowbridge-Reitz
     float absTanTheta = glm::abs(tanTheta(w));
-    if (isinf(absTanTheta)) {
+    if (glm::isinf(absTanTheta)) {
       return 0.0f;
     }
     float alpha = glm::sqrt(cos2Phi(w) * m_alphaX * m_alphaX + sin2Phi(w) * m_alphaY * m_alphaY);

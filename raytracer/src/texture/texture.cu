@@ -25,18 +25,18 @@ namespace rt {
   }
 
   glm::vec3 CTexture::operator()(float x, float y) const {
-    int lowerRowIndex = y * (m_height-1);
+    int lowerRowIndex = glm::clamp(int(y * (m_height-2)), 0, m_height - 2);
     int upperRowIndex = lowerRowIndex + 1;
 
-    int lowerColumnIndex = x * (m_width-1);
+    int lowerColumnIndex = glm::clamp(int(x * (m_width-2)), 0, m_width - 2);
     int upperColumnIndex = lowerColumnIndex + 1;
 
-    glm::vec3 lowerRowInterpolation = glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 1)) +
-                                      glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 1) - lowerColumnIndex);
-    glm::vec3 upperRowInterpolation = glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 1)) +
-                                      glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 1) - lowerColumnIndex);
+    glm::vec3 lowerRowInterpolation = glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 2)) +
+                                      glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 2) - lowerColumnIndex);
+    glm::vec3 upperRowInterpolation = glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 2)) +
+                                      glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 2) - lowerColumnIndex);
 
-    return lowerRowInterpolation * (upperRowIndex - y * (m_height - 1)) + upperRowInterpolation * (y * (m_height - 1) - lowerRowIndex);
+    return lowerRowInterpolation * (upperRowIndex - y * (m_height - 2)) + upperRowInterpolation * (y * (m_height - 2) - lowerRowIndex);
   }
 
   void CTexture::allocateDeviceMemory() {

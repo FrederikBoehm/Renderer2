@@ -21,7 +21,7 @@ namespace rt {
   class CDirectLightingIntegrator { // TODO: Make Integrator host callable
   public:
     D_CALLABLE CDirectLightingIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples);
-    D_CALLABLE glm::vec3 Li(EIntegrationStrategy strategy);
+    D_CALLABLE glm::vec3 Li();
 
   private:
     CDeviceScene* m_scene;

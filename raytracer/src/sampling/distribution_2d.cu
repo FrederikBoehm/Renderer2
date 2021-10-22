@@ -48,16 +48,16 @@ namespace rt {
   }
 
   float CDistribution2D::pdf(const glm::vec2& pos) const {
-    uint16_t lowerRowIndex = pos.y * (m_height - 1);
+    uint16_t lowerRowIndex = glm::clamp(int(pos.y * (m_height - 2)), 0, m_height - 2);
     uint16_t upperRowIndex = lowerRowIndex + 1;
 
-    uint16_t lowerColumnIndex = pos.x * (m_width - 1);
+    uint16_t lowerColumnIndex = glm::clamp(int(pos.x * (m_width - 2)), 0, m_width - 2);
     uint16_t upperColumnIndex = lowerColumnIndex + 1;
 
-    float lowerRowInterpolation = m_rows[lowerRowIndex].func(lowerColumnIndex) * (upperColumnIndex - pos.x * (m_width - 1.f)) + m_rows[lowerRowIndex].func(upperColumnIndex) * (pos.x * (m_width - 1.f) - lowerColumnIndex);
-    float upperRowInterpolation = m_rows[upperRowIndex].func(lowerColumnIndex) * (upperColumnIndex - pos.x * (m_width - 1.f)) + m_rows[upperRowIndex].func(upperColumnIndex) * (pos.x * (m_width - 1.f) - lowerColumnIndex);
+    float lowerRowInterpolation = m_rows[lowerRowIndex].func(lowerColumnIndex) * (upperColumnIndex - pos.x * (m_width - 2.f)) + m_rows[lowerRowIndex].func(upperColumnIndex) * (pos.x * (m_width - 2.f) - lowerColumnIndex);
+    float upperRowInterpolation = m_rows[upperRowIndex].func(lowerColumnIndex) * (upperColumnIndex - pos.x * (m_width - 2.f)) + m_rows[upperRowIndex].func(upperColumnIndex) * (pos.x * (m_width - 2.f) - lowerColumnIndex);
 
-    return (lowerRowInterpolation * (upperRowIndex - pos.y * (m_height - 1.f)) + upperRowInterpolation * (pos.y * (m_height - 1.f) - lowerRowIndex));
+    return (lowerRowInterpolation * (upperRowIndex - pos.y * (m_height - 2.f)) + upperRowInterpolation * (pos.y * (m_height - 2.f) - lowerRowIndex));
   }
 
   void CDistribution2D::allocateDeviceMemory() {

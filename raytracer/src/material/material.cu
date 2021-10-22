@@ -1,6 +1,7 @@
 #include "material/material.hpp"
 
 #include "intersect/hit_information.hpp"
+#include "sampling/sampler.hpp"
 
 namespace rt {
   CMaterial::CMaterial():
