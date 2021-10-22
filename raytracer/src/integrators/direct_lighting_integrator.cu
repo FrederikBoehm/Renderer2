@@ -17,7 +17,7 @@ namespace rt {
 
   }
 
-  glm::vec3 CDirectLightingIntegrator::Li(EIntegrationStrategy strategy) {
+  glm::vec3 CDirectLightingIntegrator::Li() {
     glm::vec3 L(0.0f);
     CRay eyeRay = m_pixelSampler->samplePixel();
 
