@@ -43,6 +43,19 @@ namespace rt {
    DH_CALLABLE inline glm::vec3 sphericalDirection(float sinTheta, float cosTheta, float phi, const glm::vec3& x, const glm::vec3& y, const glm::vec3& z) {
      return sinTheta * glm::cos(phi) * x + sinTheta * glm::sin(phi) * y + cosTheta * z; // TODO: Check if that is the right coordinate system
    }
+
+   template <glm::length_t L, typename T> DH_CALLABLE bool any(glm::vec<L, T>& vec, T v) {
+     for (glm::length_t i = 0; i < L; ++i) {
+       if (vec[i] == v) {
+         return true;
+       }
+     }
+     return false;
+   }
+
+   DH_CALLABLE inline bool sameHemisphere(const glm::vec3& w, const glm::vec3& wp) {
+     return w.z * wp.z > 0.f;
+   }
 }
 
 #endif // !FUNCTIONS_HPP

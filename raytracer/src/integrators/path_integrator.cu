@@ -8,6 +8,7 @@
 #include "shapes/plane.hpp"
 #include "shapes/sphere.hpp"
 #include "integrators/objects.hpp"
+#include "utility/functions.hpp"
 
 namespace rt {
   CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples):
@@ -18,68 +19,90 @@ namespace rt {
 
   }
 
-  D_CALLABLE glm::vec3 direct(const SInteraction& si, const glm::vec3& wo, const CCoordinateFrame& frame, const CDeviceScene& scene, CSampler& sampler) {
-    
-
+  D_CALLABLE glm::vec3 direct(const SInteraction& si, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
     glm::vec3 L(0.f);
+    
+    CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
+    glm::vec3 woTangent = glm::vec3(frame.worldToTangent() * glm::vec4(wo, 0.0f));
+
     // Sample light source
     {
-      float lightsPdf = 0.0f;
       glm::vec3 lightWorldSpaceDirection;
-      float lightPdf;
+      float lightPdf = 0.f;
       glm::vec3 Le = scene.sampleLightSources(sampler, &lightWorldSpaceDirection, &lightPdf);
-      glm::vec3 lightTangentSpaceDirection = glm::normalize(glm::vec3(frame.worldToTangent() * glm::vec4(lightWorldSpaceDirection, 0.0f)));
-
-      CRay rayLight = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, lightWorldSpaceDirection);
-      glm::vec3 trSecondary;
-      SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
-
-
-      float brdfPdf = si.material->pdf(wo, lightTangentSpaceDirection);
-      float mis_weight = balanceHeuristic(1, lightPdf, 1, brdfPdf);
-
-      glm::vec3 f = si.material->f(wo, lightTangentSpaceDirection);
-      glm::vec3 tr;
-      if (!siLight.hitInformation.hit) {
-        tr = trSecondary; // Light From environment map
-      }
-      else {
-        tr = siLight.material && glm::vec3(0.f) != siLight.material->Le() ? glm::vec3(1.f) : glm::vec3(0.f);
-      }
-
       if (lightPdf > 0.f) {
-        L += mis_weight * f * Le * glm::max(glm::dot(si.hitInformation.normal, rayLight.m_direction), 0.0f) * tr / (lightPdf);
-        //L += tr;
+        glm::vec3 lightTangentSpaceDirection = glm::normalize(glm::vec3(frame.worldToTangent() * glm::vec4(lightWorldSpaceDirection, 0.0f)));
+
+        CRay rayLight = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, lightWorldSpaceDirection);
+        glm::vec3 trSecondary;
+        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
+
+
+
+        glm::vec3 f(0.f);
+        float scatteringPdf = 0.f;
+        if (si.material) {
+          f = si.material->f(woTangent, lightTangentSpaceDirection) * glm::max(glm::dot(si.hitInformation.normal, rayLight.m_direction), 0.0f);
+          scatteringPdf = si.material->pdf(woTangent, lightTangentSpaceDirection);
+        }
+        else {
+          scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection);
+          f = glm::vec3(scatteringPdf);
+        }
+
+        float mis_weight = balanceHeuristic(1, lightPdf, 1, scatteringPdf);
+
+        glm::vec3 tr;
+        if (!siLight.hitInformation.hit) {
+          tr = trSecondary; // Light From environment map
+        }
+        else {
+          tr = siLight.material && glm::vec3(0.f) != siLight.material->Le() ? glm::vec3(1.f) : glm::vec3(0.f);
+        }
+
+        L += mis_weight * f * Le * tr / (lightPdf);
       }
     }
 
-    // Sample BRDF
+    // Sample BRDF / Phase function
     {
+      float scatteringPdf = 0.f;
+      glm::vec3 f(0.f);
       glm::vec3 wi(0.f);
-      float brdfPdf = 0.f;
-      glm::vec3 f = si.material->sampleF(wo, &wi, sampler, &brdfPdf);
-
-      glm::vec3 brdfWorldSpaceDirection = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wi, 0.0f)));
-      CRay rayBrdf = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, brdfWorldSpaceDirection);
-      glm::vec3 trSecondary;
-      SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary);
-
-      float lightPdf;
-      glm::vec3 Le = scene.le(brdfWorldSpaceDirection, &lightPdf);
-
-      float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
-      float mis_weight = balanceHeuristic(1, brdfPdf, 1, lightPdf);
-      glm::vec3 tr;
-      if (!siBrdf.hitInformation.hit) {
-        tr = trSecondary;
+      if (si.material) {
+        glm::vec3 wiTangent(0.f);
+        f = si.material->sampleF(woTangent, &wiTangent, sampler, &scatteringPdf);
+        wi = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wiTangent, 0.0f)));
+        f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
       }
       else {
-        tr = siBrdf.material && glm::vec3(0.f) != siBrdf.material->Le() ? glm::vec3(1.f) : glm::vec3(0.f);
+        float p = si.medium->phase().sampleP(wo, &wi, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+        f = glm::vec3(p);
+        scatteringPdf = p;
       }
-      if (brdfPdf > 0.f) {
-        L += mis_weight * f * Le * glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.f) * tr / brdfPdf;
+
+      if (scatteringPdf > 0.f) {
+        CRay rayBrdf = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, wi);
+        glm::vec3 trSecondary;
+        SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary);
+
+        float lightPdf;
+        glm::vec3 Le = scene.le(wi, &lightPdf);
+
+        float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
+        float mis_weight = balanceHeuristic(1, scatteringPdf, 1, lightPdf);
+        glm::vec3 tr;
+        if (!siBrdf.hitInformation.hit) {
+          tr = trSecondary;
+        }
+        else {
+          tr = siBrdf.material && glm::vec3(0.f) != siBrdf.material->Le() ? glm::vec3(1.f) : glm::vec3(0.f);
+        }
+        L += mis_weight * f * Le * tr / scatteringPdf;
       }
     }
+
+
 
     return L;
   }
@@ -90,61 +113,85 @@ namespace rt {
     CRay ray = m_pixelSampler->samplePixel();
 
     bool isEyeRay = true;
-    SInteraction si = m_scene->intersect(ray);
+    SInteraction si;
     size_t numBounces = 0;
     for (size_t bounces = 0; bounces < 100; ++bounces) {
       numBounces = bounces;
-      if (isEyeRay) {
-        if (si.hitInformation.hit && si.medium) {
-          glm::vec3 tr(1.f);
-          si = m_scene->intersectTr(CRay(si.hitInformation.pos + 1e-6f * ray.m_direction, ray.m_direction), *m_sampler, &tr);
-          throughput *= tr;
+      si = m_scene->intersect(ray);
+
+      SInteraction mi;
+      if (si.medium) {
+        CRay mediumRay(si.hitInformation.pos + 1.0e-6f * ray.m_direction, ray.m_direction);
+        SInteraction siMediumEnd = m_scene->intersect(mediumRay);
+        if (siMediumEnd.hitInformation.hit && siMediumEnd.medium) {
+          throughput *= si.medium->sample(mediumRay, *m_sampler, &mi);
         }
+        if (any(throughput, 0.f)) {
+          break;
+        }
+
+      }
+
+      if (mi.medium) {
+        L += throughput * direct(mi, -ray.m_direction, *m_scene, *m_sampler);
+        glm::vec3 wo = -ray.m_direction;
+        glm::vec3 wi;
+        mi.medium->phase().sampleP(wo, &wi, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        ray = CRay(mi.hitInformation.pos + 1e-6f * wi, wi);
+      }
+      else {
+        if (bounces == 0) {
+          if (!si.hitInformation.hit) {
+            float p;
+            L += m_scene->le(ray.m_direction, &p) * throughput;
+          }
+        }
+
         if (!si.hitInformation.hit) {
-          float p;
-          L += m_scene->le(ray.m_direction, &p) * throughput;
           break;
         }
-        isEyeRay = false;
+
+        if (!si.material) {
+          ray = CRay(si.hitInformation.pos + 1e-6f * ray.m_direction, ray.m_direction);
+          --bounces;
+          continue;
+        }
+
+        L += direct(si, -ray.m_direction, *m_scene, *m_sampler) * throughput;
+
+        CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
+        CRay rayTangent = ray.transform(frame.worldToTangent());
+
+        // Sample BRDF
+        {
+          glm::vec3 wi(0.f);
+          float brdfPdf = 0.f;
+          glm::vec3 f = si.material->sampleF(-rayTangent.m_direction, &wi, *m_sampler, &brdfPdf);
+          if (brdfPdf == 0.f) {
+            break;
+          }
+
+          glm::vec3 brdfWorldSpaceDirection = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wi, 0.0f)));
+          CRay rayBrdf = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, brdfWorldSpaceDirection);
+          float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
+
+          throughput *= f * cosine / (brdfPdf);
+
+          ray = rayBrdf;
+        }
       }
-      if (!si.hitInformation.hit) {
-        break;
-      }
 
-
-      CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
-      CRay rayTangent = ray.transform(frame.worldToTangent());
-
-      L += direct(si, -rayTangent.m_direction, frame, *m_scene, *m_sampler) * throughput;
-
-      float p = 1.f - (throughput.r + throughput.g + throughput.b) / 3.f;
-      if (m_sampler->uniformSample01() <= p) {
-        break;
-      }
-
-      // Sample BRDF
-      {
-        glm::vec3 wi(0.f);
-        float brdfPdf = 0.f;
-        glm::vec3 f = si.material->sampleF(-rayTangent.m_direction, &wi, *m_sampler, &brdfPdf);
-        if (brdfPdf == 0.f) {
+      if (bounces > 3) {
+        float p = 1.f - (throughput.r + throughput.g + throughput.b) / 3.f;
+        if (m_sampler->uniformSample01() <= p) {
           break;
         }
-        
-        glm::vec3 brdfWorldSpaceDirection = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wi, 0.0f)));
-        CRay rayBrdf = CRay(si.hitInformation.pos + 1.0e-6f * si.hitInformation.normal, brdfWorldSpaceDirection);
-        glm::vec3 trSecondary;
-        SInteraction siBrdf = m_scene->intersectTr(rayBrdf, *m_sampler, &trSecondary);
 
-
-        float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
-
-        throughput *= f * cosine * trSecondary / (brdfPdf * (1.f - p));
-
-        si = siBrdf;
-        ray = rayBrdf;
+        throughput /= (1 - p);
       }
+
     }
+
     return L / (float) m_numSamples;
   }
 }
