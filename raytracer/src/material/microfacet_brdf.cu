@@ -1,6 +1,7 @@
 #include "material/microfacet_brdf.hpp"
 #include "material/brdf_functions.hpp"
 #include "sampling/sampler.hpp"
+#include "utility/functions.hpp"
 
 namespace rt {
   CMicrofacetBRDF::CMicrofacetBRDF():
@@ -51,16 +52,19 @@ namespace rt {
     }
     
     *wi = glm::reflect(-wo, h);
-    if (!(wo.z * wi->z > 0)) {
+    if (!sameHemisphere(wo, *wi)) {
       return glm::vec3(0.f);
     }
-    *pdf = m_distribution.pdf(wo, h) / 4 * glm::dot(wo, h);
+    *pdf = m_distribution.pdf(wo, h) / (4 * glm::dot(wo, h));
     return f(wo, *wi);
   }
 
   float CMicrofacetBRDF::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
+    if (!sameHemisphere(wo, wi)) {
+      return 0.f;
+    }
     glm::vec3 h = glm::normalize(wo + wi);
-    return m_distribution.pdf(wo, h) / 4 * glm::dot(wo, h);
+    return m_distribution.pdf(wo, h) / (4 * glm::dot(wo, h));
   }
 
 

@@ -6,7 +6,7 @@
 
 namespace rt {
   struct SHitInformation {
-    bool hit;
+    bool hit = false;
     glm::vec3 pos; // World pos
     glm::vec3 normal; // World space normal
     float t;

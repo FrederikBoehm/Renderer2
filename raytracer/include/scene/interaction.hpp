@@ -9,9 +9,9 @@ namespace rt {
   class CDeviceSceneobject;
   struct SInteraction {
     SHitInformation hitInformation;
-    CDeviceSceneobject* object;
-    CMaterial* material;
-    const CMedium* medium;
+    CDeviceSceneobject* object = nullptr;
+    CMaterial* material = nullptr;
+    const CMedium* medium = nullptr;
   };
 
   //struct SSurfaceInteraction : public SInteraction {
