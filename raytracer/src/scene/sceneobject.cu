@@ -1,23 +1,26 @@
 #include "scene/sceneobject.hpp"
 #include <iostream>
 
-#include "shapes/plane.hpp"
+#include "shapes/circle.hpp"
 #include "shapes/sphere.hpp"
-#include "medium/medium.hpp"
+#include "medium/homogeneous_medium.hpp"
+#include "shapes/rectangle.hpp"
+#include "shapes/cuboid.hpp"
+#include "medium/heterogenous_medium.hpp"
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
     switch (shape) {
-    case EShape::PLANE:
-      return std::make_shared<Plane>(worldPos, radius, normal);
+    case EShape::CIRCLE:
+      return std::make_shared<CCircle>(worldPos, radius, normal);
       break;
     case EShape::SPHERE:
       return std::make_shared<Sphere>(worldPos, radius, normal);
     }
   }
 
-  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le):
-    m_shape(getShape(shape, worldPos, radius, normal)),
+  CHostSceneobject::CHostSceneobject(const CShape* shape, const glm::vec3& le):
+    m_shape(shape),
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
@@ -25,8 +28,8 @@ namespace rt {
     m_material = std::make_shared<CMaterial>(CMaterial(le));
   }
 
-  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
-    m_shape(getShape(shape, worldPos, radius, normal)),
+  CHostSceneobject::CHostSceneobject(const CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
+    m_shape(shape),
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
@@ -34,13 +37,12 @@ namespace rt {
     m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
   }
 
-  CHostSceneobject::CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& absorption, const glm::vec3&outScattering, float asymmetry):
-    m_shape(getShape(shape, worldPos, radius, normal)),
+  CHostSceneobject::CHostSceneobject(const CShape* shape, CMedium* medium):
+    m_shape(shape),
     m_material(nullptr),
-    m_medium(nullptr),
+    m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
     m_hostDeviceConnection(this) {
-    m_medium = std::make_shared<CMedium>(CMedium(absorption, outScattering, asymmetry));
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -60,35 +62,62 @@ namespace rt {
   }
   void CSceneobjectConnection::allocateDeviceMemory() {
     switch (m_hostSceneobject->m_shape->shape()) {
-    case EShape::PLANE:
-      cudaMalloc(&m_deviceShape, sizeof(Plane));
+    case EShape::CIRCLE:
+      cudaMalloc(&m_deviceShape, sizeof(CCircle));
       break;
     case EShape::SPHERE:
       cudaMalloc(&m_deviceShape, sizeof(Sphere));
+      break;
+    case EShape::RECTANGLE:
+      cudaMalloc(&m_deviceShape, sizeof(CRectangle));
+      break;
+    case EShape::CUBOID:
+      cudaMalloc(&m_deviceShape, sizeof(CCuboid));
       break;
     }
     if (m_hostSceneobject->m_material) {
       cudaMalloc(&m_deviceMaterial, sizeof(CMaterial));
     }
     if (m_hostSceneobject->m_medium) {
-      cudaMalloc(&m_deviceMedium, sizeof(CMedium));
+      switch (m_hostSceneobject->m_medium->type()) {
+      case EMediumType::HOMOGENEOUS_MEDIUM:
+        cudaMalloc(&m_deviceMedium, sizeof(CHomogeneousMedium));
+        break;
+      case EMediumType::HETEROGENOUS_MEDIUM:
+        cudaMalloc(&m_deviceMedium, sizeof(CHeterogenousMedium));
+        std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
+        break;
+      }
     }
 
   }
   void CSceneobjectConnection::copyToDevice() {
     switch (m_hostSceneobject->m_shape->shape()) {
-    case EShape::PLANE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Plane), cudaMemcpyHostToDevice);
+    case EShape::CIRCLE:
+      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCircle), cudaMemcpyHostToDevice);
       break;
     case EShape::SPHERE:
       cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice);
       break;
+    case EShape::RECTANGLE:
+      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CRectangle), cudaMemcpyHostToDevice);
+      break;
+    case EShape::CUBOID:
+      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice);
     }
     if (m_deviceMaterial) {
       cudaMemcpy(m_deviceMaterial, m_hostSceneobject->m_material.get(), sizeof(CMaterial), cudaMemcpyHostToDevice);
     }
     if (m_deviceMedium) {
-      cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CMedium), cudaMemcpyHostToDevice);
+      switch (m_hostSceneobject->m_medium->type()) {
+      case EMediumType::HOMOGENEOUS_MEDIUM:
+        cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CHomogeneousMedium), cudaMemcpyHostToDevice);
+        break;
+      case EMediumType::HETEROGENOUS_MEDIUM:
+        std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
+        cudaMemcpy(m_deviceMedium, &hetMedium->copyToDevice(), sizeof(CHeterogenousMedium), cudaMemcpyHostToDevice);
+        break;
+      }
     }
     if (m_deviceSceneobject) {
 
@@ -110,12 +139,17 @@ namespace rt {
   SInteraction CDeviceSceneobject::intersect(const CRay& ray) {
     SInteraction si;
     switch (m_shape->shape()) {
-    case EShape::PLANE:
-      si.hitInformation = ((Plane*)m_shape)->intersect(ray);
+    case EShape::CIRCLE:
+      si.hitInformation = ((CCircle*)m_shape)->intersect(ray);
       break;
     case EShape::SPHERE:
       si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
       break;
+    case EShape::RECTANGLE:
+      si.hitInformation = ((CRectangle*)m_shape)->intersect(ray);
+      break;
+    case EShape::CUBOID:
+      si.hitInformation = ((CCuboid*)m_shape)->intersect(ray);
     }
     si.material = m_material;
     si.medium = m_medium;
@@ -127,8 +161,8 @@ namespace rt {
     if (m_flag == ESceneobjectFlag::GEOMETRY) {
       glm::vec3 L = m_material->Le();
       switch (m_shape->shape()) {
-      case EShape::PLANE:
-        return (L.x + L.y + L.z) * ((Plane*)m_shape.get())->area();
+      case EShape::CIRCLE:
+        return (L.x + L.y + L.z) * ((CCircle*)m_shape.get())->area();
       }
     }
     return 0.0f;
@@ -142,8 +176,8 @@ namespace rt {
     if (m_flag == ESceneobjectFlag::GEOMETRY) {
       glm::vec3 L = m_material->Le();
       switch (m_shape->shape()) {
-      case EShape::PLANE:
-        return (L.x + L.y + L.z) * ((Plane*)m_shape)->area();
+      case EShape::CIRCLE:
+        return (L.x + L.y + L.z) * ((CCircle*)m_shape)->area();
       }
     }
     return 0.0f;

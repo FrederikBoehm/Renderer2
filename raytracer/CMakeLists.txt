@@ -9,7 +9,7 @@ set(SOURCE_FILES
 	src/scene/sceneobject.cu
 	src/shapes/shape.cu
 	src/shapes/sphere.cu
-	src/shapes/plane.cu
+	src/shapes/circle.cu
 	src/intersect/ray.cu
 	src/material/material.cu
 	src/material/lambertian_brdf.cu
@@ -22,12 +22,16 @@ set(SOURCE_FILES
 	src/sampling/distribution_1d.cu
 	src/integrators/direct_lighting_integrator.cu
 	src/camera/pixel_sampler.cu
-	src/medium/medium.cu
+	src/medium/homogeneous_medium.cu
 	src/medium/henyey_greenstein_phase_function.cu
 	src/texture/texture.cu
 	src/sampling/distribution_2d.cu
 	src/scene/environmentmap.cu
-	src/integrators/path_integrator.cu)
+	src/integrators/path_integrator.cu
+	src/medium/medium.cu
+	src/medium/heterogenous_medium.cu
+	src/shapes/cuboid.cu
+	src/shapes/rectangle.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -37,7 +41,7 @@ set(HEADER_FILES
 	include/scene/interaction.hpp
 	include/shapes/shape.hpp
 	include/shapes/sphere.hpp
-	include/shapes/plane.hpp
+	include/shapes/circle.hpp
 	include/intersect/ray.hpp
 	include/intersect/hit_information.hpp
 	include/material/material.hpp
@@ -55,14 +59,18 @@ set(HEADER_FILES
 	include/integrators/direct_lighting_integrator.hpp
 	include/camera/pixel_sampler.hpp
 	include/sampling/mis.hpp
-	include/medium/medium.hpp
+	include/medium/homogeneous_medium.hpp
 	include/medium/henyey_greenstein_phase_function.hpp
 	include/texture/texture.hpp
 	include/sampling/distribution_2d.hpp
 	include/scene/environmentmap.hpp
 	include/integrators/path_integrator.hpp
 	include/integrators/objects.hpp
-	include/utility/debugging.hpp)
+	include/utility/debugging.hpp
+	include/medium/medium.hpp
+	include/medium/heterogenous_medium.hpp
+	include/shapes/cuboid.hpp
+	include/shapes/rectangle.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})

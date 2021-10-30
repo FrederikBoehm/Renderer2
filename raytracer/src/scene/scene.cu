@@ -177,9 +177,9 @@ namespace rt {
     if (lightHit.object) {
       const CShape* lightGeometry = lightHit.object->shape();
       switch (lightGeometry->shape()) {
-      case EShape::PLANE: {
+      case EShape::CIRCLE: {
 
-        return ((const Plane*)lightGeometry)->pdf(lightHit, shadowRay);
+        return ((const CCircle*)lightGeometry)->pdf(lightHit, shadowRay);
       }
       }
     }
