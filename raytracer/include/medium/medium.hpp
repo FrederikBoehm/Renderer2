@@ -1,33 +1,44 @@
 #ifndef MEDIUM_HPP
 #define MEDIUM_HPP
 
-#include <glm/glm.hpp>
-#include "henyey_greenstein_phase_function.hpp"
 #include "utility/qualifiers.hpp"
+#include "henyey_greenstein_phase_function.hpp"
 namespace rt {
   class CRay;
   class CSampler;
   class SInteraction;
+  class CHenyeyGreensteinPhaseFunction;
 
-  // Homogeneous medium
-  class CMedium {
-  public:
-    DH_CALLABLE CMedium(const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
-    DH_CALLABLE glm::vec3 tr(const CRay& ray, const CSampler& sampler) const;
-    DH_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
-
-    DH_CALLABLE const CHenyeyGreensteinPhaseFunction& phase() const;
-
-  private:
-    const glm::vec3 m_sigma_a;
-    const glm::vec3 m_sigma_s;
-    const glm::vec3 m_sigma_t;
-    const CHenyeyGreensteinPhaseFunction m_phase;
+  enum EMediumType {
+    HOMOGENEOUS_MEDIUM,
+    HETEROGENOUS_MEDIUM
   };
 
-  DH_CALLABLE inline const CHenyeyGreensteinPhaseFunction& CMedium::phase() const {
-    return m_phase;
+  // Medium base class
+  class CMedium {
+  public:
+    DH_CALLABLE virtual ~CMedium();
+
+    DH_CALLABLE EMediumType type() const;
+
+    DH_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    DH_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
+    DH_CALLABLE const CHenyeyGreensteinPhaseFunction& phase() const;
+
+  protected:
+    DH_CALLABLE CMedium(const EMediumType mediumType);
+
+
+  private:
+    const EMediumType m_type;
+  };
+
+  DH_CALLABLE inline EMediumType CMedium::type() const {
+    return m_type;
   }
+
+  
+
 }
 
 #endif

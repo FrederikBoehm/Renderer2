@@ -5,7 +5,7 @@
 #include <cmath>
 #include "sampling/mis.hpp"
 #include "scene/interaction.hpp"
-#include "shapes/plane.hpp"
+#include "shapes/circle.hpp"
 #include "shapes/sphere.hpp"
 
 namespace rt {

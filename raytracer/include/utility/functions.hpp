@@ -56,6 +56,22 @@ namespace rt {
    DH_CALLABLE inline bool sameHemisphere(const glm::vec3& w, const glm::vec3& wp) {
      return w.z * wp.z > 0.f;
    }
+
+   DH_CALLABLE inline float interpolate(float t, float v1, float v2) {
+     return (1.f - t) * v1 + t * v2;
+   }
+
+   template <typename T> DH_CALLABLE inline bool insideExclusive(const glm::vec<3, T>& p, const glm::vec<3, T>& lowerBound, const glm::vec<3, T>& upperBound) {
+     return (p.x >= lowerBound.x && p.x < upperBound.x &&
+             p.y >= lowerBound.y && p.y < upperBound.y &&
+             p.z >= lowerBound.z && p.z < upperBound.z);
+   }
+
+   template <typename T> DH_CALLABLE inline bool inside(const glm::vec<3, T>& p, const glm::vec<3, T>& lowerBound, const glm::vec<3, T>& upperBound) {
+     return (p.x >= lowerBound.x && p.x <= upperBound.x &&
+       p.y >= lowerBound.y && p.y <= upperBound.y &&
+       p.z >= lowerBound.z && p.z <= upperBound.z);
+   }
 }
 
 #endif // !FUNCTIONS_HPP

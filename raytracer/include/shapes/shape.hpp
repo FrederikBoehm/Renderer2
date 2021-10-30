@@ -11,13 +11,16 @@
 namespace rt {
   enum EShape {
     SPHERE,
-    PLANE
+    CIRCLE,
+    CUBOID,
+    RECTANGLE
   };
 
   class SurfaceInteraction;
   class Ray;
 
   class CShape {
+    friend struct SSharedMemoryInitializer;
   public:
     DH_CALLABLE EShape shape() const;
 

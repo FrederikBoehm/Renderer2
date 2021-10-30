@@ -1,7 +1,7 @@
 #ifndef SCENEOBJECT_HPP
 #define SCENEOBJECT_HPP
 #include "shapes/shape.hpp"
-#include "shapes/plane.hpp"
+#include "shapes/circle.hpp"
 #include "shapes/sphere.hpp"
 #include "material/material.hpp"
 #include "interaction.hpp"
@@ -17,6 +17,7 @@ namespace rt {
 
   class CDeviceSceneobject {
     friend class CSceneobjectConnection;
+    friend struct SSharedMemoryInitializer;
   public:
     D_CALLABLE SInteraction intersect(const CRay& ray);
     D_CALLABLE CShape* shape() const;
@@ -51,9 +52,9 @@ namespace rt {
   class CHostSceneobject {
     friend class CSceneobjectConnection;
   public:
-    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& le);
-    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
-    CHostSceneobject(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal, const glm::vec3& absorption, const glm::vec3&outScattering, float asymmetry);
+    CHostSceneobject(const CShape* shape, const glm::vec3& le);
+    CHostSceneobject(const CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
+    CHostSceneobject(const CShape* shape, CMedium* medium);
     CHostSceneobject(CHostSceneobject&& sceneobject);
 
     float power() const;
@@ -63,7 +64,7 @@ namespace rt {
     void copyToDevice();
     void freeDeviceMemory();
   private:
-    std::shared_ptr<CShape> m_shape;
+    std::shared_ptr<const CShape> m_shape;
     std::shared_ptr<CMaterial> m_material;
     std::shared_ptr<CMedium> m_medium;
     ESceneobjectFlag m_flag;

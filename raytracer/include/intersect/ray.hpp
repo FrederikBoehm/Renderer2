@@ -7,6 +7,7 @@
 namespace rt {
   class CRay {
   public:
+    inline static constexpr float OFFSET = 1e-5f;
     DH_CALLABLE CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max = 1e+12);
     glm::vec3 m_origin;
     glm::vec3 m_direction;

@@ -12,6 +12,7 @@ namespace rt {
 
   class CDeviceScene {
     friend class CSceneConnection;
+    friend struct SSharedMemoryInitializer;
   public:
     //DH_CALLABLE CDeviceScene();
     D_CALLABLE SInteraction intersect(const CRay& ray) const;
@@ -31,7 +32,6 @@ namespace rt {
     uint16_t m_numLights;
     CDeviceSceneobject* m_lights; // For now lights are also sceneobjects
     CDistribution1D* m_lightDist;
-  public:
     CEnvironmentMap* m_envMap;
   };
 

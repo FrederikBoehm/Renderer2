@@ -1,5 +1,5 @@
-#ifndef PLANE_HPP
-#define PLANE_HPP
+#ifndef CIRCLE_HPP
+#define CIRCLE_HPP
 
 #include "shape.hpp"
 #include "intersect/hit_information.hpp"
@@ -9,11 +9,11 @@ namespace rt {
   class CSampler;
   class SInteraction;
 
-  class Plane : public CShape { // Our plane is actually a circle, this simplifies intersection
+  class CCircle : public CShape {
   public:
-    DH_CALLABLE Plane();
-    DH_CALLABLE Plane(float radius);
-    DH_CALLABLE Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
+    DH_CALLABLE CCircle();
+    DH_CALLABLE CCircle(float radius);
+    DH_CALLABLE CCircle(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
 
     DH_CALLABLE SHitInformation intersect(const CRay& ray) const;
     D_CALLABLE glm::vec3 sample(CSampler& sampler) const;
@@ -27,5 +27,5 @@ namespace rt {
   
 }
 
-#endif // !PLANE_HPP
+#endif // !CIRCLE_HPP
 

@@ -1,26 +1,26 @@
-#include "shapes/plane.hpp"
+#include "shapes/circle.hpp"
 #include "sampling/sampler.hpp"
 #include "scene/interaction.hpp"
 
 namespace rt {
-  Plane::Plane() :
-    CShape(EShape::PLANE), m_radius(1.0f) {
+  CCircle::CCircle() :
+    CShape(EShape::CIRCLE), m_radius(1.0f) {
 
   }
 
-  Plane::Plane(float radius) :
-    CShape(EShape::PLANE), m_radius(radius) {
+  CCircle::CCircle(float radius) :
+    CShape(EShape::CIRCLE), m_radius(radius) {
 
   }
 
-  Plane::Plane(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
-    CShape(EShape::PLANE, worldPos, normal),
+  CCircle::CCircle(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
+    CShape(EShape::CIRCLE, worldPos, normal),
     m_radius(radius) {
 
   }
 
 
-  SHitInformation Plane::intersect(const CRay& ray) const {
+  SHitInformation CCircle::intersect(const CRay& ray) const {
     SHitInformation si;
     si.hit = false;
 
@@ -45,17 +45,17 @@ namespace rt {
     return si;
   }
 
-  glm::vec3 Plane::sample(CSampler& sampler) const {
+  glm::vec3 CCircle::sample(CSampler& sampler) const {
     glm::vec3 pd = m_radius * sampler.concentricSampleDisk();
     return glm::vec3(m_modelToWorld * glm::vec4(pd, 1.0f));
   }
 
-  float Plane::pdf(const SInteraction& lightHit, const CRay& shadowRay) const {
+  float CCircle::pdf(const SInteraction& lightHit, const CRay& shadowRay) const {
     float distance = glm::length(lightHit.hitInformation.pos - shadowRay.m_origin);
     return 1 / area();
   }
 
-  float Plane::area() const {
+  float CCircle::area() const {
     return m_radius * m_radius * M_PI;
   }
 }
