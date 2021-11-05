@@ -23,6 +23,23 @@ mv "$LOCAL_TEMP/glm/glm" "3rdparty/glm"
 (cd $LOCAL_TEMP && curl -o stb.zip -L --url https://github.com/nothings/stb/archive/80c8f6af0304588b9d780a41015472013b705194.zip && unzip -o "stb.zip" -d "stb")
 mv "$LOCAL_TEMP/stb/stb-80c8f6af0304588b9d780a41015472013b705194" "3rdparty/stb"
 
+(cd $LOCAL_TEMP && curl -o openvdb.zip -L --url https://github.com/AcademySoftwareFoundation/openvdb/archive/refs/tags/v9.0.0.zip && unzip -o "openvdb.zip" -d "openvdb")
+mv "$LOCAL_TEMP/openvdb/openvdb-9.0.0" "3rdparty/openvdb"
+
+(cd $LOCAL_TEMP && curl -o vcpkg.zip -L --url https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.zip && unzip -o "vcpkg.zip" -d "vcpkg")
+mv "$LOCAL_TEMP/vcpkg/vcpkg-2021.05.12" "3rdparty/vcpkg"
+
+(cd "3rdparty/vcpkg" && ./bootstrap-vcpkg.sh && \ 
+	./vcpkg install zlib:x64-windows && \
+	./vcpkg install blosc:x64-windows && \
+	./vcpkg install tbb:x64-windows && \
+	./vcpkg install boost-iostreams:x64-windows && \
+	./vcpkg install boost-system:x64-windows && \
+	./vcpkg install boost-any:x64-windows && \
+	./vcpkg install boost-algorithm:x64-windows && \
+	./vcpkg install boost-uuid:x64-windows && \
+	./vcpkg install boost-interprocess:x64-windows)
+
 rm -rf $LOCAL_TEMP
 
 
