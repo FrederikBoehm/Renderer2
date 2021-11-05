@@ -1,8 +1,101 @@
 cmake_minimum_required(VERSION 3.18)
+include(ExternalProject)
+ExternalProject_Add(openvdb_external_dbg
+		PREFIX "${CMAKE_BINARY_DIR}/openvdb_external_dbg"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rdparty/openvdb"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg"
+		BUILD_COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg --config Debug
+        CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
+				   "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install"
+				   "-DVCPKG_TARGET_TRIPLET:STRING=x64-windows"
+				   "-DOPENVDB_BUILD_CORE=OFF"
+				   "-DOPENVDB_CORE_STATIC:BOOL=OFF"
+				   "-DOPENVDB_CORE_SHARED:BOOL=ON"
+				   "-DUSE_TBB=OFF"
+				   "-DUSE_BLOSC=OFF"
+				   "-DUSE_ZLIB=OFF"
+                   "-DUSE_NANOVDB:BOOL=ON"
+                   "-DNANOVDB_USE_CUDA:BOOL=ON"
+                   #"-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+                   "-DNANOVDB_CUDA_KEEP_PTX:BOOL=ON"
+                   "-DOPENVDB_BUILD_BINARIES:BOOL=OFF"
+				   "-DNANOVDB_USE_INTRINSICS:BOOL=ON"
+				   "-DNANOVDB_USE_TBB:BOOL=OFF"
+				   "-DNANOVDB_USE_BLOSC:BOOL=OFF"
+				   "-DNANOVDB_USE_ZLIB:BOOL=OFF"
+				   "-DMSVC_MP_THREAD_COUNT=4"
+		INSTALL_DIR "${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install"
+       #INSTALL_COMMAND "${CMAKE_COMMAND} --build . --target install"
+	   #INSTALL_COMMAND "${CMAKE_COMMAND}" --install ${CMAKE_BINARY_DIR}/3rdparty/nanovdb --config ${CMAKE_BUILD_TYPE}
+	   INSTALL_COMMAND "${CMAKE_COMMAND}" --install ${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg --config Debug
+	   #BUILD_ALWAYS 1
+    )
+
+ExternalProject_Add(openvdb_external_rel
+		PREFIX "${CMAKE_BINARY_DIR}/openvdb_external_rel"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rdparty/openvdb"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel"
+		BUILD_COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel --config Release
+        CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
+				   "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install"
+				   "-DVCPKG_TARGET_TRIPLET:STRING=x64-windows"
+				   "-DOPENVDB_BUILD_CORE=OFF"
+				   "-DOPENVDB_CORE_STATIC:BOOL=OFF"
+				   "-DOPENVDB_CORE_SHARED:BOOL=ON"
+				   "-DUSE_TBB=OFF"
+				   "-DUSE_BLOSC=OFF"
+				   "-DUSE_ZLIB=OFF"
+                   "-DUSE_NANOVDB:BOOL=ON"
+                   "-DNANOVDB_USE_CUDA:BOOL=ON"
+                   #"-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+                   "-DNANOVDB_CUDA_KEEP_PTX:BOOL=ON"
+                   "-DOPENVDB_BUILD_BINARIES:BOOL=OFF"
+				   "-DNANOVDB_USE_INTRINSICS:BOOL=ON"
+				   "-DNANOVDB_USE_TBB:BOOL=OFF"
+				   "-DNANOVDB_USE_BLOSC:BOOL=OFF"
+				   "-DNANOVDB_USE_ZLIB:BOOL=OFF"
+				   "-DMSVC_MP_THREAD_COUNT=4"
+		INSTALL_DIR "${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install"
+       #INSTALL_COMMAND "${CMAKE_COMMAND} --build . --target install"
+	   #INSTALL_COMMAND "${CMAKE_COMMAND}" --install ${CMAKE_BINARY_DIR}/3rdparty/nanovdb --config ${CMAKE_BUILD_TYPE}
+	   INSTALL_COMMAND "${CMAKE_COMMAND}" --install ${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel --config Release
+	   #BUILD_ALWAYS 1
+    )
+
+
 project(Renderer2 LANGUAGES CXX CUDA)
+#set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "toolchain file" FORCE)
+#set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/3rdparty/nanovdb/install" CACHE STRING "Cmake install prefix" FORCE)
+#set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "Target triplet" FORCE)
+#set(OPENVDB_CORE_STATIC ON CACHE BOOL "Build static version of openvdb" FORCE)
+#set(OPENVDB_CORE_SHARED OFF CACHE BOOL "Build shared version of openvdb" FORCE)
+#set(USE_NANOVDB ON CACHE BOOL "Use NanoVDB" FORCE)
+#set(NANOVDB_USE_CUDA ON CACHE BOOL "Use CUDA" FORCE)
+#set(NANOVDB_CUDA_KEEP_PTX ON CACHE BOOL "Keep PTX" FORCE)
+#set(OPENVDB_BUILD_BINARIES OFF CACHE BOOL "Build binaries" FORCE)
+set(NANOVDB_USE_INTRINSICS ON CACHE BOOL "Use compiler intrinsics" FORCE)
+#set(NANOVDB_USE_TBB OFF CACHE BOOL "Use TBB" FORCE)
+#set(NANOVDB_USE_BLOSC OFF CACHE BOOL "Use Blosc" FORCE)
+#set(NANOVDB_USE_ZLIB OFF CACHE BOOL "Use zlib" FORCE)
+
+#set(CMAKE_MSVC_RUNTIME_LIBRARY "" CACHE STRING "Runtime library" FORCE)
+##set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "Target triplet")
+#set(USE_NANOVDB ON CACHE BOOL "Use nanovdb")
+#set(NANOVDB_USE_CUDA ON CACHE BOOL "Use CUDA for nanovdb")
+#set(NANOVDB_CUDA_KEEP_PTX ON CACHE BOOL "Keep PTX")
+##set(OPENVDB_CORE_SHARED OFF CACHE BOOL "Build dynamically linked version of the core library.")
+#set(OPENVDB_BUILD_BINARIES OFF CACHE BOOL "disable openvdb binaries" FORCE)
+##set(OPENVDB_BUILD_CORE OFF CACHE BOOL "Build core")
+##set(OPENVDB_BUILD_BINARIES OFF CACHE BOOL "Build binaries")
+##set(NANOVDB_USE_TBB OFF CACHE BOOL "Use TBB")
+##set(NANOVDB_USE_BLOSC OFF CACHE BOOL "Use Blosc")
+##set(NANOVDB_USE_ZLIB OFF CACHE BOOL "Use zlib")
 
 set(GUI false CACHE BOOL "Setup project with available GUI")
 set(LTO false CACHE BOOL "Setup project with link time optimization")
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Cmake install prefix" FORCE)
+set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
+set(CMAKE_BUILD_PARALLEL_LEVEL 4)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -12,6 +105,17 @@ if (UNIX)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
+add_library(lib_openvdb_external_dbg SHARED IMPORTED)
+add_dependencies(lib_openvdb_external_dbg openvdb_external_dbg)
+set_target_properties(lib_openvdb_external_dbg PROPERTIES IMPORTED_IMPLIB ${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install/lib/openvdb.lib)
+set_target_properties(lib_openvdb_external_dbg PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install/bin/openvdb.dll)
+set_target_properties(lib_openvdb_external_dbg PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install/include)
+
+add_library(lib_openvdb_external_rel SHARED IMPORTED)
+add_dependencies(lib_openvdb_external_rel openvdb_external_rel)
+set_target_properties(lib_openvdb_external_rel PROPERTIES IMPORTED_IMPLIB ${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install/lib/openvdb.lib)
+set_target_properties(lib_openvdb_external_rel PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install/bin/openvdb.dll)
+set_target_properties(lib_openvdb_external_rel PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install/include)
 
 add_subdirectory(visualisation)
 add_subdirectory(3rdparty/glm)

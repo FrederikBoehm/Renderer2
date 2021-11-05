@@ -289,7 +289,7 @@ namespace rt {
       d[i] = glm::abs(nd(gen));
       //d[i] = 1.f;
     }
-    m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), 0.6f, 10, 10, 10, glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), d))); // volume
+    m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), -0.5f, 10, 10, 10, glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), d))); // volume
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f))); // Light
     //glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));

@@ -79,14 +79,27 @@ set_property(TARGET raytracer PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_include_directories(raytracer PRIVATE include)
 target_include_directories(raytracer PRIVATE "../3rdparty/glm")
 target_include_directories(raytracer PRIVATE "../3rdparty")
+target_include_directories(raytracer PRIVATE "../3rdparty/vcpkg/installed/x64-windows/include")
+
+get_target_property(NANOVDB_INCLUDE_DEBUG lib_openvdb_external_dbg INCLUDE_DIRECTORIES)
+get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIRECTORIES)
+target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE_DEBUG}>
+											 $<$<CONFIG:Release>:${NANOVDB_INCLUDE_RELEASE}>)
+#target_include_directories(raytracer PRIVATE ${NANOVDB_INCLUDE_RELEASE})
 
 target_link_libraries(raytracer PRIVATE glm)
 target_link_libraries(raytracer PRIVATE visualisation)
+#message("[DEBUG] Adding link library openvdb")
+#target_link_libraries(raytracer PRIVATE debug lib_openvdb_external_dbg optimized lib_openvdb_external_rel)
+#target_link_libraries(raytracer PRIVATE lib_openvdb_external_rel)
+#target_link_libraries(raytracer PRIVATE openvdb)
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES})
 
+#message("[DEBUG] Setting target compile options for raytracer")
 target_compile_options(raytracer PRIVATE "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-G>")
 target_compile_features(raytracer PRIVATE cxx_std_17)
+target_compile_definitions(raytracer PRIVATE NANOVDB_USE_INTRINSICS=1 BOOST_PP_VARIADICS=0)
 
 if (UNIX)
 set_target_properties(raytracer PROPERTIES CUDA_ARCHITECTURES "75")
