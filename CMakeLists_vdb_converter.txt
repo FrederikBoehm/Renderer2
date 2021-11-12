@@ -1,0 +1,20 @@
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "toolchain file" FORCE)
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/3rdparty/openvdb/install" CACHE STRING "Cmake install prefix" FORCE)
+set(DVCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "Target triplet" FORCE)
+set(OPENVDB_CORE_STATIC OFF CACHE BOOL "Build shared version of openvdb" FORCE)
+set(USE_NANOVDB ON CACHE BOOL "Use NanoVDB" FORCE)
+set(NANOVDB_USE_INTRINSICS ON CACHE BOOL "Use compiler intrinsics" FORCE)
+set(MSVC_MP_THREAD_COUNT 4 CACHE STRING "Threads for building" FORCE)
+#set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows" CACHE STRING "Path to Boost dir" FORCE)
+
+set(CMAKE_BUILD_PARALLEL_LEVEL 4)
+
+list(APPEND CMAKE_INCLUDE_PATH ${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows/include)
+list(APPEND CMAKE_INCLUDE_PATH ${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows/debug/include)
+list(APPEND CMAKE_LIBRARY_PATH ${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows/lib)
+list(APPEND CMAKE_LIBRARY_PATH ${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows/debug/lib)
+
+message(WARNING "Cmake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+
+add_subdirectory(3rdparty/openvdb)
+add_subdirectory(vdb_converter)

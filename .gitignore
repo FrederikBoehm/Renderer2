@@ -1,4 +1,5 @@
 build/
+build_vdb_converter/
 .vs/
 3rdparty/
 raytracer/assets
