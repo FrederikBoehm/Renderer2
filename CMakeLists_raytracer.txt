@@ -63,7 +63,8 @@ ExternalProject_Add(openvdb_external_rel
     )
 
 
-project(Renderer2 LANGUAGES CXX CUDA)
+#project(Renderer2 LANGUAGES CXX CUDA)
+enable_language(CUDA)
 #set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "toolchain file" FORCE)
 #set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/3rdparty/nanovdb/install" CACHE STRING "Cmake install prefix" FORCE)
 #set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "Target triplet" FORCE)
