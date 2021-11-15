@@ -7,6 +7,7 @@
 #include "shapes/rectangle.hpp"
 #include "shapes/cuboid.hpp"
 #include "medium/heterogenous_medium.hpp"
+#include "medium/nvdb_medium.hpp"
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
@@ -43,6 +44,17 @@ namespace rt {
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
     m_hostDeviceConnection(this) {
+  }
+
+  CHostSceneobject::CHostSceneobject(CNVDBMedium* medium) :
+    m_shape(nullptr),
+    m_material(nullptr),
+    m_medium(medium),
+    m_flag(ESceneobjectFlag::VOLUME),
+    m_hostDeviceConnection(this) {
+    nanovdb::Vec3R size = medium->grid()->worldBBox().dim();
+    nanovdb::Vec3R center = (medium->grid()->worldBBox().max() + medium->grid()->worldBBox().min()) / 2.f;
+    m_shape = std::make_shared<CCuboid>(CCuboid(glm::vec3(center[0], center[1], center[2]), glm::vec3(size[0], size[1], size[2]), glm::vec3(0.f, 1.f, 0.f)));
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -87,6 +99,10 @@ namespace rt {
         cudaMalloc(&m_deviceMedium, sizeof(CHeterogenousMedium));
         std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
         break;
+      case EMediumType::NVDB_MEDIUM:
+        cudaMalloc(&m_deviceMedium, sizeof(CNVDBMedium));
+        std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
+        break;
       }
     }
 
@@ -104,6 +120,7 @@ namespace rt {
       break;
     case EShape::CUBOID:
       cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice);
+      break;
     }
     if (m_deviceMaterial) {
       cudaMemcpy(m_deviceMaterial, m_hostSceneobject->m_material.get(), sizeof(CMaterial), cudaMemcpyHostToDevice);
@@ -113,10 +130,16 @@ namespace rt {
       case EMediumType::HOMOGENEOUS_MEDIUM:
         cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CHomogeneousMedium), cudaMemcpyHostToDevice);
         break;
-      case EMediumType::HETEROGENOUS_MEDIUM:
+      case EMediumType::HETEROGENOUS_MEDIUM: {
         std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
         cudaMemcpy(m_deviceMedium, &hetMedium->copyToDevice(), sizeof(CHeterogenousMedium), cudaMemcpyHostToDevice);
         break;
+      }
+      case EMediumType::NVDB_MEDIUM: {
+        std::shared_ptr<CNVDBMedium> nvdbMedium = std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium);
+        cudaMemcpy(m_deviceMedium, &nvdbMedium->copyToDevice(), sizeof(CNVDBMedium), cudaMemcpyHostToDevice);
+        break;
+      }
       }
     }
     if (m_deviceSceneobject) {
@@ -150,6 +173,7 @@ namespace rt {
       break;
     case EShape::CUBOID:
       si.hitInformation = ((CCuboid*)m_shape)->intersect(ray);
+      break;
     }
     si.material = m_material;
     si.medium = m_medium;

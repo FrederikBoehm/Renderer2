@@ -9,6 +9,7 @@
 
 namespace rt {
   class CHostSceneobject;
+  class CNVDBMedium;
 
   enum ESceneobjectFlag {
     GEOMETRY,
@@ -55,6 +56,7 @@ namespace rt {
     CHostSceneobject(const CShape* shape, const glm::vec3& le);
     CHostSceneobject(const CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
     CHostSceneobject(const CShape* shape, CMedium* medium);
+    CHostSceneobject(CNVDBMedium* medium);
     CHostSceneobject(CHostSceneobject&& sceneobject);
 
     float power() const;

@@ -10,7 +10,6 @@ namespace rt {
     m_lightDist(nullptr),
     m_envMap(nullptr),
     m_hostDeviceConnection(this) {
-
   }
 
   void CHostScene::addSceneobject(CHostSceneobject&& sceneobject) {
@@ -54,7 +53,6 @@ namespace rt {
     cudaMalloc(&m_deviceScene, sizeof(CDeviceScene));
     cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject));
     cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject));
-    //cudaMalloc(&m_deviceLightDist, sizeof(CDistribution1D));
 
     if (m_hostScene->m_envMap) {
       cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap));
@@ -87,8 +85,6 @@ namespace rt {
       m_hostScene->m_lights[i].setDeviceSceneobject(&m_deviceLights[i]);
       m_hostScene->m_lights[i].copyToDevice();
     }
-    //cudaMemcpy(m_deviceLightDist, m_hostScene->m_lightDist, sizeof(CDistribution1D), cudaMemcpyHostToDevice);
-    //m_hostScene->m_lightDist->copyToDevice(m_deviceLightDist);
     if (m_hostScene->m_envMap) {
       m_hostScene->m_envMap->copyToDevice(m_deviceEnvMap);
     }
@@ -108,7 +104,9 @@ namespace rt {
     }
 
     cudaFree(m_deviceLightDist);
-    m_hostScene->m_lightDist->freeDeviceMemory();
+    if (m_hostScene->m_lightDist) {
+      m_hostScene->m_lightDist->freeDeviceMemory();
+    }
 
     cudaFree(m_deviceSceneobjects);
     cudaFree(m_deviceScene);
@@ -139,16 +137,6 @@ namespace rt {
     }
     return closestInteraction;
   }
-
-  //glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, float* pdf) const {
-  //  size_t index = m_lightDist->sampleDiscrete(sampler, pdf);
-  //  const CShape* lightGeometry = m_lights[index].shape();
-  //  switch (lightGeometry->shape()) {
-  //  case EShape::PLANE:
-  //    return ((const Plane*)lightGeometry)->sample(sampler);
-  //  }
-  //  return glm::vec3(0.0f);
-  //}
 
   glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const {
     if (m_envMap) {
@@ -215,7 +203,6 @@ namespace rt {
 
   SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const {
     *Tr = glm::vec3(1.f);
-    //*Tr = glm::vec3(0.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
     while (true) {
@@ -224,24 +211,11 @@ namespace rt {
       SInteraction interaction = intersect(r);
       if (interaction.medium) {
         *Tr *= interaction.medium->tr(r, sampler);
-        //*Tr += r.m_t_max * glm::length(r.m_direction);
       }
 
-      //bool one = !interaction.hitInformation.hit;
-      //bool two = interaction.material;
-      //bool eval = one || two;
       if (!interaction.hitInformation.hit || interaction.material) {
-      //if (interaction.material) {
-      //if (eval) {
         return interaction;
       }
-
-      //if (!eval) {
-      //  bool v = false;
-      //}
-      //else {
-      //  return interaction;
-      //}
 
       p0 = interaction.hitInformation.pos;
     }
