@@ -11,7 +11,8 @@ namespace rt {
 
   enum EMediumType {
     HOMOGENEOUS_MEDIUM,
-    HETEROGENOUS_MEDIUM
+    HETEROGENOUS_MEDIUM,
+    NVDB_MEDIUM
   };
 
   // Medium base class

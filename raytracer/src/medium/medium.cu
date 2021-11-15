@@ -6,6 +6,7 @@
 #include "sampling/sampler.hpp"
 #include "scene/interaction.hpp"
 #include "medium/heterogenous_medium.hpp"
+#include "medium/nvdb_medium.hpp"
 
 namespace rt {
   CMedium::CMedium(const EMediumType type) :
@@ -21,9 +22,10 @@ namespace rt {
     switch (m_type) {
     case EMediumType::HOMOGENEOUS_MEDIUM:
       return ((CHomogeneousMedium*)this)->tr(ray, sampler);
-      break;
     case EMediumType::HETEROGENOUS_MEDIUM:
       return ((CHeterogenousMedium*)this)->tr(ray, sampler);
+    case EMediumType::NVDB_MEDIUM:
+      return ((CNVDBMedium*)this)->tr(ray, sampler);
     }
     printf("No matching medium\n");
     return glm::vec3(0.f);
@@ -33,10 +35,10 @@ namespace rt {
     switch (m_type) {
     case EMediumType::HOMOGENEOUS_MEDIUM:
       return ((CHomogeneousMedium*)this)->sample(ray, sampler, mi);
-      break;
     case EMediumType::HETEROGENOUS_MEDIUM:
       return ((CHeterogenousMedium*)this)->sample(ray, sampler, mi);
-      break;
+    case EMediumType::NVDB_MEDIUM:
+      return ((CNVDBMedium*)this)->sample(ray, sampler, mi);
     }
     printf("No matching medium\n");
     return glm::vec3(0.f);
@@ -46,9 +48,10 @@ namespace rt {
     switch (m_type) {
     case EMediumType::HOMOGENEOUS_MEDIUM:
       return ((CHomogeneousMedium*)this)->phase();
-      break;
     case EMediumType::HETEROGENOUS_MEDIUM:
       return ((CHeterogenousMedium*)this)->phase();
+    case EMediumType::NVDB_MEDIUM:
+      return ((CNVDBMedium*)this)->phase();
     }
     printf("No matching medium\n");
     return CHenyeyGreensteinPhaseFunction(0.f);

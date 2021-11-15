@@ -72,6 +72,52 @@ namespace rt {
        p.y >= lowerBound.y && p.y <= upperBound.y &&
        p.z >= lowerBound.z && p.z <= upperBound.z);
    }
+
+   DH_CALLABLE inline uint32_t floatsToBits(float f) {
+     uint32_t ui;
+     memcpy(&ui, &f, sizeof(float));
+     return ui;
+   }
+
+   DH_CALLABLE inline float bitsToFloat(uint32_t ui) {
+     float f;
+     memcpy(&f, &ui, sizeof(uint32_t));
+     return f;
+   }
+
+   DH_CALLABLE inline float nextFloatUp(float v) {
+     if (glm::isinf(v) && v > 0.f) {
+       return v;
+     }
+     if (v == -0.f) {
+       return 0.f;
+     }
+     uint32_t ui = floatsToBits(v);
+     if (v >= 0) {
+       ++ui;
+     }
+     else {
+       --ui;
+     }
+     return bitsToFloat(ui);
+   }
+
+   DH_CALLABLE inline float nextFloatDown(float v) {
+     if (glm::isinf(v) && v < 0.f) {
+       return v;
+     }
+     if (v == 0.f) {
+       return -0.f;
+     }
+     uint32_t ui = floatsToBits(v);
+     if (v > 0) {
+       --ui;
+     }
+     else {
+       ++ui;
+     }
+     return bitsToFloat(ui);
+   }
 }
 
 #endif // !FUNCTIONS_HPP

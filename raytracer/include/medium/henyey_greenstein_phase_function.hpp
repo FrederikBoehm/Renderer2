@@ -13,7 +13,7 @@ namespace rt {
     DH_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec2& u) const;
 
   private:
-    const float m_g;
+    float m_g;
   };
 }
 

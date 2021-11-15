@@ -30,6 +30,7 @@ void __syncthreads(); // This avoids that usages of __syncthreads are underlined
 #include "shapes/cuboid.hpp"
 #include "medium/heterogenous_medium.hpp"
 #include <random>
+#include "medium/nvdb_medium.hpp"
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -103,7 +104,6 @@ namespace rt {
       //CPathIntegrator integrator((CDeviceScene*)sharedScene, &pixelSampler, &(sampler[samplerId]), numSamples);
       CPathIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
       glm::vec3 L = integrator.Li();
-
 
       frame->data[currentPixel + 0] += L.r;
       frame->data[currentPixel + 1] += L.g;
@@ -247,7 +247,8 @@ namespace rt {
     m_frameHeight(frameHeight),
     m_bpp(3),
     m_scene(),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.25f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 0.2f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(32), // higher -> less noise
     m_tonemappingFactor(100.f),
@@ -274,22 +275,33 @@ namespace rt {
     //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 5, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 5, 6))), glm::vec3(lightness, 0.85f, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
     //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.15f, 0.0f), 0.15f, glm::vec3(0.0f, 1.0f, 0.0f)), new CHomogeneousMedium(glm::vec3(5.f, 3.f, 3.f), glm::vec3(5.f, 3.f, 3.f), 0.0f))); // volume
     //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(0.f, 0.15f, 0.0f), glm::vec3(0.25f), glm::vec3(0.0f, 1.0f, 0.0f)), new CHomogeneousMedium(glm::vec3(5.f, 3.f, 3.f), glm::vec3(5.f, 3.f, 3.f), 0.0f))); // volume
-    std::random_device rd{};
-    std::mt19937 gen{ rd() };
+    //std::random_device rd{};
+    //std::mt19937 gen{ rd() };
 
-    float d[1000];
-    for (int i = 0; i < 1000; ++i) {
-      uint16_t x = i % 10;
-      uint16_t y = (i / 10) % 10;
-      uint16_t z = i / 100;
-      glm::vec3 origin(4.5f);
-      glm::vec3 pos((float)x, (float)y, (float)z);
-      float dist = glm::length(pos - origin);
-      std::normal_distribution<> nd{ 1.f / glm::max(FLT_MIN, dist), 1.f / glm::max(FLT_MIN, dist) };
-      d[i] = glm::abs(nd(gen));
-      //d[i] = 1.f;
-    }
-    m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), -0.5f, 10, 10, 10, glm::vec3(0.f, 0.25f, 0.0f), glm::vec3(0.25f), d))); // volume
+    //constexpr size_t oneDimSize = 100;
+    //constexpr size_t volumeSize = oneDimSize * oneDimSize * oneDimSize;
+    //std::vector<float> d;
+    //d.reserve(volumeSize);
+    //for (size_t i = 0; i < volumeSize; ++i) {
+    //  //uint16_t x = i % oneDimSize;
+    //  //uint16_t y = (i / oneDimSize) % oneDimSize;
+    //  //uint16_t z = i / (oneDimSize * oneDimSize);
+    //  //float xf = (float)x / oneDimSize;
+    //  //float yf = (float)y / oneDimSize;
+    //  //float zf = (float)z / oneDimSize;
+    //  //glm::vec3 origin((float)((oneDimSize - 1) / 2.f) / oneDimSize);
+    //  //glm::vec3 pos((float)xf, (float)yf, (float)zf);
+    //  //float dist = glm::length(pos - origin);
+    //  //std::normal_distribution<> nd{ 1.f / glm::max(FLT_MIN, dist), 1.f / glm::max(FLT_MIN, dist) };
+    //  //std::normal_distribution<> nd{ glm::length(origin) - dist, glm::length(origin) - dist };
+    //  std::normal_distribution<> nd{ 0.f, 1.f };
+    //  d.push_back(glm::abs(nd(gen)));
+    //  //d[i] = 1.f;
+    //}
+    //glm::vec3 volumePos(-449.5f, 0.15f, 449.5f);
+    //glm::vec3 size(0.25f);
+    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(volumePos, size, glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), -0.5f, 10, 10, 10, volumePos, size, d.data()))); // volume
+    m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 0.6f))); // volume
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f))); // Light
     //glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));
