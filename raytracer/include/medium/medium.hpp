@@ -7,7 +7,7 @@ namespace rt {
   class CRay;
   class CSampler;
   class SInteraction;
-  class CHenyeyGreensteinPhaseFunction;
+  class CPhaseFunction;
 
   enum EMediumType {
     HOMOGENEOUS_MEDIUM,
@@ -24,7 +24,7 @@ namespace rt {
 
     DH_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
     DH_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
-    DH_CALLABLE const CHenyeyGreensteinPhaseFunction& phase() const;
+    DH_CALLABLE const CPhaseFunction& phase() const;
 
   protected:
     DH_CALLABLE CMedium(const EMediumType mediumType);

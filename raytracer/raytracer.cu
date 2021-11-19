@@ -31,6 +31,7 @@ void __syncthreads(); // This avoids that usages of __syncthreads are underlined
 #include "medium/heterogenous_medium.hpp"
 #include <random>
 #include "medium/nvdb_medium.hpp"
+#include "medium/sggx_phase_function.hpp"
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -248,7 +249,7 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 0.2f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(32), // higher -> less noise
     m_tonemappingFactor(100.f),
@@ -258,7 +259,7 @@ namespace rt {
     m_deviceSampler(nullptr),
     m_blockSize(128) {
     // Add scene objects
-    m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), 5000.f, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
+    m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), FLT_MAX, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
     //m_scene.addSceneobject(CHostSceneobject(new CRectangle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 0.2f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
     float lightness = 0.75f / 255.0f;
     //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 0, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // blue sphere
@@ -299,9 +300,12 @@ namespace rt {
     //  //d[i] = 1.f;
     //}
     //glm::vec3 volumePos(-449.5f, 0.15f, 449.5f);
+    //glm::vec3 volumePos(-10.f, 73.f, -43.f);
     //glm::vec3 size(0.25f);
+    //glm::vec3 size(200.f);
     //m_scene.addSceneobject(CHostSceneobject(new CCuboid(volumePos, size, glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), -0.5f, 10, 10, 10, volumePos, size, d.data()))); // volume
     m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 0.6f))); // volume
+    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), SSGGXDistributionParameters{2.f, 2.f, 2.f, -1.f, 0.f, -1.f}))); // volume SGGX
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f))); // Light
     //glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
     //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));

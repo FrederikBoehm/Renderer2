@@ -32,7 +32,9 @@ set(SOURCE_FILES
 	src/medium/heterogenous_medium.cu
 	src/shapes/cuboid.cu
 	src/shapes/rectangle.cu
-	src/medium/nvdb_medium.cu)
+	src/medium/nvdb_medium.cu
+	src/medium/sggx_phase_function.cu
+	src/medium/phase_function.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -72,7 +74,9 @@ set(HEADER_FILES
 	include/medium/heterogenous_medium.hpp
 	include/shapes/cuboid.hpp
 	include/shapes/rectangle.hpp
-	include/medium/nvdb_medium.hpp)
+	include/medium/nvdb_medium.hpp
+	include/medium/sggx_phase_function.hpp
+	include/medium/phase_function.hpp)
 
 
 add_executable(raytracer ${SOURCE_FILES} ${HEADER_FILES})

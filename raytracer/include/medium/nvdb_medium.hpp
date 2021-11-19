@@ -11,15 +11,18 @@ namespace rt {
   class CRay;
   class CSampler;
   struct SInteraction;
-  class CHenyeyGreensteinPhaseFunction;
+  class CPhaseFunction;
+  struct SSGGXDistributionParameters;
 
   class CNVDBMedium : public CMedium {
     struct DeviceResource {
       nanovdb::DefaultReadAccessor<float>* d_readAccessor = nullptr;
+      CPhaseFunction* d_phase = nullptr;
     };
 
   public:
     H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
+    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, SSGGXDistributionParameters& sggxParameters);
     H_CALLABLE CNVDBMedium();
     H_CALLABLE CNVDBMedium(const CNVDBMedium& medium) = delete;
     H_CALLABLE CNVDBMedium(CNVDBMedium&& medium);
@@ -38,7 +41,7 @@ namespace rt {
     DH_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
     DH_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
 
-    DH_CALLABLE const CHenyeyGreensteinPhaseFunction& phase() const;
+    DH_CALLABLE const CPhaseFunction& phase() const;
 
     DH_CALLABLE const nanovdb::NanoGrid<float>* grid() const;
 
@@ -52,7 +55,8 @@ namespace rt {
     glm::vec3 m_sigma_s;
     glm::mat4 m_mediumToWorld;
     glm::mat4 m_worldToMedium;
-    CHenyeyGreensteinPhaseFunction m_phase;
+    CPhaseFunction* m_phase;
+
 
     float m_sigma_t;
     float m_invMaxDensity;
@@ -71,8 +75,8 @@ namespace rt {
     return m_grid;
   }
 
-  inline const CHenyeyGreensteinPhaseFunction& CNVDBMedium::phase() const {
-    return m_phase;
+  inline const CPhaseFunction& CNVDBMedium::phase() const {
+    return *m_phase;
   }
 }
 #endif

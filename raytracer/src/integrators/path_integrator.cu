@@ -47,6 +47,7 @@ namespace rt {
           scatteringPdf = si.material->pdf(woTangent, lightTangentSpaceDirection);
         }
         else {
+          const CPhaseFunction& phase = si.medium->phase();
           scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection);
           f = glm::vec3(scatteringPdf);
         }
@@ -77,7 +78,7 @@ namespace rt {
         f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
       }
       else {
-        float p = si.medium->phase().sampleP(wo, &wi, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+        float p = si.medium->phase().sampleP(wo, &wi, sampler);
         f = glm::vec3(p);
         scatteringPdf = p;
       }
@@ -137,7 +138,7 @@ namespace rt {
         L += throughput * direct(mi, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
-        mi.medium->phase().sampleP(wo, &wi, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        mi.medium->phase().sampleP(wo, &wi, *m_sampler);
         ray = CRay(mi.hitInformation.pos, wi).offsetRayOrigin(wi);
       }
       else {

@@ -3,9 +3,10 @@
 
 #include "glm/glm.hpp"
 #include "utility/qualifiers.hpp"
+#include "phase_function.hpp"
 
 namespace rt {
-  class CHenyeyGreensteinPhaseFunction {
+  class CHenyeyGreensteinPhaseFunction : public CPhaseFunction {
   public:
     DH_CALLABLE CHenyeyGreensteinPhaseFunction(float g);
 

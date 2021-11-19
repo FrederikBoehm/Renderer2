@@ -11,7 +11,9 @@ namespace rt {
     return (1 - g * g) / (4 * M_PI * denom * glm::sqrt(denom));
   }
 
-  CHenyeyGreensteinPhaseFunction::CHenyeyGreensteinPhaseFunction(float g) : m_g(g) {
+  CHenyeyGreensteinPhaseFunction::CHenyeyGreensteinPhaseFunction(float g) :
+    CPhaseFunction(EPhaseFunction::HENYEY_GREENSTEIN),
+    m_g(g) {
 
   }
 
