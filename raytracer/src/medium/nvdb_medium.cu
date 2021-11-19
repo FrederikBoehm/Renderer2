@@ -10,6 +10,7 @@
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 #include <cuda_runtime_api.h>
+#include "medium/sggx_phase_function.hpp"
 
 namespace rt {
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g):
@@ -23,10 +24,28 @@ namespace rt {
     m_worldToMedium(glm::inverse(m_mediumToWorld)),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
-    m_phase(g),
+    m_phase(new CHenyeyGreensteinPhaseFunction(g)),
     m_sigma_t(sigma_a.z + sigma_s.z),
     m_invMaxDensity(1.f / getMaxValue(m_grid)),
     m_deviceResource(nullptr) {
+  }
+
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, SSGGXDistributionParameters& sggxParameters) :
+    CMedium(EMediumType::NVDB_MEDIUM),
+    m_isHostObject(true),
+    m_handle(getHandle(path)),
+    m_grid(m_handle->grid<float>()),
+    m_readAccessor(new nanovdb::DefaultReadAccessor<float>(m_grid->getAccessor())),
+    m_size(getMediumSize(m_grid->worldBBox(), m_grid->voxelSize())),
+    m_mediumToWorld(getMediumToWorldTransformation(m_grid->worldBBox())),
+    m_worldToMedium(glm::inverse(m_mediumToWorld)),
+    m_sigma_a(sigma_a),
+    m_sigma_s(sigma_s),
+    m_phase(new CSGGXPhaseFunction(sggxParameters)),
+    m_sigma_t(sigma_a.z + sigma_s.z),
+    m_invMaxDensity(1.f / getMaxValue(m_grid)),
+    m_deviceResource(nullptr) {
+
   }
 
   CNVDBMedium::CNVDBMedium() :
@@ -40,7 +59,7 @@ namespace rt {
     m_worldToMedium(1.f),
     m_sigma_a(0.f),
     m_sigma_s(0.f),
-    m_phase(0.f),
+    m_phase(nullptr),
     m_sigma_t(0.f),
     m_invMaxDensity(0.f),
     m_deviceResource(nullptr) {
@@ -58,7 +77,7 @@ namespace rt {
     m_worldToMedium(std::move(medium.m_worldToMedium)),
     m_sigma_a(std::move(medium.m_sigma_a)),
     m_sigma_s(std::move(medium.m_sigma_s)),
-    m_phase(std::move(medium.m_phase)),
+    m_phase(std::exchange(medium.m_phase, nullptr)),
     m_sigma_t(std::move(medium.m_sigma_t)),
     m_invMaxDensity(std::move(medium.m_invMaxDensity)),
     m_deviceResource(std::exchange(medium.m_deviceResource, nullptr)) {
@@ -73,6 +92,9 @@ namespace rt {
       }
       if (m_handle) {
         delete m_handle;
+      }
+      if (m_phase) {
+        delete m_phase;
       }
     }
 #endif
@@ -116,17 +138,8 @@ namespace rt {
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
 
     float t = 0.f;
-    size_t numBounces = 0;
-#ifdef __CUDA_ARCH__
-    uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
-#else
-    uint16_t y = 0;
-    uint16_t x = 0;
-#endif
 
     while (true) {
-      ++numBounces;
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
         break;
@@ -149,13 +162,6 @@ namespace rt {
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
     float tr = 1.f;
     float t = 0.f;
-#ifdef __CUDA_ARCH__
-    uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
-#else
-    uint16_t y = 0;
-    uint16_t x = 0;
-#endif
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
@@ -186,6 +192,14 @@ namespace rt {
 
     m_deviceResource = new DeviceResource();
     cudaMalloc(&m_deviceResource->d_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>));
+    switch (m_phase->type()) {
+    case EPhaseFunction::HENYEY_GREENSTEIN:
+      cudaMalloc(&m_deviceResource->d_phase, sizeof(CHenyeyGreensteinPhaseFunction));
+      break;
+    case EPhaseFunction::SGGX:
+      cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunction));
+      break;
+    }
   }
 
   CNVDBMedium CNVDBMedium::copyToDevice() const {
@@ -202,6 +216,16 @@ namespace rt {
     if (m_deviceResource) {
       medium.m_readAccessor = m_deviceResource->d_readAccessor;
       cudaMemcpy(m_deviceResource->d_readAccessor, this->m_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>), cudaMemcpyHostToDevice);
+
+      medium.m_phase = m_deviceResource->d_phase;
+      switch (m_phase->type()) {
+      case EPhaseFunction::HENYEY_GREENSTEIN:
+        cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CHenyeyGreensteinPhaseFunction), cudaMemcpyHostToDevice);
+        break;
+      case EPhaseFunction::SGGX:
+        cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunction), cudaMemcpyHostToDevice);
+        break;
+      }
     }
     else {
       medium.m_readAccessor = nullptr;
@@ -212,7 +236,6 @@ namespace rt {
     medium.m_worldToMedium = this->m_worldToMedium;
     medium.m_sigma_a = this->m_sigma_a;
     medium.m_sigma_s = this->m_sigma_s;
-    medium.m_phase = this->m_phase;
     medium.m_sigma_t = this->m_sigma_t;
     medium.m_invMaxDensity = this->m_invMaxDensity;
     medium.m_deviceResource = nullptr;
@@ -223,6 +246,7 @@ namespace rt {
   void CNVDBMedium::freeDeviceMemory() const {
     if (m_deviceResource) {
       cudaFree(m_deviceResource->d_readAccessor);
+      cudaFree(m_deviceResource->d_phase);
     }
   }
 

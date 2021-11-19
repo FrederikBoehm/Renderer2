@@ -7,6 +7,7 @@
 #include "scene/interaction.hpp"
 #include "medium/heterogenous_medium.hpp"
 #include "medium/nvdb_medium.hpp"
+#include "medium/phase_function.hpp"
 
 namespace rt {
   CMedium::CMedium(const EMediumType type) :
@@ -44,7 +45,7 @@ namespace rt {
     return glm::vec3(0.f);
   }
 
-  const CHenyeyGreensteinPhaseFunction& CMedium::phase() const {
+  const CPhaseFunction& CMedium::phase() const {
     switch (m_type) {
     case EMediumType::HOMOGENEOUS_MEDIUM:
       return ((CHomogeneousMedium*)this)->phase();
