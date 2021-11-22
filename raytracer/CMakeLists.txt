@@ -34,7 +34,8 @@ set(SOURCE_FILES
 	src/shapes/rectangle.cu
 	src/medium/nvdb_medium.cu
 	src/medium/sggx_phase_function.cu
-	src/medium/phase_function.cu)
+	src/medium/phase_function.cu
+	src/utility/debugging.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
