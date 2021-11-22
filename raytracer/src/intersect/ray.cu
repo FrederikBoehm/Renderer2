@@ -1,10 +1,11 @@
 #include "intersect/ray.hpp"
 
 #include "utility/functions.hpp"
+#include "medium/medium.hpp"
 
 namespace rt {
-  CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max) :
-    m_origin(origin), m_direction(glm::normalize(direction)), m_t_max(t_max) {
+  CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max, const CMedium* medium) :
+    m_origin(origin), m_direction(glm::normalize(direction)), m_t_max(t_max), m_medium(medium) {
 
   }
 
@@ -13,7 +14,7 @@ namespace rt {
     glm::vec3 origin = glm::vec3(transformMatrix * glm::vec4(m_origin, 1.0f));
     glm::vec3 endpoint = glm::vec3(transformMatrix * (glm::vec4(m_origin, 1.0f) + m_t_max * glm::vec4(m_direction, 0.f)));
     glm::vec3 direction = glm::normalize(glm::vec3(transformMatrix * glm::vec4(m_direction, 0.0f)));
-    CRay r(origin, direction, glm::length(endpoint - origin));
+    CRay r(origin, direction, glm::length(endpoint - origin), m_medium);
     return r;
   }
 
@@ -22,13 +23,13 @@ namespace rt {
     return r.offsetRayOrigin(offsetDir);
   }
 
-  CRay CRay::spawnRay(const glm::vec3& start, const glm::vec3& end) {
+  CRay CRay::spawnRay(const glm::vec3& start, const glm::vec3& end, const CMedium* originMedium) {
     glm::vec3 dir = end - start;
     glm::vec3 offsetted = offsetRayOrigin(start, glm::normalize(end - start));
     glm::vec3 newDir = end - offsetted;
     float t = glm::length(newDir);
     dir /= t;
-    return CRay(offsetted, dir, t);
+    return CRay(offsetted, dir, t, originMedium);
   }
 
   glm::vec3 CRay::offsetRayOrigin(const glm::vec3& p, const glm::vec3& offsetDir) {

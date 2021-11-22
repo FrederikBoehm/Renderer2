@@ -21,8 +21,10 @@ namespace rt {
     friend struct SSharedMemoryInitializer;
   public:
     D_CALLABLE SInteraction intersect(const CRay& ray);
+    D_CALLABLE bool inside(glm::vec3& testPoint) const;
     D_CALLABLE CShape* shape() const;
     D_CALLABLE float power() const;
+    D_CALLABLE const glm::vec3& dimensions() const;
 
   private:
     CShape* m_shape;

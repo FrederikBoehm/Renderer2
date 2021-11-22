@@ -3,6 +3,7 @@
 #include "cuda_runtime.h"
 #include "sampling/distribution_1d.hpp"
 #include "scene/environmentmap.hpp"
+#include <device_launch_parameters.h>
 
 namespace rt {
 
@@ -181,15 +182,13 @@ namespace rt {
   glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler) const {
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
+    const CMedium* currentMedium = ray.m_medium;
     glm::vec3 Tr(1.f);
     while (true) {
-      CRay r = CRay::spawnRay(p0, p1);
+      CRay r = CRay::spawnRay(p0, p1, currentMedium);
       SInteraction interaction = intersect(r);
-      if (interaction.hitInformation.hit && interaction.material) {
-        return glm::vec3(0.f);
-      }
-      if (interaction.medium) {
-        Tr *= interaction.medium->tr(r, sampler);
+      if (interaction.hitInformation.hit && r.m_medium) {
+        Tr *= r.m_medium->tr(r, sampler);
       }
 
       if (!interaction.hitInformation.hit) {
@@ -197,6 +196,7 @@ namespace rt {
       }
 
       p0 = interaction.hitInformation.pos;
+      currentMedium = !r.m_medium ? interaction.medium : nullptr;
     }
     return Tr;
   }
@@ -205,12 +205,13 @@ namespace rt {
     *Tr = glm::vec3(1.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
+    const CMedium* currentMedium = ray.m_medium;
     while (true) {
-      CRay r = CRay::spawnRay(p0, p1);
+      CRay r = CRay::spawnRay(p0, p1, currentMedium);
 
       SInteraction interaction = intersect(r);
-      if (interaction.medium) {
-        *Tr *= interaction.medium->tr(r, sampler);
+      if (interaction.hitInformation.hit && r.m_medium) {
+        *Tr *= r.m_medium->tr(r, sampler);
       }
 
       if (!interaction.hitInformation.hit || interaction.material) {
@@ -218,6 +219,7 @@ namespace rt {
       }
 
       p0 = interaction.hitInformation.pos;
+      currentMedium = !r.m_medium ? interaction.medium : nullptr;
     }
   }
 }

@@ -138,7 +138,6 @@ namespace rt {
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
 
     float t = 0.f;
-
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
