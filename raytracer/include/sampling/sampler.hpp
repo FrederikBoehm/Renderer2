@@ -9,6 +9,9 @@
 
 namespace rt {
   class CSampler {
+    __global__ friend void copyStates(CSampler* samplers, curandState_t* states, size_t numStates);
+    __global__ friend void copyStates(curandState_t* states, CSampler* samplers, size_t numStates);
+
   public:
     D_CALLABLE void init();
     D_CALLABLE void init(uint64_t seed, uint64_t sequence);
