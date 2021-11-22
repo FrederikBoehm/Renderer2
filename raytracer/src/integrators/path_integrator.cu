@@ -19,7 +19,7 @@ namespace rt {
 
   }
 
-  D_CALLABLE glm::vec3 direct(const SInteraction& si, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
+  D_CALLABLE glm::vec3 direct(const SInteraction& si, const CMedium* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
     glm::vec3 L(0.f);
     
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
@@ -33,7 +33,7 @@ namespace rt {
       if (lightPdf > 0.f) {
         glm::vec3 lightTangentSpaceDirection = glm::normalize(glm::vec3(frame.worldToTangent() * glm::vec4(lightWorldSpaceDirection, 0.0f)));
 
-        CRay rayLight = CRay(si.hitInformation.pos, lightWorldSpaceDirection);
+        CRay rayLight = CRay(si.hitInformation.pos, lightWorldSpaceDirection, CRay::DEFAULT_TMAX, currentMedium);
         rayLight.offsetRayOrigin(si.hitInformation.normal);
         glm::vec3 trSecondary;
         SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
@@ -84,7 +84,7 @@ namespace rt {
       }
 
       if (scatteringPdf > 0.f) {
-        CRay rayBrdf = CRay(si.hitInformation.pos, wi);
+        CRay rayBrdf = CRay(si.hitInformation.pos, wi, CRay::DEFAULT_TMAX, currentMedium);
         rayBrdf.offsetRayOrigin(si.hitInformation.normal);
         glm::vec3 trSecondary;
         SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary);
@@ -121,12 +121,20 @@ namespace rt {
       si = m_scene->intersect(ray);
 
       SInteraction mi;
-      if (si.medium) {
-        CRay mediumRay(si.hitInformation.pos, ray.m_direction);
-        mediumRay.offsetRayOrigin(ray.m_direction);
-        SInteraction siMediumEnd = m_scene->intersect(mediumRay);
-        if (siMediumEnd.hitInformation.hit && siMediumEnd.medium) {
-          throughput *= si.medium->sample(mediumRay, *m_sampler, &mi);
+      if (si.medium) { //Bounding box hit
+        if (ray.m_medium) { // Ray origin inside bb
+          throughput *= ray.m_medium->sample(ray, *m_sampler, &mi);
+        }
+        else { // Ray origin outside bb
+          CRay mediumRay(si.hitInformation.pos, ray.m_direction, CRay::DEFAULT_TMAX, si.medium);
+          mediumRay.offsetRayOrigin(ray.m_direction);
+          SInteraction siMediumEnd = m_scene->intersect(mediumRay);
+          if (siMediumEnd.hitInformation.hit) {
+            if (mediumRay.m_t_max > glm::length(si.object->dimensions())) { // TODO: Fix intersection bug with Cuboid
+              return glm::vec3(0.f, 0.f, 0.f);
+            }
+            throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi);
+          }
         }
         if (any(throughput, 0.f)) {
           break;
@@ -135,11 +143,11 @@ namespace rt {
       }
 
       if (mi.medium) {
-        L += throughput * direct(mi, -ray.m_direction, *m_scene, *m_sampler);
+        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
         mi.medium->phase().sampleP(wo, &wi, *m_sampler);
-        ray = CRay(mi.hitInformation.pos, wi).offsetRayOrigin(wi);
+        ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
       else {
         if (bounces == 0) {
@@ -154,12 +162,12 @@ namespace rt {
         }
 
         if (!si.material) {
-          ray = CRay(si.hitInformation.pos, ray.m_direction).offsetRayOrigin(ray.m_direction);
+          ray = CRay(si.hitInformation.pos, ray.m_direction, CRay::DEFAULT_TMAX, !ray.m_medium ? si.medium : nullptr).offsetRayOrigin(ray.m_direction);
           --bounces;
           continue;
         }
 
-        L += direct(si, -ray.m_direction, *m_scene, *m_sampler) * throughput;
+        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
 
         CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
         CRay rayTangent = ray.transform(frame.worldToTangent());
@@ -174,7 +182,7 @@ namespace rt {
           }
 
           glm::vec3 brdfWorldSpaceDirection = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wi, 0.0f)));
-          CRay rayBrdf = CRay(si.hitInformation.pos, brdfWorldSpaceDirection);
+          CRay rayBrdf = CRay(si.hitInformation.pos, brdfWorldSpaceDirection, CRay::DEFAULT_TMAX, ray.m_medium);
           rayBrdf.offsetRayOrigin(si.hitInformation.normal);
           float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
 

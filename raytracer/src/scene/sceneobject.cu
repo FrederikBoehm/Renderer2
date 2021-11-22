@@ -181,6 +181,22 @@ namespace rt {
     return si;
   }
 
+  bool CDeviceSceneobject::inside(glm::vec3& testPoint) const {
+    switch (m_shape->shape()) {
+    case EShape::CUBOID:
+      return ((CCuboid*)m_shape)->inside(testPoint);
+    }
+    return false;
+  }
+
+  const glm::vec3& CDeviceSceneobject::dimensions() const {
+    switch (m_shape->shape()) {
+    case EShape::CUBOID:
+      return ((CCuboid*)m_shape)->dimensions();
+    }
+    return glm::vec3(0.f);
+  }
+
   float CHostSceneobject::power() const {
     if (m_flag == ESceneobjectFlag::GEOMETRY) {
       glm::vec3 L = m_material->Le();

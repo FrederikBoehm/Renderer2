@@ -1,5 +1,6 @@
 #include "shapes/cuboid.hpp"
 #include "intersect/hit_information.hpp"
+#include "utility/functions.hpp"
 
 namespace rt {
   CCuboid::CCuboid(const glm::vec3& worldPos, const glm::vec3& dimensions, const glm::vec3& normal) :
@@ -24,5 +25,9 @@ namespace rt {
       }
     }
     return hit;
+  }
+
+  bool CCuboid::inside(glm::vec3& testPoint) const {
+    return rt::inside(testPoint, m_worldPos - m_dimensions / 2.f, m_worldPos + m_dimensions / 2.f);
   }
 }

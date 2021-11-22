@@ -14,9 +14,15 @@ namespace rt {
     DH_CALLABLE CCuboid(const glm::vec3& worldPos, const glm::vec3& dimensions, const glm::vec3& normal);
     
     DH_CALLABLE SHitInformation intersect(const CRay& ray) const;
+    DH_CALLABLE bool inside(glm::vec3& testPoint) const;
+    DH_CALLABLE const glm::vec3& dimensions() const;
   private:
     glm::vec3 m_dimensions;
     CRectangle m_faces[6];
   };
+
+  inline const glm::vec3& CCuboid::dimensions() const {
+    return m_dimensions;
+  }
 }
 #endif // !CUBOID_HPP
