@@ -67,4 +67,18 @@ namespace rt {
     return cosTheta * M_1_PI;
   }
 
+  glm::vec3 CSampler::uniformSampleSphere() {
+    float u1 = uniformSample01();
+    float u2 = uniformSample01();
+
+    float z = 1.f - 2.f * u1;
+    float r = glm::sqrt(glm::max(0.f, 1.f - z * z));
+    float phi = 2 * M_PI * u2;
+    return glm::vec3(r * glm::cos(phi), r * glm::sin(phi), z);
+  }
+
+  float CSampler::uniformSpherePdf() const {
+    return 1.f / (4.f * M_PI);
+  }
+
 }

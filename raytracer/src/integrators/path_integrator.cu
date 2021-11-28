@@ -48,7 +48,9 @@ namespace rt {
         }
         else {
           const CPhaseFunction& phase = si.medium->phase();
-          scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection);
+          glm::vec3 normal = si.medium->normal(si.hitInformation.pos, sampler);
+          //glm::vec3 normal(1.f, 0.f, 0.f);
+          scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection, normal, sampler);
           f = glm::vec3(scatteringPdf);
         }
 
@@ -78,7 +80,9 @@ namespace rt {
         f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
       }
       else {
-        float p = si.medium->phase().sampleP(wo, &wi, sampler);
+        glm::vec3 normal = si.medium->normal(si.hitInformation.pos, sampler);
+        //glm::vec3 normal(1.f, 0.f, 0.f);
+        float p = si.medium->phase().sampleP(wo, &wi, normal, sampler);
         f = glm::vec3(p);
         scatteringPdf = p;
       }
@@ -146,7 +150,9 @@ namespace rt {
         L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
-        mi.medium->phase().sampleP(wo, &wi, *m_sampler);
+        glm::vec3 normal = mi.medium->normal(mi.hitInformation.pos, *m_sampler);
+        //glm::vec3 normal(1.f, 0.f, 0.f);
+        mi.medium->phase().sampleP(wo, &wi, normal, *m_sampler);
         ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
       else {

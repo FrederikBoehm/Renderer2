@@ -22,9 +22,10 @@ namespace rt {
 
     DH_CALLABLE EMediumType type() const;
 
-    DH_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
-    DH_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
     DH_CALLABLE const CPhaseFunction& phase() const;
+    D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
 
   protected:
     DH_CALLABLE CMedium(const EMediumType mediumType);

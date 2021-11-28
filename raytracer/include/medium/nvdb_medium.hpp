@@ -22,7 +22,8 @@ namespace rt {
 
   public:
     H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
-    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, SSGGXDistributionParameters& sggxParameters);
+    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular);
+    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness);
     H_CALLABLE CNVDBMedium();
     H_CALLABLE CNVDBMedium(const CNVDBMedium& medium) = delete;
     H_CALLABLE CNVDBMedium(CNVDBMedium&& medium);
@@ -38,8 +39,9 @@ namespace rt {
 
     DH_CALLABLE float density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
-    DH_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
-    DH_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
 
