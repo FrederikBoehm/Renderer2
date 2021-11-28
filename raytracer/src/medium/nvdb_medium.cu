@@ -30,7 +30,7 @@ namespace rt {
     m_deviceResource(nullptr) {
   }
 
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, SSGGXDistributionParameters& sggxParameters) :
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular) :
     CMedium(EMediumType::NVDB_MEDIUM),
     m_isHostObject(true),
     m_handle(getHandle(path)),
@@ -41,7 +41,25 @@ namespace rt {
     m_worldToMedium(glm::inverse(m_mediumToWorld)),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
-    m_phase(new CSGGXPhaseFunction(sggxParameters)),
+    m_phase(new CSGGXPhaseFunction(sggxDiffuse, sggxSpecular)),
+    m_sigma_t(sigma_a.z + sigma_s.z),
+    m_invMaxDensity(1.f / getMaxValue(m_grid)),
+    m_deviceResource(nullptr) {
+
+  }
+
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) :
+    CMedium(EMediumType::NVDB_MEDIUM),
+    m_isHostObject(true),
+    m_handle(getHandle(path)),
+    m_grid(m_handle->grid<float>()),
+    m_readAccessor(new nanovdb::DefaultReadAccessor<float>(m_grid->getAccessor())),
+    m_size(getMediumSize(m_grid->worldBBox(), m_grid->voxelSize())),
+    m_mediumToWorld(getMediumToWorldTransformation(m_grid->worldBBox())),
+    m_worldToMedium(glm::inverse(m_mediumToWorld)),
+    m_sigma_a(sigma_a),
+    m_sigma_s(sigma_s),
+    m_phase(new CSGGXPhaseFunction(diffuseRoughness, specularRoughness)),
     m_sigma_t(sigma_a.z + sigma_s.z),
     m_invMaxDensity(1.f / getMaxValue(m_grid)),
     m_deviceResource(nullptr) {
@@ -130,6 +148,28 @@ namespace rt {
     }
     nanovdb::Coord coord(p.x, p.y, p.z);
     return accessor.getValue(coord);
+  }
+
+  glm::vec3 CNVDBMedium::normal(const glm::vec3& p, CSampler& sampler) const {
+    glm::vec3 pMedium = glm::vec3(m_worldToMedium * glm::vec4(p.x, p.y, p.z, 1.f));
+    nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
+
+
+    glm::vec3 pSamples(pMedium.x * m_size.x, pMedium.y * m_size.y, pMedium.z * m_size.z);
+    glm::ivec3 pi = glm::floor(pSamples);
+
+    float x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
+    float y = D(pi - glm::ivec3(0, 1, 0), accessor) - D(pi + glm::ivec3(0, 1, 0), accessor);
+    float z = D(pi - glm::ivec3(0, 0, 1), accessor) - D(pi + glm::ivec3(0, 0, 1), accessor);
+
+    glm::vec3 n = glm::normalize(glm::vec3(x, y, z));
+    if (glm::any(glm::isnan(n)) || glm::any(glm::isinf(n))) { // this can happen if x, y, z is zero or really close to zero
+      return sampler.uniformSampleSphere(); // As a fallback sample sphere uniformly
+      //return glm::vec3(1.f, 0.f, 0.f);
+    }
+    else {
+      return glm::normalize(glm::vec3(m_mediumToWorld * glm::vec4(n.x, n.y, n.z, 0.f)));
+    }
   }
 
   glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {

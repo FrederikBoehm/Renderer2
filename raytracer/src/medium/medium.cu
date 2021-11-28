@@ -57,4 +57,12 @@ namespace rt {
     printf("No matching medium\n");
     return CHenyeyGreensteinPhaseFunction(0.f);
   }
+
+  glm::vec3 CMedium::normal(const glm::vec3& p, CSampler& sampler) const {
+    switch (m_type) {
+    case EMediumType::NVDB_MEDIUM:
+      return ((CNVDBMedium*)this)->normal(p, sampler);
+    }
+    return glm::vec3(1.f, 0.f, 0.f);
+  }
 }
