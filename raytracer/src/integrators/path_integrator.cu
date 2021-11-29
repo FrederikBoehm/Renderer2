@@ -81,8 +81,9 @@ namespace rt {
       }
       else {
         glm::vec3 normal = si.medium->normal(si.hitInformation.pos, sampler);
-        //glm::vec3 normal(1.f, 0.f, 0.f);
+        //glm::vec3 normal(-1.f, 0.f, 0.f);
         float p = si.medium->phase().sampleP(wo, &wi, normal, sampler);
+        //L += (sampler.sampledNormal + 1.f) * 0.5f;
         f = glm::vec3(p);
         scatteringPdf = p;
       }
@@ -148,10 +149,13 @@ namespace rt {
 
       if (mi.medium) {
         L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
+        //L = direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
         glm::vec3 normal = mi.medium->normal(mi.hitInformation.pos, *m_sampler);
-        //glm::vec3 normal(1.f, 0.f, 0.f);
+        //break;
+        //glm::vec3 normal(-1.f, 0.f, 0.f);
+        //L = (normal + 1.f) * 0.5f;
         mi.medium->phase().sampleP(wo, &wi, normal, *m_sampler);
         ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
@@ -173,7 +177,9 @@ namespace rt {
           continue;
         }
 
+        //direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler);
         L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
+        //L = (si.hitInformation.normal + 1.f) * 0.5f;
 
         CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
         CRay rayTangent = ray.transform(frame.worldToTangent());
