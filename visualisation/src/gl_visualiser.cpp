@@ -10,6 +10,8 @@
 
 namespace vis {
 
+  EPressedKey CGLVisualiser::s_pressedKeys = EPressedKey::NONE;
+
   CGLVisualiser::CGLVisualiser(uint16_t width, uint16_t height) :
     m_width(width),
     m_height(height),
@@ -75,8 +77,8 @@ namespace vis {
       glfwTerminate();
     }
 
-    //// Set the required callback functions
-    //glfwSetKeyCallback(window, key_callback);
+    // Set the required callback functions
+    glfwSetKeyCallback(m_window, &keyCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -229,6 +231,43 @@ namespace vis {
     glDeleteVertexArrays(1, &m_vao);
     glDeleteBuffers(1, &m_vbo);
     glDeleteBuffers(1, &m_ebo);
+#endif // GUI_PLATFORM
+  }
+
+  void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+#ifdef GUI_PLATFORM
+    EPressedKey k = EPressedKey::NONE;
+    switch (key) {
+      case GLFW_KEY_W:
+        k = EPressedKey::UP;
+        break;
+      case GLFW_KEY_A:
+        k = EPressedKey::LEFT;
+        break;
+      case GLFW_KEY_S:
+        k = EPressedKey::DOWN;
+        break;
+      case GLFW_KEY_D:
+        k = EPressedKey::RIGHT;
+        break;
+    }
+    switch (action) {
+    case GLFW_PRESS:
+      CGLVisualiser::s_pressedKeys |= k;
+      break;
+    case GLFW_RELEASE:
+      CGLVisualiser::s_pressedKeys &= ~k;
+      break;
+    }
+#endif // GUI_PLATFORM
+  }
+
+  EPressedKey CGLVisualiser::getPressedKeys() const {
+#ifdef GUI_PLATFORM
+    glfwPollEvents();
+    return s_pressedKeys;
+#else
+    return EPressedKey::NONE;
 #endif // GUI_PLATFORM
   }
 }

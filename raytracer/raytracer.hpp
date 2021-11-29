@@ -9,6 +9,8 @@
 #include "scene/scene.hpp"
 #include "camera/camera.hpp"
 #include "../common/frame.hpp"
+#include "../common/pressed_key.hpp"
+#include <functional>
 
 namespace rt {
   struct SDeviceFrame {
@@ -28,7 +30,9 @@ namespace rt {
     Raytracer(uint16_t frameWidth, uint16_t frameHeight);
     ~Raytracer();
 
-    SFrame renderFrame();
+    SFrame renderFrame(const std::function<bool()>& keyCallback);
+    SFrame renderPreview();
+    void updateCameraPosition(EPressedKey pressedKeys);
 	private:
     uint16_t m_frameWidth;
     uint16_t m_frameHeight;

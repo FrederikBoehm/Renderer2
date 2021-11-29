@@ -43,6 +43,18 @@ namespace rt {
     sampler[samplerId].init(samplerId, 0);
   }
 
+  __global__ void clearBuffer(SDeviceFrame* frame) {
+    uint16_t y = blockIdx.y;
+    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (y < frame->height && x < frame->width) {
+      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+      frame->data[currentPixel + 0] = 0.f;
+      frame->data[currentPixel + 1] = 0.f;
+      frame->data[currentPixel + 2] = 0.f;
+    }
+  }
+
   //struct SSharedMemoryInitializer {
   //  D_CALLABLE static void copyScene(void* sharedScene, CDeviceScene* scene) {
   //    if (threadIdx.x == 0) {
@@ -341,18 +353,22 @@ namespace rt {
   }
 
   // Renderpipeline
-  SFrame Raytracer::renderFrame() {
+  SFrame Raytracer::renderFrame(const std::function<bool()>& keyCallback) {
     CDeviceScene* scene = m_scene.deviceScene();
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
-    uint32_t shapeMaxSize = glm::max(glm::max(glm::max(sizeof(CCircle), sizeof(CCuboid)), sizeof(CRectangle)), sizeof(Sphere));
-    uint32_t propertyMaxSize = glm::max(sizeof(CMaterial), sizeof(CMedium));
-    uint32_t dataSize = shapeMaxSize + propertyMaxSize;
+    rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
+    GPU_ASSERT(cudaDeviceSynchronize());
+    bool abortRendering = false;
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
       //CPerformanceMonitoring::startMeasurement("renderFrame");
       //rt::renderFrame << <grid, m_blockSize, sizeof(CDeviceScene) + m_scene.sceneobjects().size() * (sizeof(CDeviceSceneobject) + dataSize) >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       rt::renderFrame << <grid, m_blockSize >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       GPU_ASSERT(cudaDeviceSynchronize());
+      abortRendering = keyCallback();
+      if (abortRendering) {
+        return retrieveFrame();
+      }
       //CPerformanceMonitoring::endMeasurement("renderFrame");
     }
     rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
@@ -385,12 +401,77 @@ namespace rt {
     return frame;
   }
 
+  SFrame Raytracer::renderPreview() {
+    dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
+    CDeviceScene* scene = m_scene.deviceScene();
+
+    rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    rt::renderFrame << <grid, m_blockSize >> > (scene, m_deviceCamera, m_deviceSampler, 1, m_deviceFrame);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
+    rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
+    GPU_ASSERT(cudaDeviceSynchronize());
+
+    SFrame frame = retrieveFrame();
+    return frame;
+  }
+
   // Distributes N spheres evenly around circle
   glm::vec3 Raytracer::getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres) {
     float x = 4.0f * sphereRadius * std::cos(2 * M_PI / maxSpheres * index);
     float z = -4.0f * sphereRadius * std::sin(2 * M_PI / maxSpheres * index);
     float y = sphereRadius;
     return glm::vec3(x, y, z);
+  }
+
+  void Raytracer::updateCameraPosition(EPressedKey pressedKeys) {
+    const glm::vec3& cameraPos = m_hostCamera.position();
+
+    // To spherical coordinates
+    float r = glm::length(cameraPos);
+    float theta = std::acos(cameraPos.y / r);
+    float phi = std::atan2(cameraPos.x, cameraPos.z);
+    float preliminaryTheta = theta;
+    float oneDegree = M_PI / 180.f;
+    if (pressedKeys & EPressedKey::UP) {
+      preliminaryTheta -= 2.f * oneDegree; // One degree up
+    }
+    if (pressedKeys & EPressedKey::DOWN) {
+      preliminaryTheta += 2.f * oneDegree; // One degree down
+    }
+    if (preliminaryTheta < oneDegree || preliminaryTheta > 2.f * M_PI - oneDegree) {
+      preliminaryTheta = theta;
+    }
+    theta = preliminaryTheta;
+
+    float preliminaryPhi = phi;
+    if (pressedKeys & EPressedKey::LEFT) {
+      preliminaryPhi -= 2.f * oneDegree;
+    }
+    if (pressedKeys & EPressedKey::RIGHT) {
+      preliminaryPhi += 2.f * oneDegree;
+    }
+    phi = preliminaryPhi;
+
+    // To cartesian coordinates
+    float x = r * std::sin(theta) * std::sin(phi);
+    float y = r * std::cos(theta);
+    float z = r * std::sin(theta) * std::cos(phi);
+    m_hostCamera.updatePosition(glm::vec3(x, y, z));
+
+    cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
   }
 
   void Raytracer::allocateDeviceMemory() {
