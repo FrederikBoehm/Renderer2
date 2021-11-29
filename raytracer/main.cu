@@ -26,16 +26,49 @@ int main() {
   //std::string output = rt::CPerformanceMonitoring::toString();
   //s.write(output.c_str(), output.size());
   //std::cout << output << std::endl;
-  SFrame frame = raytracer.renderFrame();
+
+#ifdef GUI_PLATFORM
+  {
+    SFrame previewFrame = raytracer.renderPreview();
+    visualizer.render(previewFrame);
+  }
+  bool renderDetailed = true;
+  SFrame frame;
+  while (true) {
+    EPressedKey pressedKeys = visualizer.getPressedKeys();
+    while (pressedKeys) {
+      // render preview
+      raytracer.updateCameraPosition(pressedKeys);
+      SFrame previewFrame = raytracer.renderPreview();
+      visualizer.render(previewFrame);
+      pressedKeys = visualizer.getPressedKeys();
+      renderDetailed = true;
+    }
+    
+    if (renderDetailed) {
+      auto keyCallback = [&visualizer]() -> bool {
+        return visualizer.getPressedKeys() != EPressedKey::NONE;
+      };
+      frame = raytracer.renderFrame(keyCallback);
+      if (keyCallback()) {
+        continue;
+      }
+      visualizer.writeToFile("./", frame, vis::EImageFormat::JPG);
+      visualizer.writeToFile("./", frame, vis::EImageFormat::PNG);
+      renderDetailed = false;
+    }
+
+    visualizer.render(frame);
+  }
+#else
+  auto keyCallback = []() -> bool {
+    return false;
+  };
+  SFrame frame = raytracer.renderFrame(keyCallback);
   visualizer.writeToFile("./", frame, vis::EImageFormat::JPG);
   visualizer.writeToFile("./", frame, vis::EImageFormat::PNG);
 
-
-#ifdef GUI_PLATFORM
-  while (true) {
-    visualizer.render(frame);
-  }
-#endif GUI_PLATFORM
+#endif // GUI_PLATFORM
 
   return 0;
 

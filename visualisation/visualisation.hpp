@@ -14,6 +14,8 @@ namespace vis {
 
     void render(const SFrame& frame);
     void writeToFile(const std::string& outputDir, const SFrame& frame, EImageFormat format) const;
+
+    EPressedKey getPressedKeys() const;
   private:
     CGLVisualiser m_glVisualiser;
     CImageWriter m_imageWriter;
@@ -34,6 +36,10 @@ namespace vis {
 
   inline void CVisualisation::writeToFile(const std::string& outputDir, const SFrame& frame, EImageFormat format) const {
     m_imageWriter.writeToFile(outputDir, frame, format);
+  }
+
+  inline EPressedKey CVisualisation::getPressedKeys() const {
+    return m_glVisualiser.getPressedKeys();
   }
 }
 #endif
