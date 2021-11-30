@@ -87,6 +87,7 @@ target_include_directories(raytracer PRIVATE include)
 target_include_directories(raytracer PRIVATE "../3rdparty/glm")
 target_include_directories(raytracer PRIVATE "../3rdparty")
 target_include_directories(raytracer PRIVATE "../3rdparty/vcpkg/installed/x64-windows/include")
+target_include_directories(raytracer PRIVATE "../3rdparty/assimp/include")
 
 get_target_property(NANOVDB_INCLUDE_DEBUG lib_openvdb_external_dbg INCLUDE_DIRECTORIES)
 get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIRECTORIES)
@@ -96,6 +97,7 @@ target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE
 
 target_link_libraries(raytracer PRIVATE glm)
 target_link_libraries(raytracer PRIVATE visualisation)
+target_link_libraries(raytracer PRIVATE assimp)
 #message("[DEBUG] Adding link library openvdb")
 #target_link_libraries(raytracer PRIVATE debug lib_openvdb_external_dbg optimized lib_openvdb_external_rel)
 #target_link_libraries(raytracer PRIVATE lib_openvdb_external_rel)
