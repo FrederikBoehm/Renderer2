@@ -9,7 +9,7 @@ namespace rt {
   class CDeviceSceneobject;
   struct SInteraction {
     SHitInformation hitInformation;
-    CDeviceSceneobject* object = nullptr;
+    const CDeviceSceneobject* object = nullptr;
     CMaterial* material = nullptr;
     const CMedium* medium = nullptr;
   };

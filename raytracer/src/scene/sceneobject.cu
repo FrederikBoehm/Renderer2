@@ -8,6 +8,9 @@
 #include "shapes/cuboid.hpp"
 #include "medium/heterogenous_medium.hpp"
 #include "medium/nvdb_medium.hpp"
+#include "backend/rt_backend.hpp"
+#include "utility/debugging.hpp"
+#include <optix/optix_stubs.h>
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
@@ -20,7 +23,7 @@ namespace rt {
     }
   }
 
-  CHostSceneobject::CHostSceneobject(const CShape* shape, const glm::vec3& le):
+  CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& le):
     m_shape(shape),
     m_material(nullptr),
     m_medium(nullptr),
@@ -29,7 +32,7 @@ namespace rt {
     m_material = std::make_shared<CMaterial>(CMaterial(le));
   }
 
-  CHostSceneobject::CHostSceneobject(const CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
+  CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
     m_shape(shape),
     m_material(nullptr),
     m_medium(nullptr),
@@ -38,7 +41,7 @@ namespace rt {
     m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
   }
 
-  CHostSceneobject::CHostSceneobject(const CShape* shape, CMedium* medium):
+  CHostSceneobject::CHostSceneobject(CShape* shape, CMedium* medium):
     m_shape(shape),
     m_material(nullptr),
     m_medium(medium),
@@ -52,9 +55,6 @@ namespace rt {
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
     m_hostDeviceConnection(this) {
-    nanovdb::Vec3R size = medium->grid()->worldBBox().dim();
-    nanovdb::Vec3R center = (medium->grid()->worldBBox().max() + medium->grid()->worldBBox().min()) / 2.f;
-    m_shape = std::make_shared<CCuboid>(CCuboid(glm::vec3(center[0], center[1], center[2]), glm::vec3(size[0], size[1], size[2]), glm::vec3(0.f, 1.f, 0.f)));
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -73,19 +73,21 @@ namespace rt {
     m_hostSceneobject(std::move(connection.m_hostSceneobject)) {
   }
   void CSceneobjectConnection::allocateDeviceMemory() {
-    switch (m_hostSceneobject->m_shape->shape()) {
-    case EShape::CIRCLE:
-      cudaMalloc(&m_deviceShape, sizeof(CCircle));
-      break;
-    case EShape::SPHERE:
-      cudaMalloc(&m_deviceShape, sizeof(Sphere));
-      break;
-    case EShape::RECTANGLE:
-      cudaMalloc(&m_deviceShape, sizeof(CRectangle));
-      break;
-    case EShape::CUBOID:
-      cudaMalloc(&m_deviceShape, sizeof(CCuboid));
-      break;
+    if (m_hostSceneobject->m_shape) {
+      switch (m_hostSceneobject->m_shape->shape()) {
+      case EShape::CIRCLE:
+        cudaMalloc(&m_deviceShape, sizeof(CCircle));
+        break;
+      case EShape::SPHERE:
+        cudaMalloc(&m_deviceShape, sizeof(Sphere));
+        break;
+      case EShape::RECTANGLE:
+        cudaMalloc(&m_deviceShape, sizeof(CRectangle));
+        break;
+      case EShape::CUBOID:
+        cudaMalloc(&m_deviceShape, sizeof(CCuboid));
+        break;
+      }
     }
     if (m_hostSceneobject->m_material) {
       cudaMalloc(&m_deviceMaterial, sizeof(CMaterial));
@@ -105,22 +107,25 @@ namespace rt {
         break;
       }
     }
+    
 
   }
   void CSceneobjectConnection::copyToDevice() {
-    switch (m_hostSceneobject->m_shape->shape()) {
-    case EShape::CIRCLE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCircle), cudaMemcpyHostToDevice);
-      break;
-    case EShape::SPHERE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice);
-      break;
-    case EShape::RECTANGLE:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CRectangle), cudaMemcpyHostToDevice);
-      break;
-    case EShape::CUBOID:
-      cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice);
-      break;
+    if (m_deviceShape) {
+      switch (m_hostSceneobject->m_shape->shape()) {
+      case EShape::CIRCLE:
+        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCircle), cudaMemcpyHostToDevice);
+        break;
+      case EShape::SPHERE:
+        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice);
+        break;
+      case EShape::RECTANGLE:
+        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CRectangle), cudaMemcpyHostToDevice);
+        break;
+      case EShape::CUBOID:
+        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice);
+        break;
+      }
     }
     if (m_deviceMaterial) {
       cudaMemcpy(m_deviceMaterial, m_hostSceneobject->m_material.get(), sizeof(CMaterial), cudaMemcpyHostToDevice);
@@ -159,44 +164,6 @@ namespace rt {
     cudaFree(m_deviceMedium);
   }
 
-  SInteraction CDeviceSceneobject::intersect(const CRay& ray) {
-    SInteraction si;
-    switch (m_shape->shape()) {
-    case EShape::CIRCLE:
-      si.hitInformation = ((CCircle*)m_shape)->intersect(ray);
-      break;
-    case EShape::SPHERE:
-      si.hitInformation = ((Sphere*)m_shape)->intersect(ray);
-      break;
-    case EShape::RECTANGLE:
-      si.hitInformation = ((CRectangle*)m_shape)->intersect(ray);
-      break;
-    case EShape::CUBOID:
-      si.hitInformation = ((CCuboid*)m_shape)->intersect(ray);
-      break;
-    }
-    si.material = m_material;
-    si.medium = m_medium;
-    si.object = this;
-    return si;
-  }
-
-  bool CDeviceSceneobject::inside(glm::vec3& testPoint) const {
-    switch (m_shape->shape()) {
-    case EShape::CUBOID:
-      return ((CCuboid*)m_shape)->inside(testPoint);
-    }
-    return false;
-  }
-
-  const glm::vec3& CDeviceSceneobject::dimensions() const {
-    switch (m_shape->shape()) {
-    case EShape::CUBOID:
-      return ((CCuboid*)m_shape)->dimensions();
-    }
-    return glm::vec3(0.f);
-  }
-
   float CHostSceneobject::power() const {
     if (m_flag == ESceneobjectFlag::GEOMETRY) {
       glm::vec3 L = m_material->Le();
@@ -208,18 +175,103 @@ namespace rt {
     return 0.0f;
   }
 
-  CShape* CDeviceSceneobject::shape() const {
-    return m_shape;
+  CHostSceneobject::~CHostSceneobject() {
+    cudaFree((void*)m_deviceGasBuffer);
   }
 
-  float CDeviceSceneobject::power() const {
-    if (m_flag == ESceneobjectFlag::GEOMETRY) {
-      glm::vec3 L = m_material->Le();
-      switch (m_shape->shape()) {
-      case EShape::CIRCLE:
-        return (L.x + L.y + L.z) * ((CCircle*)m_shape)->area();
-      }
+  void CHostSceneobject::buildOptixAccel() {
+    SBuildInputWrapper buildInputWrapper;
+    if (m_medium.get() && m_medium->type() == NVDB_MEDIUM) {
+      buildInputWrapper = ((CNVDBMedium*)m_medium.get())->getOptixBuildInput();
     }
-    return 0.0f;
+    else {
+      buildInputWrapper = m_shape->getOptixBuildInput();
+    }
+
+    OptixAccelBuildOptions accelOptions = {};
+    accelOptions.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+    accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+
+    OptixAccelBufferSizes gasBufferSizes;
+    const OptixDeviceContext& context = CRTBackend::instance()->context();
+    OPTIX_ASSERT(optixAccelComputeMemoryUsage(context, &accelOptions, &buildInputWrapper.buildInput, 1, &gasBufferSizes));
+
+    CUdeviceptr d_tempBufferGas;
+    CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&d_tempBufferGas), gasBufferSizes.tempSizeInBytes));
+    CUdeviceptr d_outputBufferGas;
+    CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&d_outputBufferGas), gasBufferSizes.outputSizeInBytes));
+    CUdeviceptr d_compactedSize;
+    CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&d_compactedSize), sizeof(size_t)));
+
+    OptixAccelEmitDesc emitProperty = {};
+    emitProperty.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
+    emitProperty.result = d_compactedSize;
+
+    OPTIX_ASSERT(optixAccelBuild(CRTBackend::instance()->context(),
+                                 0,
+                                 &accelOptions,
+                                 &buildInputWrapper.buildInput,
+                                 1,
+                                 d_tempBufferGas,
+                                 gasBufferSizes.tempSizeInBytes,
+                                 d_outputBufferGas,
+                                 gasBufferSizes.outputSizeInBytes,
+                                 &m_traversableHandle,
+                                 &emitProperty,
+                                 1));
+
+    size_t compactedSize;
+    CUDA_ASSERT(cudaMemcpy(&compactedSize, reinterpret_cast<void*>(emitProperty.result), sizeof(size_t), cudaMemcpyDeviceToHost));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_compactedSize)));
+    if (compactedSize < gasBufferSizes.outputSizeInBytes)
+    {
+      CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceGasBuffer), compactedSize));
+      OPTIX_ASSERT(optixAccelCompact(context, 0, m_traversableHandle, m_deviceGasBuffer, compactedSize, &m_traversableHandle));
+      CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_outputBufferGas)));
+    }
+    else
+    {
+      m_deviceGasBuffer = d_outputBufferGas;
+    }
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_tempBufferGas)));
   }
+
+  OptixInstance CHostSceneobject::getOptixInstance(uint32_t instanceId, uint32_t sbtOffset) const {
+    OptixInstance instance;
+
+    instance.flags = OPTIX_INSTANCE_FLAG_NONE;
+    instance.instanceId = instanceId;
+    instance.sbtOffset = sbtOffset;
+    instance.visibilityMask = 0xff; // TODO: Check what has to be set here
+    instance.traversableHandle = m_traversableHandle;
+    float identity[] = { 1.f, 0.f, 0.f, 0.f,
+                         0.f, 1.f, 0.f, 0.f,
+                         0.f, 0.f, 1.f, 0.f };
+    memcpy(instance.transform, identity, sizeof(float) * 12);
+
+    return instance;
+  }
+
+  OptixProgramGroup CHostSceneobject::getOptixProgramGroup() const {
+    if (m_medium.get()) {
+      return m_medium->getOptixProgramGroup();
+    }
+    if (m_shape.get()) {
+      return m_shape->getOptixProgramGroup();
+    }
+    fprintf(stderr, "[ERROR] CHostSceneobject::getOptixProgramGroup no valid program group found.\n");
+    return OptixProgramGroup();
+  }
+
+  SRecord<const CDeviceSceneobject*> CHostSceneobject::getSBTHitRecord() const {
+    SRecord<const CDeviceSceneobject*> hitRecord;
+    OPTIX_ASSERT(optixSbtRecordPackHeader(getOptixProgramGroup(), &hitRecord));
+    if (!m_hostDeviceConnection.deviceSceneobject()) {
+      fprintf(stderr, "[ERROR] CHostSceneobject::getSBTHitRecord: deviceSceneobject is null.\n");
+    }
+    hitRecord.data = m_hostDeviceConnection.deviceSceneobject();
+    return hitRecord;
+  }
+
+
 }

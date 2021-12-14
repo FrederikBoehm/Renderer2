@@ -4,13 +4,23 @@
 #include "sampling/distribution_1d.hpp"
 #include "scene/environmentmap.hpp"
 #include <device_launch_parameters.h>
+#include "utility/debugging.hpp"
+#include "backend/rt_backend.hpp"
 
 namespace rt {
 
   CHostScene::CHostScene() :
     m_lightDist(nullptr),
     m_envMap(nullptr),
-    m_hostDeviceConnection(this) {
+    m_hostDeviceConnection(this),
+    m_deviceIasBuffer(NULL) {
+  }
+
+  CHostScene::~CHostScene() {
+#ifndef __CUDA_ARCH__
+    cudaFree((void*)m_deviceIasBuffer);
+    cudaFree(reinterpret_cast<void*>(m_deviceInstances));
+#endif
   }
 
   void CHostScene::addSceneobject(CHostSceneobject&& sceneobject) {
@@ -60,12 +70,16 @@ namespace rt {
       m_hostScene->m_envMap->allocateDeviceMemory();
     }
 
-    for (auto& sceneObject : m_hostScene->m_sceneobjects) {
-      sceneObject.allocateDeviceMemory();
+    //for (auto& sceneObject : m_hostScene->m_sceneobjects) {
+    for (size_t i = 0; i < m_hostScene->m_sceneobjects.size(); ++i) {
+      m_hostScene->m_sceneobjects[i].allocateDeviceMemory();
+      m_hostScene->m_sceneobjects[i].setDeviceSceneobject(&m_deviceSceneobjects[i]);
     }
 
-    for (auto& light : m_hostScene->m_lights) {
-      light.allocateDeviceMemory();
+    //for (auto& light : m_hostScene->m_lights) {
+    for (size_t i = 0; i < m_hostScene->m_lights.size(); ++i) {
+      m_hostScene->m_lights[i].allocateDeviceMemory();
+      m_hostScene->m_lights[i].setDeviceSceneobject(&m_deviceLights[i]);
     }
   }
 
@@ -77,13 +91,14 @@ namespace rt {
     deviceScene.m_lights = m_deviceLights;
     deviceScene.m_lightDist = m_deviceLightDist;
     deviceScene.m_envMap = m_deviceEnvMap;
+    deviceScene.m_traversableHandle = m_hostScene->m_traversableHandle;
     cudaMemcpy(m_deviceScene, &deviceScene, sizeof(CDeviceScene), cudaMemcpyHostToDevice);
     for (size_t i = 0; i < m_hostScene->m_sceneobjects.size(); ++i) {
-      m_hostScene->m_sceneobjects[i].setDeviceSceneobject(&m_deviceSceneobjects[i]);
+      //m_hostScene->m_sceneobjects[i].setDeviceSceneobject(&m_deviceSceneobjects[i]);
       m_hostScene->m_sceneobjects[i].copyToDevice();
     }
     for (size_t i = 0; i < m_hostScene->m_lights.size(); ++i) {
-      m_hostScene->m_lights[i].setDeviceSceneobject(&m_deviceLights[i]);
+      //m_hostScene->m_lights[i].setDeviceSceneobject(&m_deviceLights[i]);
       m_hostScene->m_lights[i].copyToDevice();
     }
     if (m_hostScene->m_envMap) {
@@ -113,113 +128,88 @@ namespace rt {
     cudaFree(m_deviceScene);
   }
 
-  SInteraction CDeviceScene::intersect(const CRay& ray) const {
-    SInteraction closestInteraction;
-    closestInteraction.hitInformation.hit = false;
-    closestInteraction.hitInformation.t = 1e+10;
-    closestInteraction.object = nullptr;
-    closestInteraction.material = nullptr;
-    closestInteraction.medium = nullptr;
-    CDeviceSceneobject* sceneobjects = m_sceneobjects;
-    for (uint8_t i = 0; i < m_numSceneobjects; ++i) {
-      SInteraction currentInteraction = m_sceneobjects[i].intersect(ray);
-      if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
-        closestInteraction = currentInteraction;
-      }
+  
+
+  //void CHostScene::createOptixProgramGroup() const {
+  //  for (auto& sceneobject : m_sceneobjects) {
+  //    sceneobject.createOptixProgramGroup();
+  //  }
+  //}
+
+  void CHostScene::buildOptixAccel() {
+    // Build GAS for sceneobjects and gather instances
+    std::vector<OptixInstance> instances;
+    instances.reserve(m_sceneobjects.size());
+    uint32_t instanceId = 0;
+    uint32_t sbtOffset = 0;
+    for (auto& sceneobject : m_sceneobjects) {
+      sceneobject.buildOptixAccel();
+      instances.push_back(sceneobject.getOptixInstance(instanceId, sbtOffset));
+      ++instanceId;
+      sbtOffset += RAY_TYPE_COUNT;
     }
-    for (uint8_t i = 0; i < m_numLights; ++i) {
-      SInteraction currentInteraction = m_lights[i].intersect(ray);
-      if (currentInteraction.hitInformation.hit && currentInteraction.hitInformation.t < closestInteraction.hitInformation.t) {
-        closestInteraction = currentInteraction;
-      }
-    }
-    if (closestInteraction.hitInformation.hit) {
-      ray.m_t_max = closestInteraction.hitInformation.t;
-    }
-    return closestInteraction;
+
+    size_t instancesBytes = sizeof(OptixInstance) * instances.size();
+    CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceInstances), instancesBytes));
+    CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceInstances), instances.data(), instancesBytes, cudaMemcpyHostToDevice));
+
+    OptixBuildInput buildInput = {};
+    buildInput.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+    buildInput.instanceArray.instances = m_deviceInstances;
+    buildInput.instanceArray.numInstances = instances.size();
+
+    OptixAccelBuildOptions accelOptions = {};
+    accelOptions.buildFlags = OPTIX_BUILD_FLAG_ALLOW_UPDATE;
+    accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+    CRTBackend* backend = CRTBackend::instance();
+
+    OptixAccelBufferSizes bufferSizes;
+    OPTIX_ASSERT(optixAccelComputeMemoryUsage(
+      backend->context(),
+      &accelOptions,
+      &buildInput,
+      1, // num build inputs
+      &bufferSizes
+    ));
+
+    CUdeviceptr d_tempBuffer;
+    CUDA_ASSERT(cudaMalloc(
+      reinterpret_cast<void**>(&d_tempBuffer),
+      bufferSizes.tempSizeInBytes
+    ));
+    CUDA_ASSERT(cudaMalloc(
+      reinterpret_cast<void**>(&m_deviceIasBuffer),
+      bufferSizes.outputSizeInBytes
+    ));
+
+    OPTIX_ASSERT(optixAccelBuild(
+      backend->context(),
+      nullptr,                  // CUDA stream
+      &accelOptions,
+      &buildInput,
+      1,                  // num build inputs
+      d_tempBuffer,
+      bufferSizes.tempSizeInBytes,
+      m_deviceIasBuffer,
+      bufferSizes.outputSizeInBytes,
+      &m_traversableHandle,
+      nullptr,            // emitted property list
+      0                   // num emitted properties
+    ));
+
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_tempBuffer)));
+
+    //// make update temp buffer for ias
+    //CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&ias.d_update_buffer),
+    //  ias.buffer_sizes.tempUpdateSizeInBytes));
   }
 
-  glm::vec3 CDeviceScene::sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const {
-    if (m_envMap) {
-      return m_envMap->sample(sampler, direction, pdf);
+  std::vector<SRecord<const CDeviceSceneobject*>> CHostScene::getSBTHitRecords() const {
+    std::vector<SRecord<const CDeviceSceneobject*>> sbtHitRecords;
+    sbtHitRecords.reserve(m_sceneobjects.size());
+    for (const auto& sceneobject : m_sceneobjects) {
+      sbtHitRecords.push_back(sceneobject.getSBTHitRecord());
     }
-    return glm::vec3(0.f);
-  }
-
-  glm::vec3 CDeviceScene::le(const glm::vec3& direction, float* pdf) const {
-    if (m_envMap) {
-      return m_envMap->le(direction, pdf);
-    }
-    return glm::vec3(0.f);
-  }
-
-  float CDeviceScene::lightSourcesPdf(const SInteraction& lightHit) const {
-    if (lightHit.object) {
-      float power = lightHit.object->power();
-      float totalPower = m_lightDist->integral();
-      return power / totalPower;
-    }
-    return 0.0f;
-  }
-
-  float CDeviceScene::lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const {
-    if (lightHit.object) {
-      const CShape* lightGeometry = lightHit.object->shape();
-      switch (lightGeometry->shape()) {
-      case EShape::CIRCLE: {
-
-        return ((const CCircle*)lightGeometry)->pdf(lightHit, shadowRay);
-      }
-      }
-    }
-    return 0.0f;
-  }
-
-  bool CDeviceScene::occluded(const CRay& ray) const {
-    return intersect(ray).hitInformation.hit;
-  }
-
-  glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler) const {
-    glm::vec3 p0 = ray.m_origin;
-    const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
-    const CMedium* currentMedium = ray.m_medium;
-    glm::vec3 Tr(1.f);
-    while (true) {
-      CRay r = CRay::spawnRay(p0, p1, currentMedium);
-      SInteraction interaction = intersect(r);
-      if (interaction.hitInformation.hit && r.m_medium) {
-        Tr *= r.m_medium->tr(r, sampler);
-      }
-
-      if (!interaction.hitInformation.hit) {
-        break;
-      }
-
-      p0 = interaction.hitInformation.pos;
-      currentMedium = !r.m_medium ? interaction.medium : nullptr;
-    }
-    return Tr;
-  }
-
-  SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const {
-    *Tr = glm::vec3(1.f);
-    glm::vec3 p0 = ray.m_origin;
-    const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
-    const CMedium* currentMedium = ray.m_medium;
-    while (true) {
-      CRay r = CRay::spawnRay(p0, p1, currentMedium);
-
-      SInteraction interaction = intersect(r);
-      if (interaction.hitInformation.hit && r.m_medium) {
-        *Tr *= r.m_medium->tr(r, sampler);
-      }
-
-      if (!interaction.hitInformation.hit || interaction.material) {
-        return interaction;
-      }
-
-      p0 = interaction.hitInformation.pos;
-      currentMedium = !r.m_medium ? interaction.medium : nullptr;
-    }
+    return sbtHitRecords;
   }
 }

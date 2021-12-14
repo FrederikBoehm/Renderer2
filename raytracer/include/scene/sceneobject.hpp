@@ -6,34 +6,11 @@
 #include "material/material.hpp"
 #include "interaction.hpp"
 #include <memory>
+#include "device_sceneobject.hpp"
+#include "backend/types.hpp"
 
 namespace rt {
-  class CHostSceneobject;
-  class CNVDBMedium;
-
-  enum ESceneobjectFlag {
-    GEOMETRY,
-    VOLUME
-  };
-
-  class CDeviceSceneobject {
-    friend class CSceneobjectConnection;
-    friend struct SSharedMemoryInitializer;
-  public:
-    D_CALLABLE SInteraction intersect(const CRay& ray);
-    D_CALLABLE bool inside(glm::vec3& testPoint) const;
-    D_CALLABLE CShape* shape() const;
-    D_CALLABLE float power() const;
-    D_CALLABLE const glm::vec3& dimensions() const;
-
-  private:
-    CShape* m_shape;
-    CMaterial* m_material;
-    CMedium* m_medium;
-    ESceneobjectFlag m_flag;
-
-    //CDeviceSceneobject() {}
-  };
+  
 
   class CSceneobjectConnection {
   public:
@@ -43,6 +20,7 @@ namespace rt {
     void setDeviceSceneobject(CDeviceSceneobject* destination);
     void copyToDevice();
     void freeDeviceMemory();
+    const CDeviceSceneobject* deviceSceneobject() const;
   private:
     CHostSceneobject* m_hostSceneobject = nullptr;
     CDeviceSceneobject* m_deviceSceneobject = nullptr;
@@ -55,11 +33,12 @@ namespace rt {
   class CHostSceneobject {
     friend class CSceneobjectConnection;
   public:
-    CHostSceneobject(const CShape* shape, const glm::vec3& le);
-    CHostSceneobject(const CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
-    CHostSceneobject(const CShape* shape, CMedium* medium);
+    CHostSceneobject(CShape* shape, const glm::vec3& le);
+    CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
+    CHostSceneobject(CShape* shape, CMedium* medium);
     CHostSceneobject(CNVDBMedium* medium);
     CHostSceneobject(CHostSceneobject&& sceneobject);
+    ~CHostSceneobject();
 
     float power() const;
 
@@ -67,16 +46,24 @@ namespace rt {
     void setDeviceSceneobject(CDeviceSceneobject* destination);
     void copyToDevice();
     void freeDeviceMemory();
+    void buildOptixAccel();
+    OptixInstance getOptixInstance(uint32_t instanceId, uint32_t sbtOffset) const;
+    SRecord<const CDeviceSceneobject*> getSBTHitRecord() const;
   private:
-    std::shared_ptr<const CShape> m_shape;
+    std::shared_ptr<CShape> m_shape;
     std::shared_ptr<CMaterial> m_material;
     std::shared_ptr<CMedium> m_medium;
     ESceneobjectFlag m_flag;
     float m_absorption;
 
+    OptixAabb m_aabb;
+    OptixTraversableHandle m_traversableHandle;
+    CUdeviceptr m_deviceGasBuffer;
+
     CSceneobjectConnection m_hostDeviceConnection;
 
     static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
+    OptixProgramGroup getOptixProgramGroup() const;
   };
 
   inline void CHostSceneobject::allocateDeviceMemory() {
@@ -97,6 +84,10 @@ namespace rt {
 
   inline void CHostSceneobject::freeDeviceMemory() {
     m_hostDeviceConnection.freeDeviceMemory();
+  }
+
+  inline const CDeviceSceneobject* CSceneobjectConnection::deviceSceneobject() const {
+    return m_deviceSceneobject;
   }
 
 }

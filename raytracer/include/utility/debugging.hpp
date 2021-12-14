@@ -3,14 +3,23 @@
 #include "cuda_runtime.h"
 #include <stdio.h>
 #include "qualifiers.hpp"
+#include <optix/optix_types.h>
+#include <optix/optix_host.h>
 
 namespace rt {
-  #define GPU_ASSERT(ans) {gpuAssert((ans), __FILE__, __LINE__);}
+  #define CUDA_ASSERT(ans) {gpuAssert((ans), __FILE__, __LINE__);}
   inline void gpuAssert(cudaError_t code, const char* file, int line) {
     if (code != cudaSuccess) {
-      fprintf(stderr, "GPU_ASSERT: %s in file %s on line %i\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr, "CUDA_ASSERT: %s in file %s on line %i\n", cudaGetErrorString(code), file, line);
     }
   }
+
+  inline void optixAssert(OptixResult res, const char* file, int line) {
+    if (res != OPTIX_SUCCESS) {
+      fprintf(stderr, "OPTIX_ASSERT: %s in file %s on line %i\n", optixGetErrorString(res), file, line);
+    }
+  }
+  #define OPTIX_ASSERT(ans) {optixAssert((ans), __FILE__, __LINE__);}
 
   class CSampler;
   H_CALLABLE void storeRandomState(CSampler* samplers, size_t numStates, const char* storePath);

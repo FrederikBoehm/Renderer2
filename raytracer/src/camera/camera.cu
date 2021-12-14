@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace rt {
-  CCamera::CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up, CSampler* sampler) :
+  CCamera::CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up) :
     m_pixelSize(1e-5),
     m_sensorWidth(sensorWidth),
     m_sensorHeight(sensorHeight),

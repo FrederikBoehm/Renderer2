@@ -7,6 +7,9 @@
 #include <nanovdb/util/CudaDeviceBuffer.h>
 #include <glm/glm.hpp>
 #include "medium.hpp"
+#include <optix/optix_types.h>
+
+#include "scene/types.hpp"
 namespace rt {
   class CRay;
   class CSampler;
@@ -42,16 +45,21 @@ namespace rt {
     D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 normal(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
 
     DH_CALLABLE const nanovdb::NanoGrid<float>* grid() const;
+
+    H_CALLABLE SBuildInputWrapper getOptixBuildInput();
+    H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
 
   private:
     bool m_isHostObject;
     nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* m_handle;
     const nanovdb::NanoGrid<float>* m_grid;
     const nanovdb::DefaultReadAccessor<float>* m_readAccessor;
+    CUdeviceptr m_deviceAabb;
     glm::ivec3 m_size;
     glm::vec3 m_sigma_a;
     glm::vec3 m_sigma_s;
@@ -70,15 +78,11 @@ namespace rt {
     H_CALLABLE static glm::mat4 getMediumToWorld(const nanovdb::Map& map);
     H_CALLABLE static glm::mat4 getMediumToWorldTransformation(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
-
+    
   };
 
-  inline const nanovdb::NanoGrid<float>* CNVDBMedium::grid() const {
-    return m_grid;
-  }
+  
 
-  inline const CPhaseFunction& CNVDBMedium::phase() const {
-    return *m_phase;
-  }
+  
 }
 #endif

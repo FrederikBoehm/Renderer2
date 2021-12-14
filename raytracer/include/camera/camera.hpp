@@ -3,13 +3,14 @@
 
 #include <glm/glm.hpp>
 
-#include "intersect/ray.hpp"
 #include "utility/qualifiers.hpp"
-#include "sampling/sampler.hpp"
+
+extern "C" __global__ void __raygen__pinhole();
 
 namespace rt {
   class CCamera {
     friend class CPixelSampler;
+    friend __global__ void ::__raygen__pinhole();
     
   public:
     /*
@@ -21,7 +22,7 @@ namespace rt {
       lookAt: world position of the target that the cam looks to
       up: world direction of the up vector
     */
-    DH_CALLABLE CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up, CSampler* sampler = nullptr);
+    H_CALLABLE CCamera(uint16_t sensorWidth, uint16_t sensorHeight, float fov, const glm::vec3& pos, const glm::vec3& lookAt, const glm::vec3& up);
 
     DH_CALLABLE uint16_t sensorWidth() const;
     DH_CALLABLE uint16_t sensorHeight() const;
@@ -43,7 +44,7 @@ namespace rt {
     glm::mat4 m_worldToView;
     glm::mat4 m_viewToWorld;
 
-    DH_CALLABLE static float getNearPlaneDistance(uint16_t sensorWidth, float fov, float pixelSize);
+    H_CALLABLE static float getNearPlaneDistance(uint16_t sensorWidth, float fov, float pixelSize);
 
   };
 
