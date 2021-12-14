@@ -22,7 +22,7 @@ namespace rt {
     cudaMalloc(&d_states, sizeof(curandState_t) * numStates);
 
     copyStates << <1, 1 >> > (samplers, d_states, numStates);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
     std::vector<curandState_t> localStates(numStates);
     cudaMemcpy(localStates.data(), d_states, sizeof(curandState_t) * numStates, cudaMemcpyDeviceToHost);
 
@@ -46,7 +46,7 @@ namespace rt {
     cudaMemcpy(d_states, buffer.data(), size, cudaMemcpyHostToDevice);
 
     copyStates << <1, 1 >> > (d_states, samplers, size / sizeof(curandState_t));
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     cudaFree(d_states);
   }

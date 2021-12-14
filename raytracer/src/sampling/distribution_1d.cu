@@ -1,20 +1,12 @@
 #include  "sampling/distribution_1d.hpp"
-#include "sampling/sampler.hpp"
 #include "utility/functions.hpp"
 
 namespace rt {
-  CDistribution1D::CDistribution1D():
-    m_func(nullptr),
-    m_cdf(nullptr),
-    m_deviceResource(nullptr) {
-
-  }
-
-  CDistribution1D::CDistribution1D(std::vector<float>& f):
+  CDistribution1D::CDistribution1D(std::vector<float>& f) :
     m_func(nullptr),
     m_cdf(nullptr),
     m_deviceResource(nullptr),
-    m_integral(0){
+    m_integral(0) {
     m_nFunc = f.size();
     m_func = new float[f.size()];
     memcpy(m_func, f.data(), f.size() * sizeof(float));
@@ -57,59 +49,6 @@ namespace rt {
     if (m_deviceResource) {
       freeDeviceMemory();
     }
-  }
-
-  float CDistribution1D::sampleContinuous(CSampler& sampler, float* pdf, size_t* off) const {
-    float u = sampler.uniformSample01();
-
-    auto& predicate = [&] (int index) { return m_cdf[index] <= u; };
-    //auto& predicate = [&](int index) { return !(u <= m_cdf[index]); };
-    int offset = findInterval(m_nCdf, predicate);
-    
-    if (off) {
-      *off = offset;
-    }
-
-    float du = u - m_cdf[offset];
-    if ((m_cdf[offset + 1] - m_cdf[offset]) > 0) {
-      du /= (m_cdf[offset + 1] - m_cdf[offset]);
-    }
-
-    if (pdf) {
-      *pdf = m_func[offset] / m_funcInt;
-    }
-
-    return (offset + du) / count();
-  }
-
-  size_t CDistribution1D::sampleDiscrete(CSampler& sampler, float* pdf, float* uRemapped) const {
-    float u = sampler.uniformSample01();
-
-    auto& predicate = [&] (int index) { return m_cdf[index] <= u; };
-    int offset = findInterval(m_nCdf, predicate);
-
-    if (pdf) {
-      *pdf = m_func[offset] / (m_funcInt * count());
-    }
-
-    if (uRemapped) {
-      *uRemapped = (u - m_cdf[offset]) / (m_cdf[offset + 1] - m_cdf[offset]);
-    }
-
-    return offset;
-  }
-
-  float CDistribution1D::discretePdf(size_t index) const {
-    float* func = m_func;
-    float* cdf = m_cdf;
-    return m_func[index] / (m_funcInt * count());
-  }
-
-  float CDistribution1D::pdf(float pos) const {
-    size_t lowerIndex = pos * m_nFunc;
-    size_t upperIndex = glm::ceil(pos * m_nFunc);
-    float interpolation = pos * m_nFunc - lowerIndex;
-    return (m_func[lowerIndex] * (1 - interpolation) + m_func[upperIndex] * interpolation) / m_funcInt;
   }
 
   void CDistribution1D::copyToDevice(CDistribution1D* dst) {

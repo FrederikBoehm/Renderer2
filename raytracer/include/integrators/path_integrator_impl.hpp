@@ -1,17 +1,15 @@
-#include "integrators/path_integrator.hpp"
-#include "sampling/sampler.hpp"
-#include "scene/scene.hpp"
-#include "camera/pixel_sampler.hpp"
-#include <cmath>
+#ifndef PATH_INTEGRATOR_IMPL_HPP
+#define PATH_INTEGRATOR_IMPL_HPP
+#include "path_integrator.hpp"
 #include "sampling/mis.hpp"
-#include "scene/interaction.hpp"
-#include "shapes/circle.hpp"
-#include "shapes/sphere.hpp"
 #include "integrators/objects.hpp"
-#include "utility/functions.hpp"
-
+#include "camera/pixel_sampler.hpp"
+#include "scene/interaction.hpp"
+#include "scene/device_scene_impl.hpp"
+#include "medium/phase_function_impl.hpp"
+#include "medium/medium_impl.hpp"
 namespace rt {
-  CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples):
+  inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples) :
     m_scene(scene),
     m_pixelSampler(pixelSampler),
     m_sampler(sampler),
@@ -19,11 +17,12 @@ namespace rt {
 
   }
 
-  D_CALLABLE glm::vec3 direct(const SInteraction& si, const CMedium* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
+  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMedium* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
     glm::vec3 L(0.f);
-    
+
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
     glm::vec3 woTangent = glm::vec3(frame.worldToTangent() * glm::vec4(wo, 0.0f));
+    uint3 launchIdx = optixGetLaunchIndex();
 
     // Sample light source
     {
@@ -37,7 +36,6 @@ namespace rt {
         rayLight.offsetRayOrigin(si.hitInformation.normal);
         glm::vec3 trSecondary;
         SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
-
 
 
         glm::vec3 f(0.f);
@@ -115,15 +113,16 @@ namespace rt {
     return L;
   }
 
-  glm::vec3 CPathIntegrator::Li() const {
+  inline glm::vec3 CPathIntegrator::Li() const {
     glm::vec3 L(0.0f);
     glm::vec3 throughput(1.f);
     CRay ray = m_pixelSampler->samplePixel();
 
     bool isEyeRay = true;
-    SInteraction si;
     for (size_t bounces = 0; bounces < 10; ++bounces) {
-      si = m_scene->intersect(ray);
+      SInteraction si;
+      //si = m_scene->intersect(ray);
+      m_scene->intersect(ray, &si);
 
       SInteraction mi;
       if (si.medium) { //Bounding box hit
@@ -133,11 +132,10 @@ namespace rt {
         else { // Ray origin outside bb
           CRay mediumRay(si.hitInformation.pos, ray.m_direction, CRay::DEFAULT_TMAX, si.medium);
           mediumRay.offsetRayOrigin(ray.m_direction);
-          SInteraction siMediumEnd = m_scene->intersect(mediumRay);
+          //SInteraction siMediumEnd = m_scene->intersect(mediumRay);
+          SInteraction siMediumEnd;
+          m_scene->intersect(mediumRay, &siMediumEnd);
           if (siMediumEnd.hitInformation.hit) {
-            if (mediumRay.m_t_max > glm::length(si.object->dimensions())) { // TODO: Fix intersection bug with Cuboid
-              return glm::vec3(0.f, 0.f, 0.f);
-            }
             throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi);
           }
         }
@@ -146,6 +144,7 @@ namespace rt {
         }
 
       }
+      
 
       if (mi.medium) {
         L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
@@ -160,10 +159,12 @@ namespace rt {
         ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
       else {
+        
         if (bounces == 0) {
           if (!si.hitInformation.hit) {
             float p;
             L += m_scene->le(ray.m_direction, &p) * throughput;
+
           }
         }
 
@@ -176,6 +177,7 @@ namespace rt {
           --bounces;
           continue;
         }
+
 
         //direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler);
         L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
@@ -215,6 +217,8 @@ namespace rt {
 
     }
 
-    return L / (float) m_numSamples;
+    return L / (float)m_numSamples;
   }
+
 }
+#endif // !PATH_INTEGRATOR_IMPL_HPP

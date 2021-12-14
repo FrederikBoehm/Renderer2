@@ -4,6 +4,7 @@
 #include "scene/interaction.hpp"
 #include "sampling/sampler.hpp"
 #include "scene/interaction.hpp"
+#include "medium/medium.hpp"
 
 namespace rt {
   CHomogeneousMedium::CHomogeneousMedium(const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g) :

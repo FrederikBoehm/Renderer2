@@ -9,10 +9,6 @@
 #include <device_functions.h>
 #include <cuda_runtime_api.h>
 
-#ifdef __INTELLISENSE__
-void __syncthreads(); // This avoids that usages of __syncthreads are underlined red
-#endif
-
 #include "raytracer.hpp"
 
 #include "sampling/sampler.hpp"
@@ -24,14 +20,11 @@ void __syncthreads(); // This avoids that usages of __syncthreads are underlined
 #include "scene/environmentmap.hpp"
 #include "utility/qualifiers.hpp"
 #include "utility/debugging.hpp"
-#include "medium/homogeneous_medium.hpp"
 #include "shapes/circle.hpp"
-#include "shapes/sphere.hpp"
 #include "shapes/cuboid.hpp"
-#include "medium/heterogenous_medium.hpp"
-#include <random>
 #include "medium/nvdb_medium.hpp"
-#include "medium/sggx_phase_function.hpp"
+#include "backend/rt_backend.hpp"
+#include <optix/optix_stubs.h>
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -55,74 +48,29 @@ namespace rt {
     }
   }
 
-  //struct SSharedMemoryInitializer {
-  //  D_CALLABLE static void copyScene(void* sharedScene, CDeviceScene* scene) {
-  //    if (threadIdx.x == 0) {
-  //      char* sharedPtr = (char*)sharedScene;
-  //      memcpy(sharedPtr, scene, sizeof(CDeviceScene));
-  //      ((CDeviceScene*)sharedPtr)->m_sceneobjects = (CDeviceSceneobject*)(sharedPtr + sizeof(CDeviceScene)); // Sceneobjects are located behind CDeviceScene
-  //      memcpy(((CDeviceScene*)sharedPtr)->m_sceneobjects, scene->m_sceneobjects, scene->m_numSceneobjects * sizeof(CDeviceSceneobject)); // Copy value of sceneobjects
-  //      uint32_t shapeMaxSize = glm::max(glm::max(glm::max(sizeof(CCircle), sizeof(CCuboid)), sizeof(CRectangle)), sizeof(Sphere));
-  //      uint32_t propertyMaxSize = glm::max(sizeof(CMaterial), sizeof(CMedium));
-  //      uint32_t dataSize = shapeMaxSize + propertyMaxSize;
-  //      for (size_t offset = 0; offset < scene->m_numSceneobjects; ++offset) {
-  //        CDeviceSceneobject* src = scene->m_sceneobjects + offset;
-  //        CDeviceSceneobject* dst = ((CDeviceScene*)sharedPtr)->m_sceneobjects + offset;
-  //        CShape* shapeDst = (CShape*)((char*)((CDeviceScene*)sharedPtr)->m_sceneobjects + scene->m_numSceneobjects * sizeof(CDeviceSceneobject) + offset * dataSize); // Shapes and materials/medium properties are stored after all scene objects
-  //        if (src->m_shape) {
-  //          switch (src->m_shape->shape()) {
-  //          case EShape::CIRCLE:
-  //            memcpy(shapeDst, src->m_shape, sizeof(CCircle));
-  //            break;
-  //          case EShape::CUBOID:
-  //            memcpy(shapeDst, src->m_shape, sizeof(CCuboid));
-  //            break;
-  //          case EShape::RECTANGLE:
-  //            memcpy(shapeDst, src->m_shape, sizeof(CRectangle));
-  //            break;
-  //          case EShape::SPHERE:
-  //            memcpy(shapeDst, src->m_shape, sizeof(Sphere));
-  //            break;
-  //          }
-  //        }
-
-  //        if (src->m_material) {
-  //          CMaterial* materialDst = (CMaterial*)(shapeDst + 1);
-  //          memcpy(materialDst, src->m_material, sizeof(CMaterial));
-  //        }
-  //        else if (src->m_medium) {
-  //          CMedium* mediumDst = (CMedium*)(shapeDst + 1);
-  //          memcpy(mediumDst, src->m_medium, sizeof(CMedium));
-  //        }
-  //      }
-  //    }
-  //    __syncthreads();
-  //  }
-  //};
-
   // Raytracing
   __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, CSampler* sampler, uint16_t numSamples, SDeviceFrame* frame) {
-    uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
+    //uint16_t y = blockIdx.y;
+    //uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
 
 
-    if (y < frame->height && x < frame->width) {
-      //extern __shared__ char sharedScene[];
-      //SSharedMemoryInitializer::copyScene(sharedScene, scene);
+    //if (y < frame->height && x < frame->width) {
+    //  //extern __shared__ char sharedScene[];
+    //  //SSharedMemoryInitializer::copyScene(sharedScene, scene);
 
-      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
-      uint32_t samplerId = y * frame->width + x;
+    //  uint32_t currentPixel = frame->bpp * (y * frame->width + x);
+    //  uint32_t samplerId = y * frame->width + x;
 
-      CPixelSampler pixelSampler(camera, x, y, &(sampler[samplerId]));
-      //CPathIntegrator integrator((CDeviceScene*)sharedScene, &pixelSampler, &(sampler[samplerId]), numSamples);
-      CPathIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
-      glm::vec3 L = integrator.Li();
+    //  CPixelSampler pixelSampler(camera, x, y, &(sampler[samplerId]));
+    //  //CPathIntegrator integrator((CDeviceScene*)sharedScene, &pixelSampler, &(sampler[samplerId]), numSamples);
+    //  CPathIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
+    //  glm::vec3 L = integrator.Li();
 
-      frame->data[currentPixel + 0] += L.r;
-      frame->data[currentPixel + 1] += L.g;
-      frame->data[currentPixel + 2] += L.b;
+    //  frame->data[currentPixel + 0] += L.r;
+    //  frame->data[currentPixel + 1] += L.g;
+    //  frame->data[currentPixel + 2] += L.b;
 
-    }
+    //}
   }
 
   D_CALLABLE inline float computeTonemapFactor(SDeviceFrame* frame, uint16_t x, uint16_t y) {
@@ -272,78 +220,16 @@ namespace rt {
     m_blockSize(128) {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), FLT_MAX, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.5f, 0.2f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
     float lightness = 0.75f / 255.0f;
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 0, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // blue sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 1, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, lightness, 0.85f), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // violet sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 2, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, lightness, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // red sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 3, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.85f, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // yellow sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 4, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // green sphere
-    //m_scene.addSceneobject(CHostSceneobject(EShape::SPHERE, getSpherePosition(0.08f, 5, 6), 0.08f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(lightness, 0.85f, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 0, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 0, 6))), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // blue sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 1, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 1, 6))), glm::vec3(0.85f, lightness, 0.85f), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // violet sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 2, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 2, 6))), glm::vec3(0.85f, lightness, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // red sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 3, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 3, 6))), glm::vec3(0.85f, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // yellow sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 4, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 4, 6))), glm::vec3(lightness, 0.85f, lightness), 0.01f,  glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // green sphere
-    //m_scene.addSceneobject(CHostSceneobject(new CRectangle(getSpherePosition(0.08f, 5, 6), glm::vec2(0.08f), -glm::normalize(getSpherePosition(0.08f, 5, 6))), glm::vec3(lightness, 0.85f, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // cyan sphere
-    //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.15f, 0.0f), 0.15f, glm::vec3(0.0f, 1.0f, 0.0f)), new CHomogeneousMedium(glm::vec3(5.f, 3.f, 3.f), glm::vec3(5.f, 3.f, 3.f), 0.0f))); // volume
-    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(0.f, 0.15f, 0.0f), glm::vec3(0.25f), glm::vec3(0.0f, 1.0f, 0.0f)), new CHomogeneousMedium(glm::vec3(5.f, 3.f, 3.f), glm::vec3(5.f, 3.f, 3.f), 0.0f))); // volume
-    //std::random_device rd{};
-    //std::mt19937 gen{ rd() };
-
-    //constexpr size_t oneDimSize = 100;
-    //constexpr size_t volumeSize = oneDimSize * oneDimSize * oneDimSize;
-    //std::vector<float> d;
-    //d.reserve(volumeSize);
-    //for (size_t i = 0; i < volumeSize; ++i) {
-    //  //uint16_t x = i % oneDimSize;
-    //  //uint16_t y = (i / oneDimSize) % oneDimSize;
-    //  //uint16_t z = i / (oneDimSize * oneDimSize);
-    //  //float xf = (float)x / oneDimSize;
-    //  //float yf = (float)y / oneDimSize;
-    //  //float zf = (float)z / oneDimSize;
-    //  //glm::vec3 origin((float)((oneDimSize - 1) / 2.f) / oneDimSize);
-    //  //glm::vec3 pos((float)xf, (float)yf, (float)zf);
-    //  //float dist = glm::length(pos - origin);
-    //  //std::normal_distribution<> nd{ 1.f / glm::max(FLT_MIN, dist), 1.f / glm::max(FLT_MIN, dist) };
-    //  //std::normal_distribution<> nd{ glm::length(origin) - dist, glm::length(origin) - dist };
-    //  std::normal_distribution<> nd{ 0.f, 1.f };
-    //  d.push_back(glm::abs(nd(gen)));
-    //  //d[i] = 1.f;
-    //}
-    //glm::vec3 volumePos(-449.5f, 0.15f, 449.5f);
-    //glm::vec3 volumePos(-10.f, 73.f, -43.f);
-    //glm::vec3 size(0.25f);
-    //glm::vec3 size(200.f);
-    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(volumePos, size, glm::vec3(0.0f, 1.0f, 0.0f)), new CHeterogenousMedium(glm::vec3(0.f, 0.f, 0.f), glm::vec3(3.f, 3.f, 3.f), -0.5f, 10, 10, 10, volumePos, size, d.data()))); // volume
-    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 0.f))); // volume
-    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), SSGGXDistributionParameters{2.f, 2.f, 2.f, -1.f, 0.f, -1.f}, SSGGXDistributionParameters{ 2.f, 2.f, 2.f, -1.f, 0.f, -1.f }))); // volume SGGX
     m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
     m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, glm::vec3(0.0f, 0.3f, 0.0f), 0.2f, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f))); // Light
-    //glm::vec3 light1Pos = getSpherePosition(0.1f, 0, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light1Pos, 0.05f, -glm::normalize(light1Pos), glm::vec3(10.0f)));
-    //glm::vec3 light2Pos = getSpherePosition(0.1f, 1, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light2Pos, 0.05f, -glm::normalize(light2Pos), glm::vec3(10.0f)));
-    //glm::vec3 light3Pos = getSpherePosition(0.1f, 2, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light3Pos, 0.05f, -glm::normalize(light3Pos), glm::vec3(10.0f)));
-    //glm::vec3 light4Pos = getSpherePosition(0.1f, 3, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light4Pos, 0.05f, -glm::normalize(light4Pos), glm::vec3(10.0f)));
-    //glm::vec3 light5Pos = getSpherePosition(0.1f, 4, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light5Pos, 0.05f, -glm::normalize(light5Pos), glm::vec3(10.0f)));
-    //glm::vec3 light6Pos = getSpherePosition(0.1f, 5, 6) + glm::vec3(0.0f, 0.2f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light6Pos, 0.05f, -glm::normalize(light6Pos), glm::vec3(10.0f)));
-
-    //glm::vec3 light2Pos = getSpherePosition(0.1f, 1, 6) + glm::vec3(0.0f, 0.1f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light2Pos, 0.05f, -glm::normalize(light2Pos), glm::vec3(2.0f, 0.0f, 0.5f)));
-    //glm::vec3 light3Pos = getSpherePosition(0.1f, 2, 6) + glm::vec3(0.0f, 0.1f, 0.0f);
-    //m_scene.addLightsource(CHostSceneobject(EShape::PLANE, light3Pos, 0.05f, -glm::normalize(light3Pos), glm::vec3(2.0f)));
 
     // Add environment map
     //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));
     m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/envmap.hdr"));
 
     allocateDeviceMemory();
+    initOptix();
     copyToDevice();
     initDeviceData();
   }
@@ -354,48 +240,57 @@ namespace rt {
 
   // Renderpipeline
   SFrame Raytracer::renderFrame(const std::function<bool()>& keyCallback) {
-    CDeviceScene* scene = m_scene.deviceScene();
+    //CDeviceScene* scene = m_scene.deviceScene();
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
     rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
     bool abortRendering = false;
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
       //CPerformanceMonitoring::startMeasurement("renderFrame");
       //rt::renderFrame << <grid, m_blockSize, sizeof(CDeviceScene) + m_scene.sceneobjects().size() * (sizeof(CDeviceSceneobject) + dataSize) >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
-      rt::renderFrame << <grid, m_blockSize >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
-      GPU_ASSERT(cudaDeviceSynchronize());
+      OPTIX_ASSERT(optixLaunch(
+        CRTBackend::instance()->pipeline(),
+        0,             // stream
+        reinterpret_cast<CUdeviceptr>(m_deviceLaunchParams),
+        sizeof(SLaunchParams),
+        &CRTBackend::instance()->sbt(),
+        m_frameWidth,  // launch width
+        m_frameHeight, // launch height
+        1       // launch depth
+      ));
+      CUDA_ASSERT(cudaDeviceSynchronize());
       abortRendering = keyCallback();
       if (abortRendering) {
         return retrieveFrame();
       }
       //CPerformanceMonitoring::endMeasurement("renderFrame");
     }
-    rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    //rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
+    //CUDA_ASSERT(cudaDeviceSynchronize());
 
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
-    //CPerformanceMonitoring::startMeasurement("applyTonemapping");
-    //rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_tonemappingFactor);
+    ////CPerformanceMonitoring::startMeasurement("applyTonemapping");
+    ////rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_tonemappingFactor);
     rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
-    GPU_ASSERT(cudaDeviceSynchronize());
-    //CPerformanceMonitoring::endMeasurement("applyTonemapping");
+    CUDA_ASSERT(cudaDeviceSynchronize());
+    ////CPerformanceMonitoring::endMeasurement("applyTonemapping");
 
-    //CPerformanceMonitoring::startMeasurement("correctGamma");
+    ////CPerformanceMonitoring::startMeasurement("correctGamma");
     rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
-    GPU_ASSERT(cudaDeviceSynchronize());
-    //CPerformanceMonitoring::endMeasurement("correctGamma");
+    CUDA_ASSERT(cudaDeviceSynchronize());
+    ////CPerformanceMonitoring::endMeasurement("correctGamma");
 
-    //CPerformanceMonitoring::startMeasurement("fillByteFrame");
+    ////CPerformanceMonitoring::startMeasurement("fillByteFrame");
     rt::fillByteFrame << <grid, m_blockSize >> > (m_deviceFrame);
-    GPU_ASSERT(cudaDeviceSynchronize());
-    //CPerformanceMonitoring::endMeasurement("fillByteFrame");
+    CUDA_ASSERT(cudaDeviceSynchronize());
+    ////CPerformanceMonitoring::endMeasurement("fillByteFrame");
 
     SFrame frame = retrieveFrame();
     return frame;
@@ -403,26 +298,34 @@ namespace rt {
 
   SFrame Raytracer::renderPreview() {
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
-    CDeviceScene* scene = m_scene.deviceScene();
 
     rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rt::renderFrame << <grid, m_blockSize >> > (scene, m_deviceCamera, m_deviceSampler, 1, m_deviceFrame);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    OPTIX_ASSERT(optixLaunch(
+      CRTBackend::instance()->pipeline(),
+      0,             // stream
+      reinterpret_cast<CUdeviceptr>(m_deviceLaunchParams),
+      sizeof(SLaunchParams),
+      &CRTBackend::instance()->sbt(),
+      m_frameWidth,  // launch width
+      m_frameHeight, // launch height
+      1       // launch depth
+    ));
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
-    GPU_ASSERT(cudaDeviceSynchronize());
+    CUDA_ASSERT(cudaDeviceSynchronize());
 
     SFrame frame = retrieveFrame();
     return frame;
@@ -484,6 +387,7 @@ namespace rt {
     cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
     cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth);
     cudaMalloc(&m_deviceTonemappingValue, sizeof(float));
+    cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams));
   }
 
   void Raytracer::copyToDevice() {
@@ -499,6 +403,19 @@ namespace rt {
     f.filtered = m_deviceFilteredFrame;
     f.dataBytes = m_deviceFrameDataBytes;
     cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice);
+
+    SLaunchParams launchParams;
+    launchParams.width = m_hostCamera.sensorWidth();
+    launchParams.height = m_hostCamera.sensorHeight();
+    launchParams.bpp = m_bpp;
+    launchParams.data = m_deviceFrameData;
+    launchParams.filtered = m_deviceFilteredFrame;
+    launchParams.dataBytes = m_deviceFrameDataBytes;
+    launchParams.scene = m_scene.deviceScene();
+    launchParams.camera = m_deviceCamera;
+    launchParams.sampler = m_deviceSampler;
+    launchParams.numSamples = m_numSamples;
+    cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice);
   }
 
   void Raytracer::initDeviceData() {
@@ -509,6 +426,23 @@ namespace rt {
     //CPerformanceMonitoring::endMeasurement("init");
   }
 
+  void Raytracer::initOptix() {
+    CRTBackend* rtBackend = CRTBackend::instance();
+    rtBackend->init();
+#ifdef DEBUG
+    std::string modulePath = "cuda_to_ptx.dir/Debug/shaders.optix.ptx";
+#endif
+#ifdef RELEASE
+    std::string modulePath = "cuda_to_ptx.dir/Release/shaders.optix.ptx";
+#endif
+    rtBackend->createModule(modulePath);
+    rtBackend->createProgramGroups();
+    rtBackend->createPipeline();
+    const std::vector <SRecord<const CDeviceSceneobject*>> sbtHitRecords = m_scene.getSBTHitRecords();
+    rtBackend->createSBT(sbtHitRecords);
+    m_scene.buildOptixAccel();
+  }
+
   void Raytracer::freeDeviceMemory() {
     m_scene.freeDeviceMemory();
     cudaFree(m_deviceCamera);
@@ -516,6 +450,7 @@ namespace rt {
     cudaFree(m_deviceFrame);
     cudaFree(m_deviceAverage);
     cudaFree(m_deviceTonemappingValue);
+    cudaFree(m_deviceLaunchParams);
   }
   SFrame Raytracer::retrieveFrame() const {
     SFrame frame;

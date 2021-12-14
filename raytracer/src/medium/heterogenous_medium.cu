@@ -5,6 +5,7 @@
 #include "sampling/sampler.hpp"
 #include "scene/interaction.hpp"
 #include <stdio.h>
+#include "medium/medium.hpp"
 
 namespace rt {
   CHeterogenousMedium::CHeterogenousMedium(const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g, uint32_t nx, uint32_t ny, uint32_t nz, const glm::vec3& pos, const glm::vec3& size, const float* d) :
