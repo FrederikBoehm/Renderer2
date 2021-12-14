@@ -7,6 +7,7 @@
 #include "utility/qualifiers.hpp"
 #include "intersect/hit_information.hpp"
 #include "brdf_functions.hpp"
+#include "sampling/sampler.hpp"
 
 namespace rt {
   // Better approximation of rough surfaces than lambertian reflection
@@ -17,6 +18,8 @@ namespace rt {
 
     // Expects incident and outgoing directions in tangent space
     DH_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
+    D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
+    D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
 
     glm::vec3 m_albedo;
   private:
@@ -64,6 +67,16 @@ namespace rt {
     }
 
     return m_albedo * glm::vec3(M_1_PI) * (m_A + m_B * maxCos * sinAlpha * tanBeta);
+  }
+
+  inline glm::vec3 COrenNayarBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+    *wi = sampler.cosineSampleHemisphere();
+    *pdf = CSampler::cosineHemispherePdf(cosTheta(*wi));
+    return f(wo, *wi);
+  }
+
+  inline float COrenNayarBRDF::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
+    return CSampler::cosineHemispherePdf(cosTheta(wi));
   }
 }
 #endif
