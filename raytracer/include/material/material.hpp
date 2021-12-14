@@ -54,7 +54,7 @@ namespace rt {
   inline glm::vec3 CMaterial::f(const glm::vec3& wo, const glm::vec3& wi) const {
     glm::vec3 diffuse = m_orenNayarBRDF.f(wo, wi);
     glm::vec3 microfacet = m_microfacetBRDF.f(wo, wi);
-    return diffuse + microfacet;
+    return 0.5f * (diffuse + microfacet);
   }
 
   inline CMaterial& CMaterial::operator=(const CMaterial& material) {
@@ -65,13 +65,18 @@ namespace rt {
   }
 
   inline glm::vec3 CMaterial::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
-    glm::vec3 microfacet = m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
-    glm::vec3 diffuse = m_orenNayarBRDF.f(wo, *wi);
-    return diffuse + microfacet;
+    if (sampler.uniformSample01() < 0.5f) {
+      // Sample diffuse
+      return m_orenNayarBRDF.sampleF(wo, wi, sampler, pdf);
+    }
+    else {
+      // Sample specular
+      return m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
+    }
   }
 
   inline float CMaterial::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
-    return m_microfacetBRDF.pdf(wo, wi);
+    return 0.5f * (m_orenNayarBRDF.pdf(wo, wi) + m_microfacetBRDF.pdf(wo, wi));
   }
 
 

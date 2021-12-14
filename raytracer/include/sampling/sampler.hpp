@@ -18,12 +18,12 @@ namespace rt {
 
     DH_CALLABLE float uniformSample01();
     D_CALLABLE glm::vec3 uniformSampleHemisphere();
-    D_CALLABLE float uniformHemispherePdf() const;
+    D_CALLABLE static float uniformHemispherePdf();
     D_CALLABLE glm::vec3 concentricSampleDisk();
     D_CALLABLE glm::vec3 cosineSampleHemisphere();
-    D_CALLABLE float cosineHemispherePdf(float cosTheta);
+    D_CALLABLE static float cosineHemispherePdf(float cosTheta);
     D_CALLABLE glm::vec3 uniformSampleSphere();
-    D_CALLABLE float uniformSpherePdf() const;
+    D_CALLABLE static float uniformSpherePdf();
   private:
     curandState_t m_curandState;
   };
@@ -46,7 +46,7 @@ namespace rt {
     return glm::vec3(r * glm::cos(phi), r * glm::sin(phi), rand1);
   }
 
-  inline float CSampler::uniformHemispherePdf() const {
+  inline float CSampler::uniformHemispherePdf() {
     return 1.0f / (2 * M_PI);
   }
 
@@ -94,7 +94,7 @@ namespace rt {
     return glm::vec3(r * glm::cos(phi), r * glm::sin(phi), z);
   }
 
-  inline float CSampler::uniformSpherePdf() const {
+  inline float CSampler::uniformSpherePdf() {
     return 1.f / (4.f * M_PI);
   }
 
