@@ -32,7 +32,13 @@ extern "C" __global__ void __closesthit__ch() {
   memcpy(&si, siAdress, sizeof(SInteraction*));
 
   float3 hitPos = { uint_as_float(optixGetAttribute_0()), uint_as_float(optixGetAttribute_1()), uint_as_float(optixGetAttribute_2()) };
-  float3 normal = { uint_as_float(optixGetAttribute_3()), uint_as_float(optixGetAttribute_4()), uint_as_float(optixGetAttribute_5()) };
+  float3 normal;
+  if (sceneobject->mesh()) {
+    normal = { 1.f, 0.f, 0.f };
+  }
+  else {
+    normal = { uint_as_float(optixGetAttribute_3()), uint_as_float(optixGetAttribute_4()), uint_as_float(optixGetAttribute_5()) };
+  }
 
   si->hitInformation.hit = true;
   si->hitInformation.pos = glm::vec3(hitPos.x, hitPos.y, hitPos.z);

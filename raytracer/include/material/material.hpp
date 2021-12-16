@@ -10,9 +10,9 @@ namespace rt {
 
   class CMaterial {
   public:
-    DH_CALLABLE CMaterial();
-    DH_CALLABLE CMaterial(const glm::vec3& le);
-    DH_CALLABLE CMaterial(const COrenNayarBRDF& diffuse, const CMicrofacetBRDF& glossy);
+    H_CALLABLE CMaterial();
+    H_CALLABLE CMaterial(const glm::vec3& le);
+    H_CALLABLE CMaterial(const COrenNayarBRDF& diffuse, const CMicrofacetBRDF& glossy);
 
     DH_CALLABLE glm::vec3 Le() const;
 
@@ -28,27 +28,9 @@ namespace rt {
     glm::vec3 m_Le; // Emissive light if light source
     COrenNayarBRDF m_orenNayarBRDF;
     CMicrofacetBRDF m_microfacetBRDF;
+
+    H_CALLABLE float roughnessFromExponent(float exponent) const;
   };
-
-  inline CMaterial::CMaterial() :
-    m_Le(glm::vec3(0.0f)),
-    m_orenNayarBRDF(),
-    m_microfacetBRDF() {
-  }
-
-  inline CMaterial::CMaterial(const glm::vec3& le) :
-    m_Le(le),
-    m_orenNayarBRDF(),
-    m_microfacetBRDF() {
-
-  }
-
-  inline CMaterial::CMaterial(const COrenNayarBRDF& diffuse, const CMicrofacetBRDF& glossy) :
-    m_Le(glm::vec3(0.0f)),
-    m_orenNayarBRDF(diffuse),
-    m_microfacetBRDF(glossy) {
-
-  }
 
   // Evaluates material at a hitPoint. Gives the color of that point
   inline glm::vec3 CMaterial::f(const glm::vec3& wo, const glm::vec3& wi) const {

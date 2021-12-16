@@ -6,6 +6,8 @@
 #include <device_launch_parameters.h>
 #include "utility/debugging.hpp"
 #include "backend/rt_backend.hpp"
+#include "backend/mesh_loader.hpp"
+#include <iostream>
 
 namespace rt {
 
@@ -211,5 +213,61 @@ namespace rt {
       sbtHitRecords.push_back(sceneobject.getSBTHitRecord());
     }
     return sbtHitRecords;
+  }
+
+  H_CALLABLE float roughnessFromExponent(float exponent) {
+    return powf(2.f / (exponent + 2.f), 0.25f);
+  }
+
+  void CHostScene::addSceneobjectsFromAssimp(const std::string& meshPath) {
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(meshPath,
+      aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
+
+    if (!scene) {
+      std::cerr << "[ERROR] Failed to load scene: " << importer.GetErrorString() << std::endl;
+    }
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+      const aiMesh* mesh = scene->mMeshes[i];
+      const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+      aiColor3D diffuse;
+      material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+      aiColor3D specular;
+      material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
+
+      float exponent;
+      material->Get(AI_MATKEY_SHININESS, exponent);
+      float roughness = roughnessFromExponent(exponent);
+
+      float ior;
+      material->Get(AI_MATKEY_REFRACTI, ior);
+
+      std::vector<glm::vec4> vbo;
+      vbo.reserve(mesh->mNumVertices);
+      std::vector<glm::vec3> normals;
+      normals.reserve(mesh->mNumVertices);
+      glm::vec3 bbMin(FLT_MAX);
+      glm::vec3 bbMax(FLT_MIN);
+      for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        const aiVector3D& vertex = mesh->mVertices[i];
+        glm::vec4 v(vertex.x, vertex.y, vertex.z, 1.f);
+        vbo.push_back(v);
+        bbMin = glm::min(glm::vec3(v), bbMin);
+        bbMax = glm::max(glm::vec3(v), bbMax);
+        const aiVector3D& normal = mesh->mNormals[i];
+        normals.emplace_back(normal.x, normal.y, normal.z);
+      }
+
+      std::vector<glm::uvec4> ibo;
+      ibo.reserve(mesh->mNumFaces);
+      for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
+        const aiFace& face = mesh->mFaces[i];
+        ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0);
+      }
+      addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, bbMin, bbMax), glm::vec3(diffuse.r, diffuse.g, diffuse.b), 0.f, glm::vec3(specular.r, specular.g, specular.b), roughness, roughness, 1.00029f, ior)); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
+       
+    }
   }
 }

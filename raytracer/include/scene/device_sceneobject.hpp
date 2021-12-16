@@ -10,6 +10,7 @@
 namespace rt {
   class CHostSceneobject;
   class CNVDBMedium;
+  class CMesh;
 
   enum ESceneobjectFlag {
     GEOMETRY,
@@ -22,6 +23,7 @@ namespace rt {
   public:
     D_CALLABLE SInteraction intersect(const CRay& ray) const;
     D_CALLABLE CShape* shape() const;
+    D_CALLABLE CMesh* mesh() const;
     D_CALLABLE float power() const;
     D_CALLABLE const glm::vec3& dimensions() const;
     D_CALLABLE ESceneobjectFlag flag() const;
@@ -30,6 +32,7 @@ namespace rt {
 
   private:
     CShape* m_shape;
+    CMesh* m_mesh;
     CMaterial* m_material;
     CMedium* m_medium;
     ESceneobjectFlag m_flag;
@@ -93,6 +96,10 @@ namespace rt {
 
   inline CMedium* CDeviceSceneobject::medium() const {
     return m_medium;
+  }
+
+  inline CMesh* CDeviceSceneobject::mesh() const {
+    return m_mesh;
   }
 }
 #endif

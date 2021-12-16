@@ -253,6 +253,6 @@ namespace rt {
   }
 
   OptixProgramGroup CNVDBMedium::getOptixProgramGroup() const {
-    return CRTBackend::instance()->programGroups().m_intersectVolume;
+    return CRTBackend::instance()->programGroups().m_hitVolume;
   }
 }

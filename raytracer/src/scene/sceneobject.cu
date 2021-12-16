@@ -25,6 +25,7 @@ namespace rt {
 
   CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& le):
     m_shape(shape),
+    m_mesh(nullptr),
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
@@ -34,6 +35,7 @@ namespace rt {
 
   CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
     m_shape(shape),
+    m_mesh(nullptr),
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
@@ -43,6 +45,7 @@ namespace rt {
 
   CHostSceneobject::CHostSceneobject(CShape* shape, CMedium* medium):
     m_shape(shape),
+    m_mesh(nullptr),
     m_material(nullptr),
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
@@ -51,6 +54,7 @@ namespace rt {
 
   CHostSceneobject::CHostSceneobject(CNVDBMedium* medium) :
     m_shape(nullptr),
+    m_mesh(nullptr),
     m_material(nullptr),
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
@@ -59,10 +63,21 @@ namespace rt {
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
     m_shape(std::move(sceneobject.m_shape)),
+    m_mesh(std::move(sceneobject.m_mesh)),
     m_material(std::move(sceneobject.m_material)),
     m_medium(std::move(sceneobject.m_medium)),
     m_flag(std::move(sceneobject.m_flag)),
     m_hostDeviceConnection(this) {
+  }
+
+  CHostSceneobject::CHostSceneobject(CMesh* mesh, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
+    m_shape(nullptr),
+    m_mesh(mesh),
+    m_material(nullptr),
+    m_medium(nullptr),
+    m_flag(ESceneobjectFlag::GEOMETRY),
+    m_hostDeviceConnection(this) {
+    m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
   }
 
   CSceneobjectConnection::CSceneobjectConnection(CHostSceneobject* hostSceneobject):
@@ -72,6 +87,7 @@ namespace rt {
   CSceneobjectConnection::CSceneobjectConnection(const CSceneobjectConnection&& connection) :
     m_hostSceneobject(std::move(connection.m_hostSceneobject)) {
   }
+
   void CSceneobjectConnection::allocateDeviceMemory() {
     if (m_hostSceneobject->m_shape) {
       switch (m_hostSceneobject->m_shape->shape()) {
@@ -88,6 +104,10 @@ namespace rt {
         cudaMalloc(&m_deviceShape, sizeof(CCuboid));
         break;
       }
+    }
+    if (m_hostSceneobject->m_mesh) {
+      cudaMalloc(&m_deviceMesh, sizeof(CMesh));
+      m_hostSceneobject->m_mesh->allocateDeviceMemory();
     }
     if (m_hostSceneobject->m_material) {
       cudaMalloc(&m_deviceMaterial, sizeof(CMaterial));
@@ -127,6 +147,9 @@ namespace rt {
         break;
       }
     }
+    if (m_deviceMesh) {
+      cudaMemcpy(m_deviceMesh, &m_hostSceneobject->m_mesh->copyToDevice(), sizeof(CMesh), cudaMemcpyHostToDevice);
+    }
     if (m_deviceMaterial) {
       cudaMemcpy(m_deviceMaterial, m_hostSceneobject->m_material.get(), sizeof(CMaterial), cudaMemcpyHostToDevice);
     }
@@ -151,6 +174,7 @@ namespace rt {
 
       CDeviceSceneobject deviceSceneobject;
       deviceSceneobject.m_shape = m_deviceShape;
+      deviceSceneobject.m_mesh = m_deviceMesh;
       deviceSceneobject.m_material = m_deviceMaterial;
       deviceSceneobject.m_medium = m_deviceMedium;
       deviceSceneobject.m_flag = m_hostSceneobject->m_flag;
@@ -160,8 +184,26 @@ namespace rt {
 
   void CSceneobjectConnection::freeDeviceMemory() {
     cudaFree(m_deviceShape);
+    if (m_deviceMesh) {
+      m_hostSceneobject->m_mesh->freeDeviceMemory();
+      cudaFree(m_deviceMesh);
+    }
     cudaFree(m_deviceMaterial);
-    cudaFree(m_deviceMedium);
+    if (m_deviceMedium) {
+      switch (m_hostSceneobject->m_medium->type()) {
+        case EMediumType::HETEROGENOUS_MEDIUM: {
+          std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
+          hetMedium->freeDeviceMemory();
+          break;
+        }
+        case EMediumType::NVDB_MEDIUM: {
+          std::shared_ptr<CNVDBMedium> nvdbMedium = std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium);
+          nvdbMedium->freeDeviceMemory();
+          break;
+        }
+      }
+      cudaFree(m_deviceMedium);
+    }
   }
 
   float CHostSceneobject::power() const {
@@ -184,8 +226,13 @@ namespace rt {
     if (m_medium.get() && m_medium->type() == NVDB_MEDIUM) {
       buildInputWrapper = ((CNVDBMedium*)m_medium.get())->getOptixBuildInput();
     }
-    else {
+    else if (m_mesh) {
+      buildInputWrapper = m_mesh->getOptixBuildInput();
+    } else if (m_shape) {
       buildInputWrapper = m_shape->getOptixBuildInput();
+    }
+    else {
+      fprintf(stderr, "[ERROR] Could not create build input.\n");
     }
 
     OptixAccelBuildOptions accelOptions = {};
@@ -256,8 +303,11 @@ namespace rt {
     if (m_medium.get()) {
       return m_medium->getOptixProgramGroup();
     }
-    if (m_shape.get()) {
+    else if (m_shape.get()) {
       return m_shape->getOptixProgramGroup();
+    }
+    else if (m_mesh.get()) {
+      return m_mesh->getOptixProgramGroup();
     }
     fprintf(stderr, "[ERROR] CHostSceneobject::getOptixProgramGroup no valid program group found.\n");
     return OptixProgramGroup();

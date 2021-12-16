@@ -34,6 +34,7 @@ namespace rt {
     H_CALLABLE ~CHostScene();
     H_CALLABLE const std::vector<CHostSceneobject>& sceneobjects() const;
     H_CALLABLE void addSceneobject(CHostSceneobject&& sceneobject);
+    H_CALLABLE void addSceneobjectsFromAssimp(const std::string& meshPath);
     H_CALLABLE void addLightsource(CHostSceneobject&& lightsource);
     H_CALLABLE void setEnvironmentMap(CEnvironmentMap&& envMap);
 
@@ -55,6 +56,8 @@ namespace rt {
     CUdeviceptr m_deviceInstances;
 
     CSceneConnection m_hostDeviceConnection;
+
+
 	};
 
 

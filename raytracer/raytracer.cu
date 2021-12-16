@@ -220,9 +220,10 @@ namespace rt {
     m_blockSize(128) {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), FLT_MAX, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
-    float lightness = 0.75f / 255.0f;
-    m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
-    m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    //float lightness = 0.75f / 255.0f;
+    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
+    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
 
     // Add environment map
     //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));

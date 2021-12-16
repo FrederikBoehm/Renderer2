@@ -8,6 +8,7 @@
 #include <memory>
 #include "device_sceneobject.hpp"
 #include "backend/types.hpp"
+#include "mesh/mesh.hpp"
 
 namespace rt {
   
@@ -26,6 +27,7 @@ namespace rt {
     CDeviceSceneobject* m_deviceSceneobject = nullptr;
 
     CShape* m_deviceShape = nullptr;
+    CMesh* m_deviceMesh = nullptr;
     CMaterial* m_deviceMaterial = nullptr;
     CMedium* m_deviceMedium = nullptr;
   };
@@ -37,6 +39,7 @@ namespace rt {
     CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
     CHostSceneobject(CShape* shape, CMedium* medium);
     CHostSceneobject(CNVDBMedium* medium);
+    CHostSceneobject(CMesh* mesh, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
     CHostSceneobject(CHostSceneobject&& sceneobject);
     ~CHostSceneobject();
 
@@ -51,6 +54,7 @@ namespace rt {
     SRecord<const CDeviceSceneobject*> getSBTHitRecord() const;
   private:
     std::shared_ptr<CShape> m_shape;
+    std::shared_ptr<CMesh> m_mesh;
     std::shared_ptr<CMaterial> m_material;
     std::shared_ptr<CMedium> m_medium;
     ESceneobjectFlag m_flag;
