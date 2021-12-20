@@ -166,6 +166,9 @@ namespace rt {
       frame->data[currentPixel + 0] = r / (r + *tonemapFactor);
       frame->data[currentPixel + 1] = g / (g + *tonemapFactor);
       frame->data[currentPixel + 2] = b / (b + *tonemapFactor);
+      //frame->data[currentPixel + 0] = r / (r + 1.f);
+      //frame->data[currentPixel + 1] = g / (g + 1.f);
+      //frame->data[currentPixel + 2] = b / (b + 1.f);
     }
   }
 
@@ -209,7 +212,8 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-5.f, 1.f, 5.f), glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(32), // higher -> less noise
     m_tonemappingFactor(100.f),
@@ -223,10 +227,12 @@ namespace rt {
     //float lightness = 0.75f / 255.0f;
     //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
     //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    CUDA_LOG_ERROR_STATE();
     m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
 
     // Add environment map
     //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));
+    CUDA_LOG_ERROR_STATE();
     m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/envmap.hdr"));
 
     allocateDeviceMemory();
@@ -380,6 +386,7 @@ namespace rt {
 
   void Raytracer::allocateDeviceMemory() {
     m_scene.allocateDeviceMemory();
+    CUDA_LOG_ERROR_STATE();
     cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight);
     cudaMalloc(&m_deviceCamera, sizeof(CCamera));
     cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
@@ -389,6 +396,7 @@ namespace rt {
     cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth);
     cudaMalloc(&m_deviceTonemappingValue, sizeof(float));
     cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams));
+    CUDA_LOG_ERROR_STATE();
   }
 
   void Raytracer::copyToDevice() {

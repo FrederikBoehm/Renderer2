@@ -14,7 +14,7 @@ namespace rt {
     friend struct SSharedMemoryInitializer;
   public:
     //DH_CALLABLE CDeviceScene();
-    D_CALLABLE SInteraction intersect(const CRay& ray) const;
+    //D_CALLABLE SInteraction intersect(const CRay& ray) const;
     D_CALLABLE void intersect(const CRay& ray, SInteraction* closestInteraction) const;
     //D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, float* pdf) const;
     D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const;
@@ -22,7 +22,7 @@ namespace rt {
     D_CALLABLE float lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const;
     D_CALLABLE float lightSourcesPdf(const SInteraction& lightHit) const;
 
-    D_CALLABLE bool occluded(const CRay& ray) const;
+    //D_CALLABLE bool occluded(const CRay& ray) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
     D_CALLABLE SInteraction intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const;
     D_CALLABLE void intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, SInteraction* interaction) const;

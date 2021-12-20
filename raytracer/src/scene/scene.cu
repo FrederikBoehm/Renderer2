@@ -26,8 +26,9 @@ namespace rt {
   }
 
   void CHostScene::addSceneobject(CHostSceneobject&& sceneobject) {
+    CUDA_LOG_ERROR_STATE();
     m_sceneobjects.push_back(std::move(sceneobject));
-    
+    CUDA_LOG_ERROR_STATE();
   }
 
   void CHostScene::addLightsource(CHostSceneobject&& lightsource) {
@@ -63,14 +64,16 @@ namespace rt {
   }
 
   void CSceneConnection::allocateDeviceMemory() {
+    CUDA_LOG_ERROR_STATE();
     cudaMalloc(&m_deviceScene, sizeof(CDeviceScene));
     cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject));
     cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject));
-
+    CUDA_LOG_ERROR_STATE();
     if (m_hostScene->m_envMap) {
       cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap));
       m_hostScene->m_envMap->allocateDeviceMemory();
     }
+    CUDA_LOG_ERROR_STATE();
 
     //for (auto& sceneObject : m_hostScene->m_sceneobjects) {
     for (size_t i = 0; i < m_hostScene->m_sceneobjects.size(); ++i) {
@@ -154,6 +157,7 @@ namespace rt {
     size_t instancesBytes = sizeof(OptixInstance) * instances.size();
     CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceInstances), instancesBytes));
     CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceInstances), instances.data(), instancesBytes, cudaMemcpyHostToDevice));
+    CUDA_LOG_ERROR_STATE();
 
     OptixBuildInput buildInput = {};
     buildInput.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
@@ -173,6 +177,7 @@ namespace rt {
       1, // num build inputs
       &bufferSizes
     ));
+    CUDA_LOG_ERROR_STATE();
 
     CUdeviceptr d_tempBuffer;
     CUDA_ASSERT(cudaMalloc(
@@ -198,6 +203,7 @@ namespace rt {
       nullptr,            // emitted property list
       0                   // num emitted properties
     ));
+    CUDA_LOG_ERROR_STATE();
 
     CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_tempBuffer)));
 
@@ -244,7 +250,7 @@ namespace rt {
       float ior;
       material->Get(AI_MATKEY_REFRACTI, ior);
 
-      std::vector<glm::vec4> vbo;
+      std::vector<glm::vec3> vbo;
       vbo.reserve(mesh->mNumVertices);
       std::vector<glm::vec3> normals;
       normals.reserve(mesh->mNumVertices);
@@ -252,22 +258,23 @@ namespace rt {
       glm::vec3 bbMax(FLT_MIN);
       for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
         const aiVector3D& vertex = mesh->mVertices[i];
-        glm::vec4 v(vertex.x, vertex.y, vertex.z, 1.f);
+        glm::vec3 v(vertex.x, vertex.y, vertex.z);
         vbo.push_back(v);
-        bbMin = glm::min(glm::vec3(v), bbMin);
-        bbMax = glm::max(glm::vec3(v), bbMax);
+        bbMin = glm::min(v, bbMin);
+        bbMax = glm::max(v, bbMax);
         const aiVector3D& normal = mesh->mNormals[i];
         normals.emplace_back(normal.x, normal.y, normal.z);
       }
 
-      std::vector<glm::uvec4> ibo;
+      std::vector<glm::uvec3> ibo;
       ibo.reserve(mesh->mNumFaces);
       for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
         const aiFace& face = mesh->mFaces[i];
-        ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0);
+        ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
       }
+      CUDA_LOG_ERROR_STATE();
       addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, bbMin, bbMax), glm::vec3(diffuse.r, diffuse.g, diffuse.b), 0.f, glm::vec3(specular.r, specular.g, specular.b), roughness, roughness, 1.00029f, ior)); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
-       
+      CUDA_LOG_ERROR_STATE();
     }
   }
 }

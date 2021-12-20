@@ -31,8 +31,13 @@ extern "C" __global__ void __closesthit__ch() {
   SInteraction* si;
   memcpy(&si, siAdress, sizeof(SInteraction*));
 
-  float3 hitPos = { uint_as_float(optixGetAttribute_0()), uint_as_float(optixGetAttribute_1()), uint_as_float(optixGetAttribute_2()) };
+  //float3 hitPos = { uint_as_float(optixGetAttribute_0()), uint_as_float(optixGetAttribute_1()), uint_as_float(optixGetAttribute_2()) };
+  float3 rayOrigin = optixGetWorldRayOrigin();
+  float3 rayDirection = optixGetWorldRayDirection();
+  float tMax = optixGetRayTmax();
+  float3 hitPos = { rayOrigin.x + tMax * rayDirection.x, rayOrigin.y + tMax * rayDirection.y, rayOrigin.z + tMax * rayDirection.z };
   float3 normal;
+  uint3 launchIdx = optixGetLaunchIndex();
   if (sceneobject->mesh()) {
     normal = { 1.f, 0.f, 0.f };
   }

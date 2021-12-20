@@ -28,6 +28,7 @@ namespace rt {
     options.logCallbackFunction = &optixContextLog;
     options.logCallbackLevel = 4;
     OPTIX_ASSERT(optixDeviceContextCreate(0, &options, &m_context));
+    CUDA_LOG_ERROR_STATE();
   }
 
   void CRTBackend::release() {
@@ -80,6 +81,7 @@ namespace rt {
     ));
 
     std::cout << log << std::endl;
+    CUDA_LOG_ERROR_STATE();
   }
 
   void CRTBackend::createProgramGroups() {
@@ -104,6 +106,7 @@ namespace rt {
         &sizeofLog,
         &m_programGroups.m_raygen
       ));
+      CUDA_LOG_ERROR_STATE();
     }
 
     // Miss
@@ -122,6 +125,7 @@ namespace rt {
         &sizeofLog,
         &m_programGroups.m_miss
       ));
+      CUDA_LOG_ERROR_STATE();
     }
 
     // Hitgroup circle
@@ -144,6 +148,7 @@ namespace rt {
         &sizeofLog,
         &m_programGroups.m_hitSurface
       ));
+      CUDA_LOG_ERROR_STATE();
     }
 
     // Hitgroup volume
@@ -166,6 +171,7 @@ namespace rt {
         &sizeofLog,
         &m_programGroups.m_hitVolume
       ));
+      CUDA_LOG_ERROR_STATE();
     }
 
     // Hitgroup mesh
@@ -188,6 +194,7 @@ namespace rt {
         &sizeofLog,
         &m_programGroups.m_hitMesh
       ));
+      CUDA_LOG_ERROR_STATE();
     }
 
   }
@@ -211,6 +218,7 @@ namespace rt {
       &sizeofLog,
       &m_pipeline
     ));
+    CUDA_LOG_ERROR_STATE();
 
     OptixStackSizes stackSizes = {};
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_raygen, &stackSizes));
@@ -218,6 +226,7 @@ namespace rt {
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitSurface, &stackSizes));
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitVolume, &stackSizes));
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitMesh, &stackSizes));
+    CUDA_LOG_ERROR_STATE();
 
     uint32_t maxTraceDepth = 4; // TODO: Is that the path tracing depth?
     uint32_t maxCcDepth = 0;
@@ -234,6 +243,7 @@ namespace rt {
       &directCallableStackSizeFromState,
       &continuationStackSize
     ));
+    CUDA_LOG_ERROR_STATE();
 
     const uint32_t maxTraversalDepth = 2;
     OPTIX_ASSERT(optixPipelineSetStackSize(
@@ -243,6 +253,7 @@ namespace rt {
       continuationStackSize,
       maxTraversalDepth
     ));
+    CUDA_LOG_ERROR_STATE();
   }
 
   void CRTBackend::createSBT(const std::vector<SRecord<const CDeviceSceneobject*>>& hitgroupRecords) {
@@ -259,6 +270,7 @@ namespace rt {
         cudaMemcpyHostToDevice
       ));
     }
+    CUDA_LOG_ERROR_STATE();
 
     {
 
@@ -280,6 +292,7 @@ namespace rt {
       m_sbt.missRecordStrideInBytes = static_cast<uint32_t>(missRecordSize);
       m_sbt.missRecordCount = RAY_TYPE_COUNT;
     }
+    CUDA_LOG_ERROR_STATE();
 
     {
       const size_t hitgroupRecordSize = sizeof(SRecord<const CDeviceSceneobject*>); // TODO: Pass SInteraction
@@ -298,6 +311,7 @@ namespace rt {
       m_sbt.hitgroupRecordStrideInBytes = hitgroupRecordSize;
       m_sbt.hitgroupRecordCount = hitgroupRecords.size();
     }
+    CUDA_LOG_ERROR_STATE();
 
   }
 

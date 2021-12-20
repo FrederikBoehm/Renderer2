@@ -7,14 +7,14 @@
 #include "scene/types.hpp"
 namespace rt {
   struct SMeshDeviceResource {
-    glm::vec4* d_vbo;
-    glm::uvec4* d_ibo;
+    glm::vec3* d_vbo;
+    glm::uvec3* d_ibo;
     glm::vec3* d_normals;
   };
 
   class CMesh {
   public:
-    H_CALLABLE CMesh(const std::vector<glm::vec4>& vbo, const std::vector<glm::uvec4>& ibo, const std::vector<glm::vec3>& normals, const glm::vec3& bbMin, const glm::vec3& bbMax);
+    H_CALLABLE CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const glm::vec3& bbMin, const glm::vec3& bbMax);
     H_CALLABLE CMesh();
     H_CALLABLE CMesh(CMesh&& mesh);
     H_CALLABLE ~CMesh();
@@ -25,9 +25,9 @@ namespace rt {
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
   private:
     size_t m_numVertices;
-    glm::vec4* m_vbo;
+    glm::vec3* m_vbo;
     size_t m_numIndices;
-    glm::uvec4* m_ibo;
+    glm::uvec3* m_ibo;
     glm::vec3* m_normals;
     OptixAabb m_aabb;
     OptixAabb* m_deviceAabb;

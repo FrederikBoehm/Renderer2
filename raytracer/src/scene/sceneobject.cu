@@ -29,6 +29,7 @@ namespace rt {
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
+    m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_material = std::make_shared<CMaterial>(CMaterial(le));
   }
@@ -39,6 +40,7 @@ namespace rt {
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
+    m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
   }
@@ -49,6 +51,7 @@ namespace rt {
     m_material(nullptr),
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
+    m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
   }
 
@@ -58,6 +61,7 @@ namespace rt {
     m_material(nullptr),
     m_medium(medium),
     m_flag(ESceneobjectFlag::VOLUME),
+    m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
   }
 
@@ -67,6 +71,7 @@ namespace rt {
     m_material(std::move(sceneobject.m_material)),
     m_medium(std::move(sceneobject.m_medium)),
     m_flag(std::move(sceneobject.m_flag)),
+    m_deviceGasBuffer(std::exchange(sceneobject.m_deviceGasBuffer, NULL)),
     m_hostDeviceConnection(this) {
   }
 
@@ -76,8 +81,11 @@ namespace rt {
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
+    m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
+    CUDA_LOG_ERROR_STATE();
     m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
+    CUDA_LOG_ERROR_STATE();
   }
 
   CSceneobjectConnection::CSceneobjectConnection(CHostSceneobject* hostSceneobject):
@@ -89,6 +97,7 @@ namespace rt {
   }
 
   void CSceneobjectConnection::allocateDeviceMemory() {
+    CUDA_LOG_ERROR_STATE();
     if (m_hostSceneobject->m_shape) {
       switch (m_hostSceneobject->m_shape->shape()) {
       case EShape::CIRCLE:
@@ -106,8 +115,10 @@ namespace rt {
       }
     }
     if (m_hostSceneobject->m_mesh) {
+      CUDA_LOG_ERROR_STATE();
       cudaMalloc(&m_deviceMesh, sizeof(CMesh));
       m_hostSceneobject->m_mesh->allocateDeviceMemory();
+      CUDA_LOG_ERROR_STATE();
     }
     if (m_hostSceneobject->m_material) {
       cudaMalloc(&m_deviceMaterial, sizeof(CMaterial));
@@ -128,7 +139,7 @@ namespace rt {
       }
     }
     
-
+    CUDA_LOG_ERROR_STATE();
   }
   void CSceneobjectConnection::copyToDevice() {
     if (m_deviceShape) {
@@ -218,7 +229,9 @@ namespace rt {
   }
 
   CHostSceneobject::~CHostSceneobject() {
+    CUDA_LOG_ERROR_STATE();
     cudaFree((void*)m_deviceGasBuffer);
+    CUDA_LOG_ERROR_STATE();
   }
 
   void CHostSceneobject::buildOptixAccel() {
@@ -228,7 +241,8 @@ namespace rt {
     }
     else if (m_mesh) {
       buildInputWrapper = m_mesh->getOptixBuildInput();
-    } else if (m_shape) {
+    }
+    else if (m_shape) {
       buildInputWrapper = m_shape->getOptixBuildInput();
     }
     else {
@@ -242,6 +256,7 @@ namespace rt {
     OptixAccelBufferSizes gasBufferSizes;
     const OptixDeviceContext& context = CRTBackend::instance()->context();
     OPTIX_ASSERT(optixAccelComputeMemoryUsage(context, &accelOptions, &buildInputWrapper.buildInput, 1, &gasBufferSizes));
+    CUDA_LOG_ERROR_STATE();
 
     CUdeviceptr d_tempBufferGas;
     CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&d_tempBufferGas), gasBufferSizes.tempSizeInBytes));
@@ -253,6 +268,9 @@ namespace rt {
     OptixAccelEmitDesc emitProperty = {};
     emitProperty.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
     emitProperty.result = d_compactedSize;
+
+    printf("CUDA error state: %s\n", cudaGetErrorString(cudaGetLastError()));
+    CUDA_LOG_ERROR_STATE();
 
     OPTIX_ASSERT(optixAccelBuild(CRTBackend::instance()->context(),
                                  0,
@@ -266,6 +284,8 @@ namespace rt {
                                  &m_traversableHandle,
                                  &emitProperty,
                                  1));
+
+    CUDA_ASSERT(cudaStreamSynchronize(0));
 
     size_t compactedSize;
     CUDA_ASSERT(cudaMemcpy(&compactedSize, reinterpret_cast<void*>(emitProperty.result), sizeof(size_t), cudaMemcpyDeviceToHost));
@@ -316,6 +336,7 @@ namespace rt {
   SRecord<const CDeviceSceneobject*> CHostSceneobject::getSBTHitRecord() const {
     SRecord<const CDeviceSceneobject*> hitRecord;
     OPTIX_ASSERT(optixSbtRecordPackHeader(getOptixProgramGroup(), &hitRecord));
+    CUDA_LOG_ERROR_STATE();
     if (!m_hostDeviceConnection.deviceSceneobject()) {
       fprintf(stderr, "[ERROR] CHostSceneobject::getSBTHitRecord: deviceSceneobject is null.\n");
     }
