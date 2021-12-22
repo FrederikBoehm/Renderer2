@@ -180,8 +180,10 @@ namespace rt {
       hitProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
       hitProgGroupDesc.hitgroup.moduleCH = m_module;
       hitProgGroupDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
-      hitProgGroupDesc.hitgroup.moduleAH = nullptr;
-      hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
+      //hitProgGroupDesc.hitgroup.moduleAH = nullptr;
+      //hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
+      hitProgGroupDesc.hitgroup.moduleAH = m_module;
+      hitProgGroupDesc.hitgroup.entryFunctionNameAH = "__anyhit__mesh";
       hitProgGroupDesc.hitgroup.moduleIS = nullptr;
       hitProgGroupDesc.hitgroup.entryFunctionNameIS = nullptr;
       sizeofLog = sizeof(log);

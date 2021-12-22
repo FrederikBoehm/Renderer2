@@ -13,6 +13,7 @@
 #include <nanovdb/util/Ray.h>
 #include "integrators/path_integrator_impl.hpp"
 #include "camera/pixel_sampler.hpp"
+#include "mesh/mesh.hpp"
 
 
 using namespace rt;
@@ -36,23 +37,69 @@ extern "C" __global__ void __closesthit__ch() {
   float3 rayDirection = optixGetWorldRayDirection();
   float tMax = optixGetRayTmax();
   float3 hitPos = { rayOrigin.x + tMax * rayDirection.x, rayOrigin.y + tMax * rayDirection.y, rayOrigin.z + tMax * rayDirection.z };
-  float3 normal;
+  glm::vec3 normal;
   uint3 launchIdx = optixGetLaunchIndex();
+  glm::vec2 tc(0.f);
   if (sceneobject->mesh()) {
-    normal = { 1.f, 0.f, 0.f };
+    const unsigned int primIdx = optixGetPrimitiveIndex();
+    const float2       barycentrics = optixGetTriangleBarycentrics();
+    const glm::uvec3& triangle = sceneobject->mesh()->ibo()[primIdx];
+    const glm::vec3& N0 = sceneobject->mesh()->normals()[triangle.x];
+    const glm::vec3& N1 = sceneobject->mesh()->normals()[triangle.y];
+    const glm::vec3& N2 = sceneobject->mesh()->normals()[triangle.z];
+    //if (barycentrics.x > 1.f || barycentrics.x < 0.f || barycentrics.y > 1.f || barycentrics.y < 0.f) {
+    //  printf("Barycentrics: (%f, %f)\n", barycentrics.x, barycentrics.y);
+    //}
+
+    normal = (1.f - barycentrics.x - barycentrics.y) * N0 + barycentrics.x * N1 + barycentrics.y * N2;
+
+    const glm::vec2* tcs = sceneobject->mesh()->tcs();
+    if (tcs) {
+      const glm::vec2& TC0 = sceneobject->mesh()->tcs()[triangle.x];
+      const glm::vec2& TC1 = sceneobject->mesh()->tcs()[triangle.y];
+      const glm::vec2& TC2 = sceneobject->mesh()->tcs()[triangle.z];
+
+      tc = (1.f - barycentrics.x - barycentrics.y) * TC0 + barycentrics.x * TC1 + barycentrics.y * TC2;
+      //if (tc.x < 0.f || tc.x > 1.f || tc.y < 0.f || tc.y > 1.f) {
+      //  printf("ch tc: (%f, %f)\n", tc.x, tc.y);
+      //}
+    }
   }
   else {
-    normal = { uint_as_float(optixGetAttribute_3()), uint_as_float(optixGetAttribute_4()), uint_as_float(optixGetAttribute_5()) };
+    normal = glm::vec3( uint_as_float(optixGetAttribute_3()), uint_as_float(optixGetAttribute_4()), uint_as_float(optixGetAttribute_5()) );
   }
 
   si->hitInformation.hit = true;
   si->hitInformation.pos = glm::vec3(hitPos.x, hitPos.y, hitPos.z);
-  si->hitInformation.normal = glm::vec3(normal.x, normal.y, normal.z);
+  si->hitInformation.normal = glm::normalize(normal);
+  si->hitInformation.tc = tc;
   si->hitInformation.t = optixGetRayTmax();
   si->object = sceneobject;
   si->material = sceneobject->material();
   si->medium = sceneobject->medium();
 
+}
+
+extern "C" __global__ void __anyhit__mesh() {
+  const rt::CDeviceSceneobject** sceneobjectPtr = reinterpret_cast<const rt::CDeviceSceneobject**>(optixGetSbtDataPointer());
+  const rt::CDeviceSceneobject* sceneobject = *sceneobjectPtr;
+
+  const unsigned int primIdx = optixGetPrimitiveIndex();
+  const float2       barycentrics = optixGetTriangleBarycentrics();
+  const glm::uvec3& triangle = sceneobject->mesh()->ibo()[primIdx];
+
+  const glm::vec2* tcs = sceneobject->mesh()->tcs();
+  if (tcs) {
+    const glm::vec2& TC0 = sceneobject->mesh()->tcs()[triangle.x];
+    const glm::vec2& TC1 = sceneobject->mesh()->tcs()[triangle.y];
+    const glm::vec2& TC2 = sceneobject->mesh()->tcs()[triangle.z];
+
+    glm::vec2 tc = (1.f - barycentrics.x - barycentrics.y) * TC0 + barycentrics.x * TC1 + barycentrics.y * TC2;
+
+    if (!sceneobject->material()->opaque(tc)) {
+      optixIgnoreIntersection();
+    }
+  }
 }
 
 

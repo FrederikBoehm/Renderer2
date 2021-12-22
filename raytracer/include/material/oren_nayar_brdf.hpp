@@ -14,28 +14,27 @@ namespace rt {
   class COrenNayarBRDF {
   public:
     DH_CALLABLE COrenNayarBRDF();
-    DH_CALLABLE COrenNayarBRDF(const glm::vec3& albedo, float roughness);
+    DH_CALLABLE COrenNayarBRDF(float roughness);
 
     // Expects incident and outgoing directions in tangent space
     DH_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
     D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
     D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
 
-    glm::vec3 m_albedo;
+    //glm::vec3 m_albedo;
   private:
     float m_A;
     float m_B;
   };
 
   inline COrenNayarBRDF::COrenNayarBRDF() :
-    m_albedo(0.0f),
+    //m_albedo(0.0f),
     m_A(0.0f),
     m_B(0.0f) {
 
   }
 
-  inline COrenNayarBRDF::COrenNayarBRDF(const glm::vec3& albedo, float roughness) :
-    m_albedo(albedo) {
+  inline COrenNayarBRDF::COrenNayarBRDF(float roughness) {
     float sigma2 = roughness * roughness;
     m_A = 1.0f - (sigma2 / (2.0f * (sigma2 + 0.33f)));
     m_B = 0.45f * sigma2 / (sigma2 + 0.09f);
@@ -66,7 +65,7 @@ namespace rt {
       tanBeta = sinThetaO / absCosTheta(wo);
     }
 
-    return m_albedo * glm::vec3(M_1_PI) * (m_A + m_B * maxCos * sinAlpha * tanBeta);
+    return glm::vec3(M_1_PI) * (m_A + m_B * maxCos * sinAlpha * tanBeta);
   }
 
   inline glm::vec3 COrenNayarBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {

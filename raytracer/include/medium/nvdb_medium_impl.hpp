@@ -113,7 +113,7 @@ namespace rt {
         ray.m_t_max = t;
         CRay rayWorldNew = ray.transform(m_mediumToWorld);
         glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-        SHitInformation hitInfo = { true, worldPos, normal(worldPos, accessor), rayWorldNew.m_t_max };
+        SHitInformation hitInfo = { true, worldPos, normal(worldPos, accessor), glm::vec2(0.f), rayWorldNew.m_t_max };
         *mi = { hitInfo, nullptr, nullptr, this };
         return m_sigma_s / m_sigma_t;
       }

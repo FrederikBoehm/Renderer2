@@ -225,10 +225,10 @@ namespace rt {
     return powf(2.f / (exponent + 2.f), 0.25f);
   }
 
-  void CHostScene::addSceneobjectsFromAssimp(const std::string& meshPath) {
+  void CHostScene::addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal) {
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(meshPath,
+    const aiScene* scene = importer.ReadFile(assetsBasePath + "/" + meshFileName,
       aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
 
     if (!scene) {
@@ -238,32 +238,42 @@ namespace rt {
       const aiMesh* mesh = scene->mMeshes[i];
       const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-      aiColor3D diffuse;
-      material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-      aiColor3D specular;
-      material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
+      //aiColor3D diffuse;
+      //material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+      //aiColor3D specular;
+      //material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
 
-      float exponent;
-      material->Get(AI_MATKEY_SHININESS, exponent);
-      float roughness = roughnessFromExponent(exponent);
+      //float exponent;
+      //material->Get(AI_MATKEY_SHININESS, exponent);
+      //float roughness = roughnessFromExponent(exponent);
 
-      float ior;
-      material->Get(AI_MATKEY_REFRACTI, ior);
+      //float ior;
+      //material->Get(AI_MATKEY_REFRACTI, ior);
+
+      //if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+      //  aiString path_ai;
+      //  material_ai->GetTexture(aiTextureType_DIFFUSE, 0, &path_ai);
+      //  albedo_tex.load(base_path / path_ai.C_Str());
+      //}
 
       std::vector<glm::vec3> vbo;
       vbo.reserve(mesh->mNumVertices);
       std::vector<glm::vec3> normals;
       normals.reserve(mesh->mNumVertices);
-      glm::vec3 bbMin(FLT_MAX);
-      glm::vec3 bbMax(FLT_MIN);
+      std::vector<glm::vec2> tcs;
+      bool hasTcs = mesh->HasTextureCoords(0);
+      if (hasTcs) {
+        tcs.reserve(mesh->mNumVertices);
+      }
       for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
         const aiVector3D& vertex = mesh->mVertices[i];
-        glm::vec3 v(vertex.x, vertex.y, vertex.z);
-        vbo.push_back(v);
-        bbMin = glm::min(v, bbMin);
-        bbMax = glm::max(v, bbMax);
+        vbo.emplace_back(vertex.x, vertex.y, vertex.z);
         const aiVector3D& normal = mesh->mNormals[i];
         normals.emplace_back(normal.x, normal.y, normal.z);
+        if (hasTcs) {
+          const aiVector3D &tc = mesh->mTextureCoords[0][i];
+          tcs.emplace_back(tc.x, tc.y);
+        }
       }
 
       std::vector<glm::uvec3> ibo;
@@ -272,8 +282,10 @@ namespace rt {
         const aiFace& face = mesh->mFaces[i];
         ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
       }
+
+      
       CUDA_LOG_ERROR_STATE();
-      addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, bbMin, bbMax), glm::vec3(diffuse.r, diffuse.g, diffuse.b), 0.f, glm::vec3(specular.r, specular.g, specular.b), roughness, roughness, 1.00029f, ior)); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
+      addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, tcs, worldPos, normal), new CMaterial(material, assetsBasePath))); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
       CUDA_LOG_ERROR_STATE();
     }
   }

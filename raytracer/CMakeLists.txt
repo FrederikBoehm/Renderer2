@@ -15,6 +15,7 @@ target_include_directories(cuda_to_ptx PRIVATE include)
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/glm")
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty")
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/assimp/include")
+target_include_directories(cuda_to_ptx PRIVATE "${CMAKE_BINARY_DIR}/3rdparty/assimp/include")
 
 get_target_property(NANOVDB_INCLUDE_DEBUG lib_openvdb_external_dbg INCLUDE_DIRECTORIES)
 get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIRECTORIES)

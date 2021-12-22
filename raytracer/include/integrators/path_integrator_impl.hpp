@@ -41,7 +41,7 @@ namespace rt {
         glm::vec3 f(0.f);
         float scatteringPdf = 0.f;
         if (si.material) {
-          f = si.material->f(woTangent, lightTangentSpaceDirection) * glm::max(glm::dot(si.hitInformation.normal, rayLight.m_direction), 0.0f);
+          f = si.material->f(si.hitInformation.tc, woTangent, lightTangentSpaceDirection) * glm::max(glm::dot(si.hitInformation.normal, rayLight.m_direction), 0.0f);
           scatteringPdf = si.material->pdf(woTangent, lightTangentSpaceDirection);
         }
         else {
@@ -73,7 +73,7 @@ namespace rt {
       glm::vec3 wi(0.f);
       if (si.material) {
         glm::vec3 wiTangent(0.f);
-        f = si.material->sampleF(woTangent, &wiTangent, sampler, &scatteringPdf);
+        f = si.material->sampleF(si.hitInformation.tc, woTangent, &wiTangent, sampler, &scatteringPdf);
         wi = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wiTangent, 0.0f)));
         f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
       }
@@ -190,7 +190,7 @@ namespace rt {
         {
           glm::vec3 wi(0.f);
           float brdfPdf = 0.f;
-          glm::vec3 f = si.material->sampleF(-rayTangent.m_direction, &wi, *m_sampler, &brdfPdf);
+          glm::vec3 f = si.material->sampleF(si.hitInformation.tc, -rayTangent.m_direction, &wi, *m_sampler, &brdfPdf);
           if (brdfPdf == 0.f) {
             break;
           }

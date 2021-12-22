@@ -42,7 +42,7 @@ namespace rt {
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
-    m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
+    m_material = std::make_shared<CMaterial>(CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT)));
   }
 
   CHostSceneobject::CHostSceneobject(CShape* shape, CMedium* medium):
@@ -84,8 +84,18 @@ namespace rt {
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     CUDA_LOG_ERROR_STATE();
-    m_material = std::make_shared<CMaterial>(CMaterial(COrenNayarBRDF(diffuseReflection, diffuseRougness), CMicrofacetBRDF(specularReflection, alphaX, alphaY, etaI, etaT)));
+    m_material = std::make_shared<CMaterial>(CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT)));
     CUDA_LOG_ERROR_STATE();
+  }
+  CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material):
+    m_shape(nullptr),
+    m_mesh(mesh),
+    m_material(material),
+    m_medium(nullptr),
+    m_flag(ESceneobjectFlag::GEOMETRY),
+    m_deviceGasBuffer(NULL),
+    m_hostDeviceConnection(this) {
+
   }
 
   CSceneobjectConnection::CSceneobjectConnection(CHostSceneobject* hostSceneobject):
@@ -101,39 +111,40 @@ namespace rt {
     if (m_hostSceneobject->m_shape) {
       switch (m_hostSceneobject->m_shape->shape()) {
       case EShape::CIRCLE:
-        cudaMalloc(&m_deviceShape, sizeof(CCircle));
+        CUDA_ASSERT(cudaMalloc(&m_deviceShape, sizeof(CCircle)));
         break;
       case EShape::SPHERE:
-        cudaMalloc(&m_deviceShape, sizeof(Sphere));
+        CUDA_ASSERT(cudaMalloc(&m_deviceShape, sizeof(Sphere)));
         break;
       case EShape::RECTANGLE:
-        cudaMalloc(&m_deviceShape, sizeof(CRectangle));
+        CUDA_ASSERT(cudaMalloc(&m_deviceShape, sizeof(CRectangle)));
         break;
       case EShape::CUBOID:
-        cudaMalloc(&m_deviceShape, sizeof(CCuboid));
+        CUDA_ASSERT(cudaMalloc(&m_deviceShape, sizeof(CCuboid)));
         break;
       }
     }
     if (m_hostSceneobject->m_mesh) {
       CUDA_LOG_ERROR_STATE();
-      cudaMalloc(&m_deviceMesh, sizeof(CMesh));
+      CUDA_ASSERT(cudaMalloc(&m_deviceMesh, sizeof(CMesh)));
       m_hostSceneobject->m_mesh->allocateDeviceMemory();
       CUDA_LOG_ERROR_STATE();
     }
     if (m_hostSceneobject->m_material) {
-      cudaMalloc(&m_deviceMaterial, sizeof(CMaterial));
+      CUDA_ASSERT(cudaMalloc(&m_deviceMaterial, sizeof(CMaterial)));
+      m_hostSceneobject->m_material->allocateDeviceMemory();
     }
     if (m_hostSceneobject->m_medium) {
       switch (m_hostSceneobject->m_medium->type()) {
       case EMediumType::HOMOGENEOUS_MEDIUM:
-        cudaMalloc(&m_deviceMedium, sizeof(CHomogeneousMedium));
+        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CHomogeneousMedium)));
         break;
       case EMediumType::HETEROGENOUS_MEDIUM:
-        cudaMalloc(&m_deviceMedium, sizeof(CHeterogenousMedium));
+        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CHeterogenousMedium)));
         std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
         break;
       case EMediumType::NVDB_MEDIUM:
-        cudaMalloc(&m_deviceMedium, sizeof(CNVDBMedium));
+        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CNVDBMedium)));
         std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
         break;
       }
@@ -145,38 +156,38 @@ namespace rt {
     if (m_deviceShape) {
       switch (m_hostSceneobject->m_shape->shape()) {
       case EShape::CIRCLE:
-        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCircle), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCircle), cudaMemcpyHostToDevice));
         break;
       case EShape::SPHERE:
-        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(Sphere), cudaMemcpyHostToDevice));
         break;
       case EShape::RECTANGLE:
-        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CRectangle), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CRectangle), cudaMemcpyHostToDevice));
         break;
       case EShape::CUBOID:
-        cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceShape, m_hostSceneobject->m_shape.get(), sizeof(CCuboid), cudaMemcpyHostToDevice));
         break;
       }
     }
     if (m_deviceMesh) {
-      cudaMemcpy(m_deviceMesh, &m_hostSceneobject->m_mesh->copyToDevice(), sizeof(CMesh), cudaMemcpyHostToDevice);
+      CUDA_ASSERT(cudaMemcpy(m_deviceMesh, &m_hostSceneobject->m_mesh->copyToDevice(), sizeof(CMesh), cudaMemcpyHostToDevice));
     }
     if (m_deviceMaterial) {
-      cudaMemcpy(m_deviceMaterial, m_hostSceneobject->m_material.get(), sizeof(CMaterial), cudaMemcpyHostToDevice);
+      CUDA_ASSERT(cudaMemcpy(m_deviceMaterial, &m_hostSceneobject->m_material->copyToDevice(), sizeof(CMaterial), cudaMemcpyHostToDevice));
     }
     if (m_deviceMedium) {
       switch (m_hostSceneobject->m_medium->type()) {
       case EMediumType::HOMOGENEOUS_MEDIUM:
-        cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CHomogeneousMedium), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CHomogeneousMedium), cudaMemcpyHostToDevice));
         break;
       case EMediumType::HETEROGENOUS_MEDIUM: {
         std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
-        cudaMemcpy(m_deviceMedium, &hetMedium->copyToDevice(), sizeof(CHeterogenousMedium), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &hetMedium->copyToDevice(), sizeof(CHeterogenousMedium), cudaMemcpyHostToDevice));
         break;
       }
       case EMediumType::NVDB_MEDIUM: {
         std::shared_ptr<CNVDBMedium> nvdbMedium = std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium);
-        cudaMemcpy(m_deviceMedium, &nvdbMedium->copyToDevice(), sizeof(CNVDBMedium), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &nvdbMedium->copyToDevice(), sizeof(CNVDBMedium), cudaMemcpyHostToDevice));
         break;
       }
       }
@@ -189,7 +200,7 @@ namespace rt {
       deviceSceneobject.m_material = m_deviceMaterial;
       deviceSceneobject.m_medium = m_deviceMedium;
       deviceSceneobject.m_flag = m_hostSceneobject->m_flag;
-      cudaMemcpy(m_deviceSceneobject, &deviceSceneobject, sizeof(CDeviceSceneobject), cudaMemcpyHostToDevice);
+      CUDA_ASSERT(cudaMemcpy(m_deviceSceneobject, &deviceSceneobject, sizeof(CDeviceSceneobject), cudaMemcpyHostToDevice));
     }
   }
 
@@ -197,9 +208,12 @@ namespace rt {
     cudaFree(m_deviceShape);
     if (m_deviceMesh) {
       m_hostSceneobject->m_mesh->freeDeviceMemory();
-      cudaFree(m_deviceMesh);
+      CUDA_ASSERT(cudaFree(m_deviceMesh));
     }
-    cudaFree(m_deviceMaterial);
+    if (m_deviceMaterial) {
+      m_hostSceneobject->m_material->freeDeviceMemory();
+      CUDA_ASSERT(cudaFree(m_deviceMaterial));
+    }
     if (m_deviceMedium) {
       switch (m_hostSceneobject->m_medium->type()) {
         case EMediumType::HETEROGENOUS_MEDIUM: {
@@ -213,7 +227,7 @@ namespace rt {
           break;
         }
       }
-      cudaFree(m_deviceMedium);
+      CUDA_ASSERT(cudaFree(m_deviceMedium));
     }
   }
 
@@ -230,7 +244,7 @@ namespace rt {
 
   CHostSceneobject::~CHostSceneobject() {
     CUDA_LOG_ERROR_STATE();
-    cudaFree((void*)m_deviceGasBuffer);
+    CUDA_ASSERT(cudaFree((void*)m_deviceGasBuffer));
     CUDA_LOG_ERROR_STATE();
   }
 
@@ -303,6 +317,31 @@ namespace rt {
     CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(d_tempBufferGas)));
   }
 
+  void CHostSceneobject::getTransform(float* outMatrix) const {
+    if (m_mesh) {
+      //fprintf(stderr, "getTransform not implemented\n");
+      const glm::mat4& modelToWorldTransform = m_mesh->modelToWorld();
+      outMatrix[0]    = modelToWorldTransform[0][0]; // Column to row major
+      outMatrix[1]    = modelToWorldTransform[1][0];
+      outMatrix[2]    = modelToWorldTransform[2][0];
+      outMatrix[3]    = modelToWorldTransform[3][0];
+      outMatrix[4]    = modelToWorldTransform[0][1];
+      outMatrix[5]    = modelToWorldTransform[1][1];
+      outMatrix[6]    = modelToWorldTransform[2][1];
+      outMatrix[7]    = modelToWorldTransform[3][1];
+      outMatrix[8]    = modelToWorldTransform[0][2];
+      outMatrix[9]    = modelToWorldTransform[1][2];
+      outMatrix[10]   = modelToWorldTransform[2][2];
+      outMatrix[11]   = modelToWorldTransform[3][2];
+    }
+    else {
+      float identity[] = { 1.f, 0.f, 0.f, 0.f,
+                           0.f, 1.f, 0.f, 0.f,
+                           0.f, 0.f, 1.f, 0.f };
+      memcpy(outMatrix, identity, sizeof(float) * 12);
+    }
+  }
+
   OptixInstance CHostSceneobject::getOptixInstance(uint32_t instanceId, uint32_t sbtOffset) const {
     OptixInstance instance;
 
@@ -311,10 +350,11 @@ namespace rt {
     instance.sbtOffset = sbtOffset;
     instance.visibilityMask = 0xff; // TODO: Check what has to be set here
     instance.traversableHandle = m_traversableHandle;
-    float identity[] = { 1.f, 0.f, 0.f, 0.f,
-                         0.f, 1.f, 0.f, 0.f,
-                         0.f, 0.f, 1.f, 0.f };
-    memcpy(instance.transform, identity, sizeof(float) * 12);
+    //float identity[] = { 1.f, 0.f, 0.f, 0.f,
+    //                     0.f, 1.f, 0.f, 0.f,
+    //                     0.f, 0.f, 1.f, 0.f };
+    //memcpy(instance.transform, identity, sizeof(float) * 12);
+    getTransform(instance.transform);
 
     return instance;
   }

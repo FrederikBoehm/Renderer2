@@ -137,6 +137,9 @@ namespace rt {
       for (uint16_t yIter = y; yIter < frame->height; ++yIter) {
           uint32_t currentPixel = frame->bpp * (yIter * frame->width + x);
           avg[x] += glm::log(frame->data[currentPixel + 0] + frame->data[currentPixel + 1] + frame->data[currentPixel + 2] + FLT_MIN) / divisor;
+          //if (glm::isnan(avg[x]) || glm::isinf(avg[x])) {
+          //  printf("%f at (%i, %i)\n", avg[x], (int)x, (int)y);
+          //}
       }
     }
   }
@@ -213,7 +216,8 @@ namespace rt {
     m_scene(),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-5.f, 1.f, 5.f), glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-1000.f, 73.f, 1000.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-2.f, 1.f, 2.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(32), // higher -> less noise
     m_tonemappingFactor(100.f),
@@ -228,7 +232,11 @@ namespace rt {
     //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
     //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
     CUDA_LOG_ERROR_STATE();
-    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
+    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05a.obj", glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f));
+    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05m.obj", glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f));
+    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05y.obj", glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
 
     // Add environment map
     //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));

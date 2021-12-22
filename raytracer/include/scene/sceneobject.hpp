@@ -40,6 +40,7 @@ namespace rt {
     CHostSceneobject(CShape* shape, CMedium* medium);
     CHostSceneobject(CNVDBMedium* medium);
     CHostSceneobject(CMesh* mesh, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
+    CHostSceneobject(CMesh* mesh, CMaterial* material);
     CHostSceneobject(CHostSceneobject&& sceneobject);
     ~CHostSceneobject();
 
@@ -68,6 +69,7 @@ namespace rt {
 
     static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
     OptixProgramGroup getOptixProgramGroup() const;
+    void getTransform(float* outMatrix) const;
   };
 
   inline void CHostSceneobject::allocateDeviceMemory() {

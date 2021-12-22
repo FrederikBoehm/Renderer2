@@ -9,6 +9,7 @@ namespace rt {
     bool hit = false;
     glm::vec3 pos; // World pos
     glm::vec3 normal; // World space normal
+    glm::vec2 tc;
     float t;
   };
 }
