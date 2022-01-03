@@ -20,20 +20,25 @@ namespace rt {
     DH_CALLABLE int height() const;
     DH_CALLABLE int channels() const;
     DH_CALLABLE const float* data() const;
+    DH_CALLABLE bool hasAlpha() const;
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CTexture copyToDevice() const;
     H_CALLABLE void freeDeviceMemory() const;
+    H_CALLABLE void loadAlpha(const std::string& path);
   private:
     int m_width;
     int m_height;
     int m_channels;
+    bool m_hasAlpha;
     float* m_data;
 
     STexture_DeviceResource* m_deviceResource;
   };
 
   inline glm::vec3 CTexture::operator()(float x, float y) const {
+    x = glm::fract(x);
+    y = glm::fract(y);
     int lowerRowIndex = glm::clamp(int(y * (m_height - 2)), 0, m_height - 2);
     int upperRowIndex = lowerRowIndex + 1;
 
@@ -62,6 +67,10 @@ namespace rt {
 
   DH_CALLABLE inline const float* CTexture::data() const {
     return m_data;
+  }
+
+  inline bool CTexture::hasAlpha() const {
+    return m_hasAlpha;
   }
 }
 #endif // !TEXTURE_HPP

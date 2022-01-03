@@ -26,7 +26,7 @@ namespace rt {
     float t = glm::min(dist * glm::length(ray.m_direction), ray.m_t_max);
     bool sampledMedium = t < ray.m_t_max;
     if (sampledMedium) {
-      SHitInformation hit = { true, ray.m_origin + t * ray.m_direction , glm::vec3(0.0f), t };
+      SHitInformation hit = { true, ray.m_origin + t * ray.m_direction , glm::vec3(0.f), glm::vec3(0.f), glm::vec2(0.0f), t };
       //*mi = {};
       *mi = { hit, nullptr, nullptr, this };
 

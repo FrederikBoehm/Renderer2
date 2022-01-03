@@ -31,7 +31,7 @@ namespace rt {
   }
 
   inline SHitInformation CCuboid::intersect(const CRay& ray) const {
-    SHitInformation hit = { false, glm::vec3(), glm::vec3(), FLT_MAX };
+    SHitInformation hit = { false, glm::vec3(), glm::vec3(), glm::vec3(), glm::vec2(0.f), FLT_MAX };
     for (uint8_t i = 0; i < 6; ++i) {
       SHitInformation currentHit = m_faces[i].intersect(ray);
       if (currentHit.hit && currentHit.t < hit.t) {

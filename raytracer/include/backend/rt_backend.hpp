@@ -18,8 +18,9 @@ namespace rt {
     struct SProgramGroups {
       OptixProgramGroup m_raygen;
       OptixProgramGroup m_miss;
-      OptixProgramGroup m_intersectSurface;
-      OptixProgramGroup m_intersectVolume;
+      OptixProgramGroup m_hitSurface;
+      OptixProgramGroup m_hitVolume;
+      OptixProgramGroup m_hitMesh;
     };
 
     H_CALLABLE void init();
