@@ -14,6 +14,8 @@ target_compile_definitions(cuda_to_ptx PRIVATE -DNANOVDB_USE_INTRINSICS=1 _ENABL
 target_include_directories(cuda_to_ptx PRIVATE include)
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/glm")
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty")
+target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/assimp/include")
+target_include_directories(cuda_to_ptx PRIVATE "${CMAKE_BINARY_DIR}/3rdparty/assimp/include")
 
 get_target_property(NANOVDB_INCLUDE_DEBUG lib_openvdb_external_dbg INCLUDE_DIRECTORIES)
 get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIRECTORIES)
@@ -37,6 +39,7 @@ set(SOURCE_FILES
 	src/shapes/rectangle.cu
 	src/material/lambertian_brdf.cu
 	src/material/blinn_phong_brdf.cu
+	src/material/material.cu
 	src/sampling/sampler.cu
 	src/sampling/distribution_1d.cu
 	src/sampling/distribution_2d.cu
@@ -49,7 +52,8 @@ set(SOURCE_FILES
 	src/medium/sggx_phase_function.cu
 	src/medium/phase_function.cu
 	src/texture/texture.cu
-	src/backend/rt_backend.cu)
+	src/backend/rt_backend.cu
+	src/mesh/mesh.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -101,7 +105,8 @@ set(HEADER_FILES
 	include/medium/nvdb_medium_impl.hpp
 	include/texture/texture.hpp
 	include/backend/rt_backend.hpp
-	include/backend/types.hpp)
+	include/backend/types.hpp
+	include/mesh/mesh.hpp)
 
 
 

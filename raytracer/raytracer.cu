@@ -209,7 +209,8 @@ namespace rt {
     m_bpp(3),
     m_scene(),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-5.f, 1.f, 5.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_numSamples(32), // higher -> less noise
     m_tonemappingFactor(100.f),
@@ -221,8 +222,22 @@ namespace rt {
     // Add scene objects
     m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), FLT_MAX, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
     float lightness = 0.75f / 255.0f;
-    m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
-    m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
+    m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(2.f, 0.5f, 0.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
+    m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.5f, 2.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
+    m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(-2.f, 0.5f, 0.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
+    m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.5f, -2.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
+
+    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/Smoke_Plume_01/Smoke_Plume_01/embergen_smoke_plume_a_0.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f))); // volume SGGX
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05a.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05m.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05y.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/pine", "scrubPine.obj", glm::vec3(-100.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "alpha_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/hairball", "hairball.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
+    m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "normal_map_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
 
     // Add environment map
     //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));

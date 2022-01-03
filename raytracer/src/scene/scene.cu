@@ -6,6 +6,11 @@
 #include <device_launch_parameters.h>
 #include "utility/debugging.hpp"
 #include "backend/rt_backend.hpp"
+#include <iostream>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/mesh.h>
 
 namespace rt {
 
@@ -25,7 +30,6 @@ namespace rt {
 
   void CHostScene::addSceneobject(CHostSceneobject&& sceneobject) {
     m_sceneobjects.push_back(std::move(sceneobject));
-    
   }
 
   void CHostScene::addLightsource(CHostSceneobject&& lightsource) {
@@ -64,7 +68,6 @@ namespace rt {
     cudaMalloc(&m_deviceScene, sizeof(CDeviceScene));
     cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject));
     cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject));
-
     if (m_hostScene->m_envMap) {
       cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap));
       m_hostScene->m_envMap->allocateDeviceMemory();
@@ -211,5 +214,54 @@ namespace rt {
       sbtHitRecords.push_back(sceneobject.getSBTHitRecord());
     }
     return sbtHitRecords;
+  }
+
+  H_CALLABLE float roughnessFromExponent(float exponent) {
+    return powf(2.f / (exponent + 2.f), 0.25f);
+  }
+
+  void CHostScene::addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) {
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(assetsBasePath + "/" + meshFileName,
+      aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
+
+    if (!scene) {
+      std::cerr << "[ERROR] Failed to load scene: " << importer.GetErrorString() << std::endl;
+    }
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+      const aiMesh* mesh = scene->mMeshes[i];
+      const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+      std::vector<glm::vec3> vbo;
+      vbo.reserve(mesh->mNumVertices);
+      std::vector<glm::vec3> normals;
+      normals.reserve(mesh->mNumVertices);
+      std::vector<glm::vec2> tcs;
+      bool hasTcs = mesh->HasTextureCoords(0);
+      if (hasTcs) {
+        tcs.reserve(mesh->mNumVertices);
+      }
+      for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        const aiVector3D& vertex = mesh->mVertices[i];
+        vbo.emplace_back(vertex.x, vertex.y, vertex.z);
+        const aiVector3D& normal = mesh->mNormals[i];
+        normals.emplace_back(normal.x, normal.y, normal.z);
+        if (hasTcs) {
+          const aiVector3D &tc = mesh->mTextureCoords[0][i];
+          tcs.emplace_back(tc.x, tc.y);
+        }
+      }
+
+      std::vector<glm::uvec3> ibo;
+      ibo.reserve(mesh->mNumFaces);
+      for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
+        const aiFace& face = mesh->mFaces[i];
+        ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
+      }
+
+      
+      addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, tcs, worldPos, normal, scaling), new CMaterial(material, assetsBasePath))); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
+    }
   }
 }

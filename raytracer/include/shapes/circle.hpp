@@ -48,6 +48,8 @@ namespace rt {
           si.hit = true;
           si.pos = ray.m_origin + t * ray.m_direction;
           si.normal = m_normal;
+          si.normalG = m_normal;
+          si.tc = glm::vec2(0.f);
           si.t = t;
         }
       }

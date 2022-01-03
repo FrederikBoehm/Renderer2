@@ -14,6 +14,11 @@ namespace rt {
     }
   }
 
+  inline void logCudaErrorState(const char* file, int line) {
+    printf("CUDA error state: %s in file %s on line %i\n", cudaGetErrorString(cudaGetLastError()), file, line);
+  }
+  #define CUDA_LOG_ERROR_STATE() {logCudaErrorState(__FILE__, __LINE__);}
+
   inline void optixAssert(OptixResult res, const char* file, int line) {
     if (res != OPTIX_SUCCESS) {
       fprintf(stderr, "OPTIX_ASSERT: %s in file %s on line %i\n", optixGetErrorString(res), file, line);

@@ -237,7 +237,7 @@ namespace rt {
     }
 
     SBuildInputWrapper wrapper;
-    wrapper.flags.push_back(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+    wrapper.flags.push_back(OPTIX_GEOMETRY_FLAG_NONE);
 
     wrapper.buildInput = {};
     wrapper.buildInput.type = OPTIX_BUILD_INPUT_TYPE_CUSTOM_PRIMITIVES;
@@ -253,6 +253,6 @@ namespace rt {
   }
 
   OptixProgramGroup CNVDBMedium::getOptixProgramGroup() const {
-    return CRTBackend::instance()->programGroups().m_intersectVolume;
+    return CRTBackend::instance()->programGroups().m_hitVolume;
   }
 }

@@ -142,7 +142,7 @@ namespace rt {
         &programGroupOptions,
         log,
         &sizeofLog,
-        &m_programGroups.m_intersectSurface
+        &m_programGroups.m_hitSurface
       ));
     }
 
@@ -164,7 +164,31 @@ namespace rt {
         &programGroupOptions,
         log,
         &sizeofLog,
-        &m_programGroups.m_intersectVolume
+        &m_programGroups.m_hitVolume
+      ));
+    }
+
+    // Hitgroup mesh
+    {
+      OptixProgramGroupDesc hitProgGroupDesc = {};
+      hitProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+      hitProgGroupDesc.hitgroup.moduleCH = m_module;
+      hitProgGroupDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
+      //hitProgGroupDesc.hitgroup.moduleAH = nullptr;
+      //hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
+      hitProgGroupDesc.hitgroup.moduleAH = m_module;
+      hitProgGroupDesc.hitgroup.entryFunctionNameAH = "__anyhit__mesh";
+      hitProgGroupDesc.hitgroup.moduleIS = nullptr;
+      hitProgGroupDesc.hitgroup.entryFunctionNameIS = nullptr;
+      sizeofLog = sizeof(log);
+      OPTIX_ASSERT(optixProgramGroupCreate(
+        m_context,
+        &hitProgGroupDesc,
+        1,
+        &programGroupOptions,
+        log,
+        &sizeofLog,
+        &m_programGroups.m_hitMesh
       ));
     }
 
@@ -193,8 +217,9 @@ namespace rt {
     OptixStackSizes stackSizes = {};
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_raygen, &stackSizes));
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_miss, &stackSizes));
-    OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_intersectSurface, &stackSizes));
-    OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_intersectVolume, &stackSizes));
+    OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitSurface, &stackSizes));
+    OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitVolume, &stackSizes));
+    OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitMesh, &stackSizes));
 
     uint32_t maxTraceDepth = 4; // TODO: Is that the path tracing depth?
     uint32_t maxCcDepth = 0;

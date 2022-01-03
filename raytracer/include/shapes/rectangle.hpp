@@ -30,11 +30,11 @@ namespace rt {
         if (inside(glm::vec3(pos.x, 0.f, pos.z), glm::vec3(-m_dimensions.x / 2.f, 0.f, -m_dimensions.y / 2.f), glm::vec3(m_dimensions.x / 2.f, 0.f, m_dimensions.y / 2.f))) {
           glm::vec3 posWorld = glm::vec3(m_modelToWorld * glm::vec4(pos, 1.f));
           float tWorld = glm::length(posWorld - ray.m_origin) / glm::length(ray.m_direction);
-          return { true, posWorld, m_normal, tWorld };
+          return { true, posWorld, m_normal, m_normal, glm::vec2(0.f), tWorld };
         }
       }
     }
-    return { false, glm::vec3(), glm::vec3(), 0.f };
+    return { false, glm::vec3(), glm::vec3(), glm::vec3(), glm::vec2(0.f), 0.f };
   }
 }
 #endif

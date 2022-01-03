@@ -3,6 +3,8 @@
 
 #include "shapes/sphere.hpp"
 #include "intersect/ray.hpp"
+#include "backend/rt_backend.hpp"
+#include "utility/debugging.hpp"
 
 namespace rt {
   Sphere::Sphere() :CShape(EShape::SPHERE), m_radius(1.0f) {
@@ -18,53 +20,37 @@ namespace rt {
 
   }
 
-  SHitInformation Sphere::intersect(const CRay& ray) const {
-    CRay rayModelSpace = ray.transform(m_worldToModel);
+  OptixAabb Sphere::getAABB() const {
+    glm::vec3 min(m_worldPos.x - m_radius, m_worldPos.y - m_radius, m_worldPos.z - m_radius);
+    glm::vec3 max(m_worldPos.x + m_radius, m_worldPos.y + m_radius, m_worldPos.z + m_radius);
 
-    float a = glm::dot(rayModelSpace.m_direction, rayModelSpace.m_direction);
-    float b = 2.0f * glm::dot(rayModelSpace.m_direction, rayModelSpace.m_origin);
-    float c = glm::dot(rayModelSpace.m_origin, rayModelSpace.m_origin) - m_radius * m_radius;
+    return OptixAabb{ min.x, min.y, min.z, max.x, max.y, max.z };
+  }
 
-    SHitInformation si;
-    si.hit = false;
-
-    float discriminant = b * b - 4 * a * c;
-    if (discriminant == 0.0f) {
-      float t = (-b + glm::sqrt(discriminant)) / (2 * a);
-      if (t > 0 && t <= ray.m_t_max) { // Intersection in front of ray origin
-        si.hit = true;
-        glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + t * rayModelSpace.m_direction;
-        si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-        si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
-        si.t = t;
-      }
-    }
-    else if (discriminant > 0.0f) {
-      float sqrtDiscriminant = glm::sqrt(discriminant);
-      float denominator = 1 / (2.0f * a);
-      float t1 = (-b + sqrtDiscriminant) * denominator;
-      float t2 = (-b - sqrtDiscriminant) * denominator;
-
-      float minimum = glm::min(t1, t2);
-      float maximum = glm::max(t1, t2);
-      if (maximum > 0.0f) {
-        if (minimum > 0.0f && minimum <= ray.m_t_max) {
-          si.hit = true;
-          glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + minimum * rayModelSpace.m_direction;
-          si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
-          si.t = minimum;
-        }
-        else if (minimum <= 0.0f && maximum <= ray.m_t_max) {
-          si.hit = true;
-          glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + maximum * rayModelSpace.m_direction;
-          si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
-          si.t = maximum;
-        }
-      }
+  SBuildInputWrapper Sphere::getOptixBuildInput() {
+    if (!m_deviceAabb) {
+      OptixAabb aabb = getAABB();
+      CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceAabb), sizeof(OptixAabb)));
+      CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceAabb), &aabb, sizeof(OptixAabb), cudaMemcpyHostToDevice));
     }
 
-    return si;
+    SBuildInputWrapper wrapper;
+    wrapper.flags.push_back(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+
+    wrapper.buildInput = {};
+    wrapper.buildInput.type = OPTIX_BUILD_INPUT_TYPE_CUSTOM_PRIMITIVES;
+    wrapper.buildInput.customPrimitiveArray.aabbBuffers = &m_deviceAabb;
+    wrapper.buildInput.customPrimitiveArray.flags = wrapper.flags.data();
+    wrapper.buildInput.customPrimitiveArray.numSbtRecords = 1;
+    wrapper.buildInput.customPrimitiveArray.numPrimitives = 1;
+    wrapper.buildInput.customPrimitiveArray.sbtIndexOffsetBuffer = 0;
+    wrapper.buildInput.customPrimitiveArray.sbtIndexOffsetSizeInBytes = 0;
+    wrapper.buildInput.customPrimitiveArray.primitiveIndexOffset = 0;
+
+    return wrapper;
+  }
+
+  OptixProgramGroup Sphere::getOptixProgramGroup() const {
+    return CRTBackend::instance()->programGroups().m_hitSurface;
   }
 }

@@ -52,6 +52,6 @@ namespace rt {
   }
 
   OptixProgramGroup CCuboid::getOptixProgramGroup() const {
-    return CRTBackend::instance()->programGroups().m_intersectSurface;
+    return CRTBackend::instance()->programGroups().m_hitSurface;
   }
 }

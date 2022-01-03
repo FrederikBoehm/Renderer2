@@ -22,26 +22,23 @@ namespace rt {
       etaI: Index of refraction for incident medium
       etaT: Index of refraction for transmission medium
     */
-    DH_CALLABLE CMicrofacetBRDF(const glm::vec3& glossy, float alphaX, float alphaY, float etaI, float etaT);
+    DH_CALLABLE CMicrofacetBRDF(float alphaX, float alphaY, float etaI, float etaT);
     D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
     D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
     D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
 
   private:
-    glm::vec3 m_glossy;
     CMicrofacetDistribution m_distribution;
     CFresnel m_fresnel;
   };
 
   inline CMicrofacetBRDF::CMicrofacetBRDF() :
-    m_glossy(1.0f),
     m_distribution(1.0f, 1.0f),
     m_fresnel(1.0f, 1.0f) {
 
   }
 
-  inline CMicrofacetBRDF::CMicrofacetBRDF(const glm::vec3& glossy, float alphaX, float alphaY, float etaI, float etaT) :
-    m_glossy(glossy),
+  inline CMicrofacetBRDF::CMicrofacetBRDF(float alphaX, float alphaY, float etaI, float etaT) :
     m_distribution(alphaX, alphaY),
     m_fresnel(etaI, etaT) {
 
@@ -67,7 +64,7 @@ namespace rt {
 
     h = glm::normalize(h);
     glm::vec3 F = m_fresnel.evaluate(glm::dot(wi, faceforward(h, glm::vec3(0.f, 0.f, 1.f))));
-    return m_glossy * m_distribution.D(h) * m_distribution.G(wo, wi) * F / (4.0f * cosThetaI * cosThetaO);
+    return m_distribution.D(h) * m_distribution.G(wo, wi) * F / (4.0f * cosThetaI * cosThetaO);
   }
 
   inline glm::vec3 CMicrofacetBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
