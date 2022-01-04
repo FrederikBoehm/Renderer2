@@ -25,6 +25,7 @@
 #include "medium/nvdb_medium.hpp"
 #include "backend/rt_backend.hpp"
 #include <optix/optix_stubs.h>
+#include "texture/texture_manager.hpp"
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -208,7 +209,7 @@ namespace rt {
     m_frameHeight(frameHeight),
     m_bpp(3),
     m_scene(),
-    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.2f, 0.5f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-5.f, 1.f, 5.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f)),
     //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
@@ -235,8 +236,10 @@ namespace rt {
     //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05m.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
     //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05y.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
     //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/pine", "scrubPine.obj", glm::vec3(-100.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "alpha_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "alpha_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
     //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/hairball", "hairball.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/sponza", "sponza.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f));
+    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/San_Miguel", "san-miguel.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
     m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "normal_map_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
 
     // Add environment map
@@ -284,7 +287,7 @@ namespace rt {
     //rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
     //CUDA_ASSERT(cudaDeviceSynchronize());
 
-    dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
+    dim3 reductionGrid(m_frameWidth / m_blockSize, 1);
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
     CUDA_ASSERT(cudaDeviceSynchronize());
 
@@ -305,7 +308,7 @@ namespace rt {
     ////CPerformanceMonitoring::startMeasurement("fillByteFrame");
     rt::fillByteFrame << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
-    ////CPerformanceMonitoring::endMeasurement("fillByteFrame");
+    //CPerformanceMonitoring::endMeasurement("fillByteFrame");
 
     SFrame frame = retrieveFrame();
     return frame;
@@ -329,7 +332,7 @@ namespace rt {
     ));
     CUDA_ASSERT(cudaDeviceSynchronize());
 
-    dim3 reductionGrid(m_frameWidth / m_blockSize, 1);;
+    dim3 reductionGrid(m_frameWidth / m_blockSize, 1);
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
     CUDA_ASSERT(cudaDeviceSynchronize());
 
@@ -403,6 +406,7 @@ namespace rt {
     cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth);
     cudaMalloc(&m_deviceTonemappingValue, sizeof(float));
     cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams));
+    CTextureManager::allocateDeviceMemory();
   }
 
   void Raytracer::copyToDevice() {
@@ -431,6 +435,8 @@ namespace rt {
     launchParams.sampler = m_deviceSampler;
     launchParams.numSamples = m_numSamples;
     cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice);
+
+    CTextureManager::copyToDevice();
   }
 
   void Raytracer::initDeviceData() {
@@ -466,6 +472,8 @@ namespace rt {
     cudaFree(m_deviceAverage);
     cudaFree(m_deviceTonemappingValue);
     cudaFree(m_deviceLaunchParams);
+
+    CTextureManager::freeDeviceMemory();
   }
   SFrame Raytracer::retrieveFrame() const {
     SFrame frame;

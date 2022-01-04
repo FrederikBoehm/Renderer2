@@ -130,8 +130,18 @@ namespace rt {
   }
 
   inline glm::vec3 CMaterial::normalmap(const CCoordinateFrame& frame, const glm::vec2& tc) const {
-    //return m_normalTexture ? CCoordinateFrame::align(n, glm::normalize(m_normalTexture->operator()(tc.x, tc.y) * 2.f - 1.f)) : n;
-    return m_normalTexture ? frame.tangentToWorld() * (glm::vec4(0.f, 0.f, 1.f, 0.f) + glm::vec4(glm::normalize(m_normalTexture->operator()(tc.x, tc.y) * 2.f - 1.f), 0.f)) : frame.N();
+    if (m_normalTexture) {
+      glm::vec3 normal = m_normalTexture->operator()(tc.x, tc.y) * 2.f - 1.f;
+      if (normal == glm::vec3(0.f)) {
+        return frame.N();
+      }
+      else {
+        return frame.tangentToWorld() * glm::normalize(glm::vec4(normal, 0.f));
+      }
+    }
+    else {
+      return frame.N();
+    }
   }
 
 }

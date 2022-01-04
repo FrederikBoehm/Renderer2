@@ -4,53 +4,52 @@
 #include "utility/qualifiers.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <cuda_runtime.h>
+#include "texture_manager.hpp"
+#include <optix/optix_types.h>
 namespace rt {
   struct STexture_DeviceResource {
-    float* d_data;
+    cudaArray_t d_data;
+    cudaTextureObject_t d_texObj;
   };
 
   class CTexture {
+    friend class CTextureManager;
   public:
     DH_CALLABLE CTexture();
-    H_CALLABLE CTexture(const std::string& path);
+    H_CALLABLE CTexture(const std::string& path, ETextureType type = DIFFUSE);
     DH_CALLABLE ~CTexture();
-    DH_CALLABLE glm::vec3 operator()(float x, float y) const;
+    D_CALLABLE glm::vec3 operator()(float x, float y) const;
 
     DH_CALLABLE int width() const;
     DH_CALLABLE int height() const;
     DH_CALLABLE int channels() const;
     DH_CALLABLE const float* data() const;
     DH_CALLABLE bool hasAlpha() const;
+    H_CALLABLE std::string path() const;
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CTexture copyToDevice() const;
     H_CALLABLE void freeDeviceMemory() const;
     H_CALLABLE void loadAlpha(const std::string& path);
   private:
+    bool m_hasAlpha;
     int m_width;
     int m_height;
     int m_channels;
-    bool m_hasAlpha;
+    ETextureType m_type;
     float* m_data;
+    cudaArray_t m_deviceData;
+    cudaTextureObject_t m_deviceTextureObj;
+    uint16_t m_pathLength;
+    char* m_path;
 
     STexture_DeviceResource* m_deviceResource;
   };
 
   inline glm::vec3 CTexture::operator()(float x, float y) const {
-    x = glm::fract(x);
-    y = glm::fract(y);
-    int lowerRowIndex = glm::clamp(int(y * (m_height - 2)), 0, m_height - 2);
-    int upperRowIndex = lowerRowIndex + 1;
-
-    int lowerColumnIndex = glm::clamp(int(x * (m_width - 2)), 0, m_width - 2);
-    int upperColumnIndex = lowerColumnIndex + 1;
-
-    glm::vec3 lowerRowInterpolation = glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 2)) +
-      glm::make_vec3(&m_data[lowerRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 2) - lowerColumnIndex);
-    glm::vec3 upperRowInterpolation = glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + lowerColumnIndex * m_channels]) * (upperColumnIndex - x * (m_width - 2)) +
-      glm::make_vec3(&m_data[upperRowIndex * m_width * m_channels + upperColumnIndex * m_channels]) * (x * (m_width - 2) - lowerColumnIndex);
-
-    return lowerRowInterpolation * (upperRowIndex - y * (m_height - 2)) + upperRowInterpolation * (y * (m_height - 2) - lowerRowIndex);
+    float4 value = tex2D<float4>(m_deviceTextureObj, x, y);
+    return glm::vec3(value.x, value.y, value.z);
   }
 
   DH_CALLABLE inline int CTexture::width() const {
@@ -65,12 +64,16 @@ namespace rt {
     return m_channels;
   }
 
-  DH_CALLABLE inline const float* CTexture::data() const {
+  H_CALLABLE inline const float* CTexture::data() const {
     return m_data;
   }
 
   inline bool CTexture::hasAlpha() const {
     return m_hasAlpha;
+  }
+
+  inline std::string CTexture::path() const {
+    return std::string(m_path, m_pathLength);
   }
 }
 #endif // !TEXTURE_HPP

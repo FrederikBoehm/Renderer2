@@ -53,7 +53,8 @@ set(SOURCE_FILES
 	src/medium/phase_function.cu
 	src/texture/texture.cu
 	src/backend/rt_backend.cu
-	src/mesh/mesh.cu)
+	src/mesh/mesh.cu
+	src/texture/texture_manager.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -106,7 +107,8 @@ set(HEADER_FILES
 	include/texture/texture.hpp
 	include/backend/rt_backend.hpp
 	include/backend/types.hpp
-	include/mesh/mesh.hpp)
+	include/mesh/mesh.hpp
+	include/texture/texture_manager.hpp)
 
 
 
