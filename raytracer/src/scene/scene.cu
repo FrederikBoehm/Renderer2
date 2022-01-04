@@ -65,11 +65,11 @@ namespace rt {
   }
 
   void CSceneConnection::allocateDeviceMemory() {
-    cudaMalloc(&m_deviceScene, sizeof(CDeviceScene));
-    cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject));
-    cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject));
+    CUDA_ASSERT(cudaMalloc(&m_deviceScene, sizeof(CDeviceScene)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceSceneobjects, m_hostScene->m_sceneobjects.size() * sizeof(CDeviceSceneobject)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceLights, m_hostScene->m_lights.size() * sizeof(CDeviceSceneobject)));
     if (m_hostScene->m_envMap) {
-      cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap));
+      CUDA_ASSERT(cudaMalloc(&m_deviceEnvMap, sizeof(CEnvironmentMap)));
       m_hostScene->m_envMap->allocateDeviceMemory();
     }
 
@@ -95,7 +95,7 @@ namespace rt {
     deviceScene.m_lightDist = m_deviceLightDist;
     deviceScene.m_envMap = m_deviceEnvMap;
     deviceScene.m_traversableHandle = m_hostScene->m_traversableHandle;
-    cudaMemcpy(m_deviceScene, &deviceScene, sizeof(CDeviceScene), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceScene, &deviceScene, sizeof(CDeviceScene), cudaMemcpyHostToDevice));
     for (size_t i = 0; i < m_hostScene->m_sceneobjects.size(); ++i) {
       //m_hostScene->m_sceneobjects[i].setDeviceSceneobject(&m_deviceSceneobjects[i]);
       m_hostScene->m_sceneobjects[i].copyToDevice();
@@ -127,8 +127,8 @@ namespace rt {
       m_hostScene->m_lightDist->freeDeviceMemory();
     }
 
-    cudaFree(m_deviceSceneobjects);
-    cudaFree(m_deviceScene);
+    CUDA_ASSERT(cudaFree(m_deviceSceneobjects));
+    CUDA_ASSERT(cudaFree(m_deviceScene));
   }
 
   

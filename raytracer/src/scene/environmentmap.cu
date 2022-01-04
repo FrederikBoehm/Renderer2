@@ -17,7 +17,7 @@ namespace rt {
     radiance.reserve(texture.width() * texture.height());
     for (size_t i = 0; i < texture.channels() * texture.height() * texture.width(); i += texture.channels()) {
       float pixelRadiance = 0.f;
-      for (uint8_t j = 0; j < texture.channels(); ++j) {
+      for (uint8_t j = 0; j < 3; ++j) {
         pixelRadiance += texture.data()[i + j];
       }
       uint16_t row = i / (texture.channels() * texture.width());
