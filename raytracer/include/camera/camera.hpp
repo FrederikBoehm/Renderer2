@@ -27,7 +27,11 @@ namespace rt {
     DH_CALLABLE uint16_t sensorWidth() const;
     DH_CALLABLE uint16_t sensorHeight() const;
     DH_CALLABLE void updatePosition(const glm::vec3& pos);
+    DH_CALLABLE void updateLookAt(const glm::vec3& lookAt);
     DH_CALLABLE const glm::vec3& position() const;
+    DH_CALLABLE const glm::mat4& worldToView() const;
+    DH_CALLABLE const glm::mat4& viewToWorld() const;
+    DH_CALLABLE const glm::vec3& up() const;
   private:
 
     const float m_pixelSize;
@@ -45,6 +49,7 @@ namespace rt {
     glm::mat4 m_viewToWorld;
 
     H_CALLABLE static float getNearPlaneDistance(uint16_t sensorWidth, float fov, float pixelSize);
+    H_CALLABLE static glm::vec3 normalizeLookAt(const glm::vec3& camPos, const glm::vec3& lookAt);
 
   };
 
@@ -58,6 +63,18 @@ namespace rt {
 
   inline const glm::vec3& CCamera::position() const {
     return m_position;
+  }
+
+  inline const glm::mat4& CCamera::worldToView() const {
+    return m_worldToView;
+  }
+
+  inline const glm::mat4& CCamera::viewToWorld() const {
+    return m_viewToWorld;
+  }
+
+  inline const glm::vec3& CCamera::up() const {
+    return m_up;
   }
 
 }

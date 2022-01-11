@@ -5,6 +5,7 @@
 
 #include "../../common/frame.hpp"
 #include "../../common/pressed_key.hpp"
+#include "glm/glm.hpp"
 
 class GLFWwindow;
 
@@ -18,9 +19,13 @@ namespace vis {
     void init();
     void release() const;
 
+    void pollEvents() const;
     EPressedKey getPressedKeys() const;
+    glm::vec2 getMouseMoveDirection() const;
   private:
     static EPressedKey s_pressedKeys;
+    static glm::vec2 s_previousMousePos;
+    static bool s_mousePressed;
 
     uint16_t m_width;
     uint16_t m_height;
@@ -33,6 +38,7 @@ namespace vis {
     uint32_t m_texture;
 
     friend void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    friend void mousePressCallback(GLFWwindow* window, int button, int action, int mods);
 
     void initGL();
     void setupVertices();

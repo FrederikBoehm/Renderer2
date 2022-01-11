@@ -3,10 +3,12 @@
 
 enum EPressedKey {
   NONE = 0,
-  RIGHT = 1,
-  LEFT = 2,
-  UP = 4,
-  DOWN = 8
+  D = 1,
+  A = 2,
+  W = 4,
+  S = 8,
+  Q = 16,
+  E = 32
 };
 
 inline EPressedKey& operator|=(EPressedKey& l, EPressedKey r) {

@@ -357,40 +357,51 @@ namespace rt {
     return glm::vec3(x, y, z);
   }
 
-  void Raytracer::updateCameraPosition(EPressedKey pressedKeys) {
-    const glm::vec3& cameraPos = m_hostCamera.position();
+  void Raytracer::updateCamera(EPressedKey pressedKeys, const glm::vec2& mouseMoveDir) {
+    glm::vec3 posCamSpace(0.f);
+    if (pressedKeys & EPressedKey::W) {
+      posCamSpace += glm::vec3(0.f, 0.f, 0.5f);
+    }
+    if (pressedKeys & EPressedKey::S) {
+      posCamSpace -= glm::vec3(0.f, 0.f, 0.5f);
+    }
+    if (pressedKeys & EPressedKey::A) {
+      posCamSpace -= glm::vec3(0.5f, 0.f, 0.f);
+    }
+    if (pressedKeys & EPressedKey::D) {
+      posCamSpace += glm::vec3(0.5f, 0.f, 0.f);
+    }
+    if (pressedKeys & EPressedKey::Q) {
+      posCamSpace -= glm::vec3(0.f, 0.5f, 0.f);
+    }
+    if (pressedKeys & EPressedKey::E) {
+      posCamSpace += glm::vec3(0.f, 0.5f, 0.f);
+    }
 
-    // To spherical coordinates
-    float r = glm::length(cameraPos);
-    float theta = std::acos(cameraPos.y / r);
-    float phi = std::atan2(cameraPos.x, cameraPos.z);
-    float preliminaryTheta = theta;
-    float oneDegree = M_PI / 180.f;
-    if (pressedKeys & EPressedKey::UP) {
-      preliminaryTheta -= 2.f * oneDegree; // One degree up
-    }
-    if (pressedKeys & EPressedKey::DOWN) {
-      preliminaryTheta += 2.f * oneDegree; // One degree down
-    }
-    if (preliminaryTheta < oneDegree || preliminaryTheta > 2.f * M_PI - oneDegree) {
-      preliminaryTheta = theta;
-    }
-    theta = preliminaryTheta;
+    // Move camera only along along three axes around up vector
+    {
+      glm::vec3 viewDir = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(0.f, 0.f, -1.f, 0.f));
+      glm::vec3 moveDirRight = glm::cross(viewDir, m_hostCamera.up());
+      glm::vec3 moveDirForward = glm::cross(m_hostCamera.up(), moveDirRight);
 
-    float preliminaryPhi = phi;
-    if (pressedKeys & EPressedKey::LEFT) {
-      preliminaryPhi -= 2.f * oneDegree;
-    }
-    if (pressedKeys & EPressedKey::RIGHT) {
-      preliminaryPhi += 2.f * oneDegree;
-    }
-    phi = preliminaryPhi;
+      glm::mat4 moveToWorld = glm::mat4(glm::vec4(glm::normalize(moveDirRight), 0.f), glm::vec4(glm::normalize(m_hostCamera.up()), 0.f), glm::vec4(glm::normalize(moveDirForward), 0.f), glm::vec4(m_hostCamera.position(), 1.f));
+      glm::vec3 posWorldSpace = glm::vec3(moveToWorld * glm::vec4(posCamSpace, 1.f));
 
-    // To cartesian coordinates
-    float x = r * std::sin(theta) * std::sin(phi);
-    float y = r * std::cos(theta);
-    float z = r * std::sin(theta) * std::cos(phi);
-    m_hostCamera.updatePosition(glm::vec3(x, y, z));
+      //glm::vec3 posWorldSpace = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(posCamSpace, 1.f));
+      m_hostCamera.updatePosition(posWorldSpace);
+    }
+
+    {
+      glm::vec3 viewDir(0.f, 0.f, -1.f);
+      viewDir += glm::vec3(mouseMoveDir.x, mouseMoveDir.y, 0.f) * 0.03f;
+      viewDir = glm::normalize(viewDir);
+      glm::vec3 lookAtCamSpace = viewDir;
+      glm::vec3 lookAtWorldSpace = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(lookAtCamSpace, 1.f));
+      m_hostCamera.updateLookAt(lookAtWorldSpace);
+    }
+
+
+
 
     cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
   }
