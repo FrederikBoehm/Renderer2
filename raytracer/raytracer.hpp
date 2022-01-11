@@ -33,7 +33,7 @@ namespace rt {
 
     SFrame renderFrame(const std::function<bool()>& keyCallback);
     SFrame renderPreview();
-    void updateCameraPosition(EPressedKey pressedKeys);
+    void updateCamera(EPressedKey pressedKeys, const glm::vec2& mouseMoveDir);
 	private:
     uint16_t m_frameWidth;
     uint16_t m_frameHeight;

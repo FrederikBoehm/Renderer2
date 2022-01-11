@@ -11,6 +11,8 @@
 namespace vis {
 
   EPressedKey CGLVisualiser::s_pressedKeys = EPressedKey::NONE;
+  bool CGLVisualiser::s_mousePressed = false;
+  glm::vec2 CGLVisualiser::s_previousMousePos(0.f);
 
   CGLVisualiser::CGLVisualiser(uint16_t width, uint16_t height) :
     m_width(width),
@@ -79,6 +81,7 @@ namespace vis {
 
     // Set the required callback functions
     glfwSetKeyCallback(m_window, &keyCallback);
+    glfwSetMouseButtonCallback(m_window, &mousePressCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -239,16 +242,22 @@ namespace vis {
     EPressedKey k = EPressedKey::NONE;
     switch (key) {
       case GLFW_KEY_W:
-        k = EPressedKey::UP;
+        k = EPressedKey::W;
         break;
       case GLFW_KEY_A:
-        k = EPressedKey::LEFT;
+        k = EPressedKey::A;
         break;
       case GLFW_KEY_S:
-        k = EPressedKey::DOWN;
+        k = EPressedKey::S;
         break;
       case GLFW_KEY_D:
-        k = EPressedKey::RIGHT;
+        k = EPressedKey::D;
+        break;
+      case GLFW_KEY_Q:
+        k = EPressedKey::Q;
+        break;
+      case GLFW_KEY_E:
+        k = EPressedKey::E;
         break;
     }
     switch (action) {
@@ -262,12 +271,58 @@ namespace vis {
 #endif // GUI_PLATFORM
   }
 
-  EPressedKey CGLVisualiser::getPressedKeys() const {
+  void mousePressCallback(GLFWwindow* window, int button, int action, int mods) {
+#ifdef GUI_PLATFORM
+    if (button == GLFW_MOUSE_BUTTON_1) {
+      if (action == GLFW_PRESS) {
+        CGLVisualiser::s_mousePressed = true;
+        double x;
+        double y;
+        glfwGetCursorPos(window, &x, &y);
+        CGLVisualiser::s_previousMousePos = glm::vec2(x, y);
+      }
+      if (action == GLFW_RELEASE) {
+        CGLVisualiser::s_mousePressed = false;
+      }
+    }
+#endif // GUI_PLATFORM
+
+  }
+
+  void CGLVisualiser::pollEvents() const {
 #ifdef GUI_PLATFORM
     glfwPollEvents();
+#endif
+  }
+
+  EPressedKey CGLVisualiser::getPressedKeys() const {
+#ifdef GUI_PLATFORM
     return s_pressedKeys;
 #else
     return EPressedKey::NONE;
 #endif // GUI_PLATFORM
+  }
+
+  glm::vec2 CGLVisualiser::getMouseMoveDirection() const {
+#ifdef GUI_PLATFORM
+    if (s_mousePressed) {
+      double x;
+      double y;
+      glfwGetCursorPos(m_window, &x, &y);
+      glm::vec2 currentPos(x, y);
+      if (currentPos != s_previousMousePos) {
+        glm::vec2 diff = currentPos - s_previousMousePos;
+        return glm::normalize(glm::vec2(diff.x, -diff.y));
+      }
+      else {
+        return glm::vec2(0.f);
+      }
+    }
+    else {
+      return glm::vec2(0.f);
+    }
+#else
+    return glm::vec2(0.f);
+#endif
   }
 }

@@ -6,6 +6,7 @@
 
 
 #include <vector>
+#include <glm/glm.hpp>
 
 int main() {
   using namespace rt;
@@ -14,6 +15,7 @@ int main() {
 
   rt::Raytracer raytracer(WIDTH, HEIGHT);
   vis::CVisualisation visualizer(WIDTH, HEIGHT);
+
 
   //for (uint8_t i = 0; i < 10; ++i) {
   //  CPerformanceMonitoring::startMeasurement("renderFrame (Method)");
@@ -35,19 +37,24 @@ int main() {
   bool renderDetailed = true;
   SFrame frame;
   while (true) {
+    visualizer.pollEvents();
     EPressedKey pressedKeys = visualizer.getPressedKeys();
-    while (pressedKeys) {
+    glm::vec2 mouseMoveDirection = visualizer.getMouseMoveDirection();
+    while (pressedKeys || mouseMoveDirection != glm::vec2(0.f)) {
       // render preview
-      raytracer.updateCameraPosition(pressedKeys);
+      raytracer.updateCamera(pressedKeys, mouseMoveDirection);
       SFrame previewFrame = raytracer.renderPreview();
       visualizer.render(previewFrame);
+      visualizer.pollEvents();
       pressedKeys = visualizer.getPressedKeys();
+      mouseMoveDirection = visualizer.getMouseMoveDirection();
       renderDetailed = true;
     }
     
     if (renderDetailed) {
       auto keyCallback = [&visualizer]() -> bool {
-        return visualizer.getPressedKeys() != EPressedKey::NONE;
+        visualizer.pollEvents();
+        return visualizer.getPressedKeys() != EPressedKey::NONE || visualizer.getMouseMoveDirection() != glm::vec2(0.f);
       };
       frame = raytracer.renderFrame(keyCallback);
       if (keyCallback()) {

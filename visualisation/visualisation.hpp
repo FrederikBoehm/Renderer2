@@ -15,7 +15,9 @@ namespace vis {
     void render(const SFrame& frame);
     void writeToFile(const std::string& outputDir, const SFrame& frame, EImageFormat format) const;
 
+    void pollEvents() const;
     EPressedKey getPressedKeys() const;
+    glm::vec2 getMouseMoveDirection() const;
   private:
     CGLVisualiser m_glVisualiser;
     CImageWriter m_imageWriter;
@@ -38,8 +40,16 @@ namespace vis {
     m_imageWriter.writeToFile(outputDir, frame, format);
   }
 
+  inline void CVisualisation::pollEvents() const {
+    m_glVisualiser.pollEvents();
+  }
+
   inline EPressedKey CVisualisation::getPressedKeys() const {
     return m_glVisualiser.getPressedKeys();
+  }
+
+  inline glm::vec2 CVisualisation::getMouseMoveDirection() const {
+    return m_glVisualiser.getMouseMoveDirection();
   }
 }
 #endif
