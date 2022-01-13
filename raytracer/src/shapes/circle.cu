@@ -18,9 +18,6 @@ namespace rt {
     m_radius(radius) {
   }
 
-
-  
-
   OptixAabb CCircle::getAABB() const {
     glm::vec3 min(m_worldPos.x - m_radius, m_worldPos.y, m_worldPos.z - m_radius);
     glm::vec3 max(m_worldPos.x + m_radius, m_worldPos.y, m_worldPos.z + m_radius);

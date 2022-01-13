@@ -19,7 +19,7 @@ namespace rt {
   // Medium base class
   class CMedium {
   public:
-    DH_CALLABLE virtual ~CMedium();
+    H_CALLABLE virtual ~CMedium();
 
     DH_CALLABLE EMediumType type() const;
 

@@ -7,17 +7,7 @@
 #include "scene/interaction.hpp"
 
 namespace rt {
-  inline CNVDBMedium::~CNVDBMedium() {
-#ifndef __CUDA_ARCH__
-    if (m_isHostObject) {
-      freeDeviceMemory();
-      delete m_readAccessor;
-      delete m_handle;
-      delete m_phase;
-      cudaFree((void*)m_deviceAabb);
-    }
-#endif
-  }
+
 
   inline const nanovdb::NanoGrid<float>* CNVDBMedium::grid() const {
     return m_grid;

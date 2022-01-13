@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "scene/environmentmap.hpp"
+#include "utility/debugging.hpp"
 
 namespace rt {
   CEnvironmentMap::CEnvironmentMap() {
@@ -38,7 +39,7 @@ namespace rt {
     CEnvironmentMap envMap;
     envMap.m_texture = m_texture.copyToDevice();
     envMap.m_dist = m_dist.copyToDevice();
-    cudaMemcpy(dst, &envMap, sizeof(envMap), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(dst, &envMap, sizeof(envMap), cudaMemcpyHostToDevice));
   }
 
   void CEnvironmentMap::freeDeviceMemory() {

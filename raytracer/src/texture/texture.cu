@@ -6,6 +6,7 @@
 #include <stb/stb_image.h>
 
 #include <iostream>
+#include "utility/debugging.hpp"
 
 namespace rt {
   CTexture::CTexture() : m_hasAlpha(false), m_width(0), m_height(0), m_channels(0), m_pathLength(0), m_path(nullptr), m_data(nullptr), m_deviceData(nullptr), m_deviceResource(nullptr) {
@@ -113,8 +114,8 @@ namespace rt {
 
   void CTexture::freeDeviceMemory() const {
     if (m_deviceResource) {
-      cudaDestroyTextureObject(m_deviceResource->d_texObj);
-      cudaFreeArray(m_deviceResource->d_data);
+      CUDA_ASSERT(cudaDestroyTextureObject(m_deviceResource->d_texObj));
+      CUDA_ASSERT(cudaFreeArray(m_deviceResource->d_data));
     }
   }
 

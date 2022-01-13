@@ -110,6 +110,9 @@ namespace rt {
   }
 
   void CSceneConnection::freeDeviceMemory() {
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_hostScene->m_deviceInstances)));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_hostScene->m_deviceIasBuffer)));
+
     for (auto& sceneObject : m_hostScene->m_sceneobjects) {
       sceneObject.freeDeviceMemory();
     }
@@ -122,7 +125,7 @@ namespace rt {
       m_hostScene->m_envMap->freeDeviceMemory();
     }
 
-    cudaFree(m_deviceLightDist);
+    CUDA_ASSERT(cudaFree(m_deviceLightDist));
     if (m_hostScene->m_lightDist) {
       m_hostScene->m_lightDist->freeDeviceMemory();
     }

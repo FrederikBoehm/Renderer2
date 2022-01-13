@@ -5,9 +5,7 @@
 namespace rt {
   
 
-  inline CMedium::~CMedium() {
-
-  }
+  
 
   inline glm::vec3 CMedium::tr(const CRay& ray, CSampler& sampler) const {
     switch (m_type) {

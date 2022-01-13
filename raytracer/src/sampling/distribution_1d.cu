@@ -1,5 +1,6 @@
 #include  "sampling/distribution_1d.hpp"
 #include "utility/functions.hpp"
+#include "utility/debugging.hpp"
 
 namespace rt {
   CDistribution1D::CDistribution1D(std::vector<float>& f) :
@@ -37,6 +38,13 @@ namespace rt {
     }
   }
 
+  CDistribution1D::CDistribution1D(CDistribution1D&& dist):
+    m_func(std::exchange(dist.m_func, nullptr)),
+    m_cdf(std::exchange(dist.m_cdf, nullptr)),
+    m_deviceResource(std::exchange(dist.m_deviceResource, nullptr)),
+    m_integral(std::move(dist.m_integral)) {
+  }
+
   CDistribution1D::~CDistribution1D() {
 #ifndef __CUDA_ARCH__
     if (m_func) {
@@ -46,20 +54,17 @@ namespace rt {
       delete m_cdf;
     }
 #endif
-    if (m_deviceResource) {
-      freeDeviceMemory();
-    }
   }
 
   void CDistribution1D::copyToDevice(CDistribution1D* dst) {
     if (!m_deviceResource) {
       m_deviceResource = new SDistribution1D_DeviceResource();
-      cudaMalloc(&(m_deviceResource->d_func), sizeof(float) * m_nFunc);
-      cudaMalloc(&(m_deviceResource->d_cdf), sizeof(float) * m_nCdf);
+      CUDA_ASSERT(cudaMalloc(&(m_deviceResource->d_func), sizeof(float) * m_nFunc));
+      CUDA_ASSERT(cudaMalloc(&(m_deviceResource->d_cdf), sizeof(float) * m_nCdf));
     }
 
-    cudaMemcpy(m_deviceResource->d_func, m_func, sizeof(float) * m_nFunc, cudaMemcpyHostToDevice);
-    cudaMemcpy(m_deviceResource->d_cdf, m_cdf, sizeof(float) * m_nCdf, cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_func, m_func, sizeof(float) * m_nFunc, cudaMemcpyHostToDevice));
+    CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_cdf, m_cdf, sizeof(float) * m_nCdf, cudaMemcpyHostToDevice));
 
     CDistribution1D temp;
     temp.m_nFunc = m_nFunc;
@@ -70,7 +75,7 @@ namespace rt {
     temp.m_deviceResource = nullptr;
     temp.m_integral = m_integral;
 
-    cudaMemcpy(dst, &temp, sizeof(CDistribution1D), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(dst, &temp, sizeof(CDistribution1D), cudaMemcpyHostToDevice));
 
     temp.m_func = nullptr;
     temp.m_cdf = nullptr;
@@ -78,8 +83,8 @@ namespace rt {
 
   void CDistribution1D::freeDeviceMemory() {
     if (m_deviceResource) {
-      cudaFree(m_deviceResource->d_func);
-      cudaFree(m_deviceResource->d_cdf);
+      CUDA_ASSERT(cudaFree(m_deviceResource->d_func));
+      CUDA_ASSERT(cudaFree(m_deviceResource->d_cdf));
       delete m_deviceResource;
       m_deviceResource = nullptr;
     }

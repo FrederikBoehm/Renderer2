@@ -111,6 +111,13 @@ namespace rt {
     m_deviceResource(std::exchange(medium.m_deviceResource, nullptr)) {
   }
 
+  CNVDBMedium::~CNVDBMedium() {
+    if (m_isHostObject) {
+      delete m_readAccessor;
+      delete m_handle;
+      delete m_phase;
+    }
+  }
 
 
   CNVDBMedium& CNVDBMedium::operator=(const CNVDBMedium&& medium) {
@@ -126,13 +133,13 @@ namespace rt {
     }
 
     m_deviceResource = new DeviceResource();
-    cudaMalloc(&m_deviceResource->d_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>));
+    CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>)));
     switch (m_phase->type()) {
     case EPhaseFunction::HENYEY_GREENSTEIN:
-      cudaMalloc(&m_deviceResource->d_phase, sizeof(CHenyeyGreensteinPhaseFunction));
+      CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CHenyeyGreensteinPhaseFunction)));
       break;
     case EPhaseFunction::SGGX:
-      cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunction));
+      CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunction)));
       break;
     }
   }
@@ -150,15 +157,15 @@ namespace rt {
     }
     if (m_deviceResource) {
       medium.m_readAccessor = m_deviceResource->d_readAccessor;
-      cudaMemcpy(m_deviceResource->d_readAccessor, this->m_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>), cudaMemcpyHostToDevice);
+      CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_readAccessor, this->m_readAccessor, sizeof(nanovdb::DefaultReadAccessor<float>), cudaMemcpyHostToDevice));
 
       medium.m_phase = m_deviceResource->d_phase;
       switch (m_phase->type()) {
       case EPhaseFunction::HENYEY_GREENSTEIN:
-        cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CHenyeyGreensteinPhaseFunction), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CHenyeyGreensteinPhaseFunction), cudaMemcpyHostToDevice));
         break;
       case EPhaseFunction::SGGX:
-        cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunction), cudaMemcpyHostToDevice);
+        CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunction), cudaMemcpyHostToDevice));
         break;
       }
     }
@@ -180,9 +187,10 @@ namespace rt {
 
   void CNVDBMedium::freeDeviceMemory() const {
     if (m_deviceResource) {
-      cudaFree(m_deviceResource->d_readAccessor);
-      cudaFree(m_deviceResource->d_phase);
+      CUDA_ASSERT(cudaFree(m_deviceResource->d_readAccessor));
+      CUDA_ASSERT(cudaFree(m_deviceResource->d_phase));
     }
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_deviceAabb)));
   }
 
   glm::ivec3 CNVDBMedium::getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize) {
