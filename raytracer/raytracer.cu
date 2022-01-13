@@ -254,6 +254,7 @@ namespace rt {
 
   Raytracer::~Raytracer() {
     freeDeviceMemory();
+    CRTBackend::instance()->release();
   }
 
   // Renderpipeline
@@ -477,12 +478,12 @@ namespace rt {
 
   void Raytracer::freeDeviceMemory() {
     m_scene.freeDeviceMemory();
-    cudaFree(m_deviceCamera);
-    cudaFree(m_deviceFrameData);
-    cudaFree(m_deviceFrame);
-    cudaFree(m_deviceAverage);
-    cudaFree(m_deviceTonemappingValue);
-    cudaFree(m_deviceLaunchParams);
+    CUDA_ASSERT(cudaFree(m_deviceCamera));
+    CUDA_ASSERT(cudaFree(m_deviceFrameData));
+    CUDA_ASSERT(cudaFree(m_deviceFrame));
+    CUDA_ASSERT(cudaFree(m_deviceAverage));
+    CUDA_ASSERT(cudaFree(m_deviceTonemappingValue));
+    CUDA_ASSERT(cudaFree(m_deviceLaunchParams));
 
     CTextureManager::freeDeviceMemory();
   }
@@ -493,9 +494,9 @@ namespace rt {
     frame.height = m_frameHeight;
     frame.bpp = m_bpp;
     frame.data.resize(entries);
-    cudaMemcpy(frame.data.data(), m_deviceFrameData, entries * sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_ASSERT(cudaMemcpy(frame.data.data(), m_deviceFrameData, entries * sizeof(float), cudaMemcpyDeviceToHost));
     frame.dataBytes.resize(entries);
-    cudaMemcpy(frame.dataBytes.data(), m_deviceFrameDataBytes, entries * sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    CUDA_ASSERT(cudaMemcpy(frame.dataBytes.data(), m_deviceFrameDataBytes, entries * sizeof(uint8_t), cudaMemcpyDeviceToHost));
     return frame;
   }
 }

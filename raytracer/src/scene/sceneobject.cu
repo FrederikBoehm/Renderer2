@@ -199,14 +199,19 @@ namespace rt {
   }
 
   void CSceneobjectConnection::freeDeviceMemory() {
-    cudaFree(m_deviceShape);
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_hostSceneobject->m_deviceGasBuffer)));
+    m_hostSceneobject->m_deviceGasBuffer = NULL;
+    CUDA_ASSERT(cudaFree(m_deviceShape));
+    m_deviceShape = nullptr;
     if (m_deviceMesh) {
       m_hostSceneobject->m_mesh->freeDeviceMemory();
       CUDA_ASSERT(cudaFree(m_deviceMesh));
+      m_deviceMesh = nullptr;
     }
     if (m_deviceMaterial) {
       m_hostSceneobject->m_material->freeDeviceMemory();
       CUDA_ASSERT(cudaFree(m_deviceMaterial));
+      m_deviceMaterial = nullptr;
     }
     if (m_deviceMedium) {
       switch (m_hostSceneobject->m_medium->type()) {
@@ -222,6 +227,7 @@ namespace rt {
         }
       }
       CUDA_ASSERT(cudaFree(m_deviceMedium));
+      m_deviceMedium = nullptr;
     }
   }
 
@@ -237,7 +243,6 @@ namespace rt {
   }
 
   CHostSceneobject::~CHostSceneobject() {
-    CUDA_ASSERT(cudaFree((void*)m_deviceGasBuffer));
   }
 
   void CHostSceneobject::buildOptixAccel() {

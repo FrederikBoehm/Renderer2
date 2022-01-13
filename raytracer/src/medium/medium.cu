@@ -15,6 +15,10 @@ namespace rt {
 
   }
 
+  CMedium::~CMedium() {
+
+  }
+
   OptixProgramGroup CMedium::getOptixProgramGroup() const {
     switch (m_type) {
     case NVDB_MEDIUM:

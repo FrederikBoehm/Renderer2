@@ -17,6 +17,7 @@ namespace rt {
   public:
     DH_CALLABLE CDistribution1D();
     H_CALLABLE CDistribution1D(std::vector<float>& f);
+    H_CALLABLE CDistribution1D(CDistribution1D&& dist);
     H_CALLABLE ~CDistribution1D();
 
     DH_CALLABLE float sampleContinuous(CSampler& sampler, float* pdf, size_t* off = nullptr) const;

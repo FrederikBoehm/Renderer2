@@ -1,10 +1,11 @@
 #include "sampling/distribution_2d.hpp"
+#include "utility/debugging.hpp"
 
 
 namespace rt {
 
   CDistribution2D::CDistribution2D(uint16_t width, uint16_t height, const std::vector<float>& data):
-    m_nElements(width * height), m_width(width), m_height(height), m_deviceResource(nullptr) {
+    m_isHostObject(true), m_nElements(width * height), m_width(width), m_height(height), m_deviceResource(nullptr) {
     m_marginal = new CDistribution1D(sumRows(data));
     m_rows = static_cast<CDistribution1D*>(operator new[](m_height * sizeof(CDistribution1D)));
     for (uint32_t i = 0; i < m_height; ++i) {
@@ -12,13 +13,37 @@ namespace rt {
     }
   }
 
+  CDistribution2D::CDistribution2D(CDistribution2D&& dist) :
+    m_isHostObject(std::move(dist.m_isHostObject)),
+    m_nElements(std::move(dist.m_nElements)),
+    m_width(std::move(dist.m_width)),
+    m_height(std::move(dist.m_height)),
+    m_marginal(std::exchange(dist.m_marginal, nullptr)),
+    m_rows(std::exchange(dist.m_rows, nullptr)),
+    m_deviceResource(std::exchange(dist.m_deviceResource, nullptr)) {
+
+  }
+
   CDistribution2D::~CDistribution2D() {
 #ifndef __CUDA_ARCH__
     //for (int i = m_height - 1; i >= 0; --i) { // TODO: clean up objects
     //  m_rows[i].~CDistribution1D();
     //}
-    //operator delete[](m_rows);
+    if (m_isHostObject) {
+      operator delete[](m_rows);
+    }
 #endif
+  }
+
+  CDistribution2D& CDistribution2D::operator=(CDistribution2D&& dist) {
+    m_isHostObject = std::move(dist.m_isHostObject);
+    m_nElements = std::move(dist.m_nElements);
+    m_width = std::move(dist.m_width);
+    m_height = std::move(dist.m_height);
+    m_marginal = std::exchange(dist.m_marginal, nullptr);
+    m_rows = std::exchange(dist.m_rows, nullptr);
+    m_deviceResource = std::exchange(dist.m_deviceResource, nullptr);
+    return *this;
   }
 
   void CDistribution2D::allocateDeviceMemory() {
@@ -28,8 +53,8 @@ namespace rt {
     }
 
     m_deviceResource = new SDistribution2D_DeviceResource;
-    cudaMalloc(&m_deviceResource->d_marginal, sizeof(CDistribution1D));
-    cudaMalloc(&m_deviceResource->d_rows, sizeof(CDistribution1D) * m_height);
+    CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_marginal, sizeof(CDistribution1D)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_rows, sizeof(CDistribution1D) * m_height));
   }
 
   CDistribution2D CDistribution2D::copyToDevice() {
@@ -43,6 +68,7 @@ namespace rt {
     }
 
     CDistribution2D deviceDist;
+    deviceDist.m_isHostObject = false;
     deviceDist.m_nElements = m_nElements;
     deviceDist.m_width = m_width;
     deviceDist.m_height = m_height;
@@ -52,7 +78,7 @@ namespace rt {
   }
 
   void CDistribution2D::freeDeviceMemory() {
-    cudaFree(m_deviceResource->d_marginal);
-    cudaFree(m_deviceResource->d_rows);
+    CUDA_ASSERT(cudaFree(m_deviceResource->d_marginal));
+    CUDA_ASSERT(cudaFree(m_deviceResource->d_rows));
   }
 }

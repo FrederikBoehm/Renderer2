@@ -16,6 +16,8 @@ namespace rt {
     DH_CALLABLE CDistribution2D();
     H_CALLABLE CDistribution2D(uint16_t width, uint16_t height, const std::vector<float>& data);
     H_CALLABLE ~CDistribution2D();
+    H_CALLABLE CDistribution2D(CDistribution2D&& dist);
+    H_CALLABLE CDistribution2D& operator=(CDistribution2D&& dist);
 
     DH_CALLABLE glm::vec2 sampleContinuous(CSampler& sampler, float* pdf, size_t* off = nullptr) const;
     //DH_CALLABLE size_t sampleDiscrete(CSampler& sampler, float* pdf = nullptr, float* uRemapped = nullptr) const;
@@ -31,6 +33,7 @@ namespace rt {
     H_CALLABLE void freeDeviceMemory();
 
   private:
+    bool m_isHostObject;
     uint32_t m_nElements;
     uint16_t m_width;
     uint16_t m_height;

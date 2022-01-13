@@ -56,10 +56,6 @@ namespace rt {
   }
 
   CMaterial::~CMaterial() {
-    if (m_deviceResource) {
-      freeDeviceMemory();
-      delete m_deviceResource;
-    }
   }
 
   CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath):
@@ -153,6 +149,8 @@ namespace rt {
       CUDA_ASSERT(cudaFree(m_deviceResource->d_albedoTexture));
       CUDA_ASSERT(cudaFree(m_deviceResource->d_normalTexture));
       CUDA_ASSERT(cudaFree(m_deviceResource->d_alphaTexture));
+      delete m_deviceResource;
+      m_deviceResource = nullptr;
     }
   }
 }

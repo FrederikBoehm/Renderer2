@@ -31,6 +31,19 @@ namespace rt {
   }
 
   void CRTBackend::release() {
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.raygenRecord)));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.missRecordBase)));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.hitgroupRecordBase)));
+
+    OPTIX_ASSERT(optixPipelineDestroy(m_pipeline)); 
+
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_raygen));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_miss));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitSurface));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitVolume));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitMesh));
+
+    OPTIX_ASSERT(optixModuleDestroy(m_module));
     OPTIX_ASSERT(optixDeviceContextDestroy(m_context));
   }
 

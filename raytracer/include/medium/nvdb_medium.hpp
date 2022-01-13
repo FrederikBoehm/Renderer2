@@ -34,7 +34,7 @@ namespace rt {
     H_CALLABLE CNVDBMedium& operator=(const CNVDBMedium&& medium);
     H_CALLABLE CNVDBMedium& operator=(const CNVDBMedium& medium) = delete;
 
-    DH_CALLABLE ~CNVDBMedium();
+    H_CALLABLE ~CNVDBMedium();
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CNVDBMedium copyToDevice() const;
