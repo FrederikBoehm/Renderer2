@@ -66,6 +66,8 @@ namespace rt {
     glm::mat4 m_mediumToWorld;
     glm::mat4 m_worldToMedium;
     CPhaseFunction* m_phase;
+    glm::ivec3 m_ibbMin;
+    glm::ivec3 m_ibbMax;
 
 
     float m_sigma_t;
@@ -75,8 +77,7 @@ namespace rt {
 
     H_CALLABLE static glm::ivec3 getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize);
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<float>* grid);
-    H_CALLABLE static glm::mat4 getMediumToWorld(const nanovdb::Map& map);
-    H_CALLABLE static glm::mat4 getMediumToWorldTransformation(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox);
+    H_CALLABLE static glm::mat4 getMediumToWorldTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
     
   };

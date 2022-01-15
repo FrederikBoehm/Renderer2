@@ -26,14 +26,23 @@ namespace rt {
     m_readAccessor(new nanovdb::DefaultReadAccessor<float>(m_grid->getAccessor())),
     m_deviceAabb(NULL),
     m_size(getMediumSize(m_grid->worldBBox(), m_grid->voxelSize())),
-    m_mediumToWorld(getMediumToWorldTransformation(m_grid->worldBBox())),
-    m_worldToMedium(glm::inverse(m_mediumToWorld)),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CHenyeyGreensteinPhaseFunction(g)),
     m_sigma_t(sigma_a.z + sigma_s.z),
     m_invMaxDensity(1.f / getMaxValue(m_grid)),
     m_deviceResource(nullptr) {
+    const nanovdb::CoordBBox box = m_grid->indexBBox();
+    if (m_grid->activeVoxelCount() == 0) {
+      m_ibbMin = glm::ivec3(0);
+      m_ibbMax = glm::ivec3(0);
+    }
+    else {
+      m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
+      m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
+    }
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular) :
@@ -44,15 +53,23 @@ namespace rt {
     m_readAccessor(new nanovdb::DefaultReadAccessor<float>(m_grid->getAccessor())),
     m_deviceAabb(NULL),
     m_size(getMediumSize(m_grid->worldBBox(), m_grid->voxelSize())),
-    m_mediumToWorld(getMediumToWorldTransformation(m_grid->worldBBox())),
-    m_worldToMedium(glm::inverse(m_mediumToWorld)),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CSGGXPhaseFunction(sggxDiffuse, sggxSpecular)),
     m_sigma_t(sigma_a.z + sigma_s.z),
     m_invMaxDensity(1.f / getMaxValue(m_grid)),
     m_deviceResource(nullptr) {
-
+    const nanovdb::CoordBBox box = m_grid->indexBBox();
+    if (m_grid->activeVoxelCount() == 0) {
+      m_ibbMin = glm::ivec3(0);
+      m_ibbMax = glm::ivec3(0);
+    }
+    else {
+      m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
+      m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
+    }
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) :
@@ -63,15 +80,26 @@ namespace rt {
     m_readAccessor(new nanovdb::DefaultReadAccessor<float>(m_grid->getAccessor())),
     m_deviceAabb(NULL),
     m_size(getMediumSize(m_grid->worldBBox(), m_grid->voxelSize())),
-    m_mediumToWorld(getMediumToWorldTransformation(m_grid->worldBBox())),
-    m_worldToMedium(glm::inverse(m_mediumToWorld)),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CSGGXPhaseFunction(diffuseRoughness, specularRoughness)),
     m_sigma_t(sigma_a.z + sigma_s.z),
     m_invMaxDensity(1.f / getMaxValue(m_grid)),
     m_deviceResource(nullptr) {
-
+    auto worldBBDim = m_grid->worldBBox().dim();
+    auto voxelSize = m_grid->voxelSize();
+    auto voxelCount = m_grid->activeVoxelCount();
+    const nanovdb::CoordBBox box = m_grid->indexBBox();
+    if (m_grid->activeVoxelCount() == 0) {
+      m_ibbMin = glm::ivec3(0);
+      m_ibbMax = glm::ivec3(0);
+    }
+    else {
+      m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
+      m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
+    }
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
   CNVDBMedium::CNVDBMedium() :
@@ -87,6 +115,8 @@ namespace rt {
     m_sigma_a(0.f),
     m_sigma_s(0.f),
     m_phase(nullptr),
+    m_ibbMin(0),
+    m_ibbMax(0),
     m_sigma_t(0.f),
     m_invMaxDensity(0.f),
     m_deviceResource(nullptr) {
@@ -106,6 +136,8 @@ namespace rt {
     m_sigma_a(std::move(medium.m_sigma_a)),
     m_sigma_s(std::move(medium.m_sigma_s)),
     m_phase(std::exchange(medium.m_phase, nullptr)),
+    m_ibbMin(std::move(medium.m_ibbMin)),
+    m_ibbMax(std::move(medium.m_ibbMax)),
     m_sigma_t(std::move(medium.m_sigma_t)),
     m_invMaxDensity(std::move(medium.m_invMaxDensity)),
     m_deviceResource(std::exchange(medium.m_deviceResource, nullptr)) {
@@ -181,6 +213,8 @@ namespace rt {
     medium.m_sigma_t = this->m_sigma_t;
     medium.m_invMaxDensity = this->m_invMaxDensity;
     medium.m_deviceResource = nullptr;
+    medium.m_ibbMin = m_ibbMin;
+    medium.m_ibbMax = m_ibbMax;
     
     return medium;
   }
@@ -205,21 +239,16 @@ namespace rt {
     return max;
   }
 
-  glm::mat4 CNVDBMedium::getMediumToWorld(const nanovdb::Map& map) {
-    glm::mat4 mediumToWorld(map.mMatF[0], map.mMatF[3], map.mMatF[6], 0.f,
-                            map.mMatF[1], map.mMatF[4], map.mMatF[7], 0.f,
-                            map.mMatF[2], map.mMatF[5], map.mMatF[8], 0.f,
-                            map.mVecF[0], map.mVecF[1], map.mVecF[2], 1.f);
-    return mediumToWorld;
-  }
-
-  glm::mat4 CNVDBMedium::getMediumToWorldTransformation(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox) {
-    nanovdb::Vec3R size = boundingBox.dim();
-    nanovdb::Vec3R pos = (boundingBox.max() + boundingBox.min()) / 2.f;
-    glm::mat4 scaling = glm::scale(glm::vec3(size[0], size[1], size[2]));
-    glm::mat4 translation1 = glm::translate(glm::vec3(-0.5f)); // Move corner to origin
-    glm::mat4 translation2 = glm::translate(glm::vec3(pos[0], pos[1], pos[2]));
-    return translation2 * scaling;
+  glm::mat4 CNVDBMedium::getMediumToWorldTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size) {
+    glm::mat4 nanoIndexToWorld(map.mMatF[0], map.mMatF[3], map.mMatF[6], 0.f,
+                               map.mMatF[1], map.mMatF[4], map.mMatF[7], 0.f,
+                               map.mMatF[2], map.mMatF[5], map.mMatF[8], 0.f,
+                               map.mVecF[0], map.mVecF[1], map.mVecF[2], 1.f); // [IdxMin, IdxMax] to world space
+    glm::mat4 indexToNano((float)size[0], 0.f, 0.f, 0.f,
+                          0.f, (float)size[1], 0.f, 0.f,
+                          0.f, 0.f, (float)size[2], 0.f,
+                          ibbMin.x, ibbMin.y, ibbMin.z, 1.f); // [0, 1] to [IdxMin, IdxMax] (Nanovdb index space
+    return nanoIndexToWorld * indexToNano;
   }
 
   nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* CNVDBMedium::getHandle(const std::string& path) {

@@ -18,7 +18,7 @@ namespace rt {
   }
 
   inline float CNVDBMedium::density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
-    glm::vec3 pSamples(p.x * m_size.x - 0.5f, p.y * m_size.y - 0.5f, p.z * m_size.z - 0.5f);
+    glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);
     glm::vec3 d = pSamples - (glm::vec3)pi;
     int x = pi.x;
@@ -38,7 +38,7 @@ namespace rt {
 
   inline float CNVDBMedium::D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
     glm::vec3 pCopy = p;
-    if (!insideExclusive(p, glm::ivec3(-m_size.x / 2.f, -m_size.y / 2.f, -m_size.z / 2.f), glm::ivec3(m_size.x / 2.f, m_size.y / 2.f, m_size.z / 2.f))) {
+    if (!insideExclusive(p, m_ibbMin, m_ibbMax)) {
       return 0.f;
     }
     nanovdb::Coord coord(p.x, p.y, p.z);
@@ -49,7 +49,7 @@ namespace rt {
     glm::vec3 pMedium = glm::vec3(m_worldToMedium * glm::vec4(p.x, p.y, p.z, 1.f));
 
 
-    glm::vec3 pSamples(pMedium.x * m_size.x, pMedium.y * m_size.y, pMedium.z * m_size.z);
+    glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
     glm::ivec3 pi = glm::floor(pSamples);
 
     float x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
@@ -70,7 +70,7 @@ namespace rt {
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
 
 
-    glm::vec3 pSamples(pMedium.x * m_size.x, pMedium.y * m_size.y, pMedium.z * m_size.z);
+    glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
     glm::ivec3 pi = glm::floor(pSamples);
 
     float x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
