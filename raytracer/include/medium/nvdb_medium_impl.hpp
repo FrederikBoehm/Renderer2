@@ -17,6 +17,10 @@ namespace rt {
     return *m_phase;
   }
 
+  inline const nanovdb::BBoxR& CNVDBMedium::worldBB() const {
+    return m_worldBB;
+  }
+
   inline float CNVDBMedium::density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
     glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);

@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <optix/optix_types.h>
 #include "scene/types.hpp"
+#include "utility/functions.hpp"
 
 //#include "intersect/ray.hpp"
 
@@ -41,9 +42,6 @@ namespace rt {
     glm::mat4 m_worldToModel;
     CUdeviceptr m_deviceAabb;
     OptixProgramGroup m_optixProgramGroup;
-
-  private:
-    DH_CALLABLE glm::mat4 getRotation(const glm::vec3& normal);
   };
 
   inline CShape::CShape(EShape shape, const glm::vec3& worldPos, const glm::vec3& normal) :
@@ -70,22 +68,6 @@ namespace rt {
 #ifndef __CUDA_ARCH__
     cudaFree((void*)m_deviceAabb);
 #endif
-  }
-
-  inline glm::mat4 CShape::getRotation(const glm::vec3& normal) {
-    float cos = glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f));
-    if (cos == 1.0f) {
-      return glm::mat4(1.0f);
-    }
-    else if (cos == -1.0f) {
-      return glm::mat4(glm::mat3(-1.0f));
-    }
-    else {
-      float angle = glm::acos(glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
-      glm::vec3 rotationAxis = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
-      return glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
-    }
-
   }
 
   inline EShape CShape::shape() const {

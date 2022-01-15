@@ -1,7 +1,7 @@
 #include "mesh/mesh.hpp"
 #include "utility/debugging.hpp"
 #include <backend/rt_backend.hpp>
-#include <glm/gtx/transform.hpp>
+#include "utility/functions.hpp"
 namespace rt {
   CMesh::CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs):
     m_modelToWorld(1.f),
@@ -205,19 +205,6 @@ namespace rt {
   }
 
   glm::mat4 CMesh::getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) {
-    float cos = glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 rotation;
-    if (cos == 1.0f) {
-      rotation = glm::mat4(1.0f);
-    }
-    else if (cos == -1.0f) {
-      rotation = glm::mat4(glm::mat3(-1.0f));
-    }
-    else {
-      float angle = glm::acos(glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
-      glm::vec3 rotationAxis = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
-      rotation = glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
-    }
-    return glm::translate(glm::mat4(1.0f), worldPos) * rotation * glm::scale(scaling);
+    return glm::translate(glm::mat4(1.0f), worldPos) * getRotation(normal) * glm::scale(scaling);
   }
 }

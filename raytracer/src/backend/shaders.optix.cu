@@ -192,7 +192,7 @@ extern "C" __global__ void __intersection__volume() {
   glm::vec3 rayDirection(tempDirection.x, tempDirection.y, tempDirection.z);
 
   const CNVDBMedium* medium = static_cast<const CNVDBMedium*>(sceneobject->medium());
-  const nanovdb::BBox<nanovdb::Vec3R>& aabb = medium->grid()->worldBBox();
+  const nanovdb::BBox<nanovdb::Vec3R>& aabb = medium->worldBB();
   float t0 = 0.f;
   float t1 = CRay::DEFAULT_TMAX;
   float initialT1 = t1;

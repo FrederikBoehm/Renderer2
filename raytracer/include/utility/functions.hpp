@@ -1,6 +1,7 @@
 #ifndef FUNCTIONS_HPP
 #define FUNCTIONS_HPP
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include "qualifiers.hpp"
 
@@ -117,6 +118,21 @@ namespace rt {
        ++ui;
      }
      return bitsToFloat(ui);
+   }
+
+   DH_CALLABLE inline glm::mat4 getRotation(const glm::vec3& normal) {
+     float cos = glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f));
+     if (cos == 1.0f) {
+       return glm::mat4(1.0f);
+     }
+     else if (cos == -1.0f) {
+       return glm::mat4(glm::mat3(-1.0f));
+     }
+     else {
+       float angle = glm::acos(glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
+       glm::vec3 rotationAxis = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
+       return glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
+     }
    }
 }
 
