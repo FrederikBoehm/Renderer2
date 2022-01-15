@@ -18,7 +18,7 @@
 #include "medium/medium_impl.hpp"
 
 namespace rt {
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g):
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling):
     CMedium(EMediumType::NVDB_MEDIUM),
     m_isHostObject(true),
     m_handle(getHandle(path)),
@@ -41,11 +41,13 @@ namespace rt {
       m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
-    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    nanovdb::BBoxR worldBB = m_grid->worldBBox();
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size, worldPos, n, scaling, &worldBB);
+    m_worldBB = worldBB;
     m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular) :
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling) :
     CMedium(EMediumType::NVDB_MEDIUM),
     m_isHostObject(true),
     m_handle(getHandle(path)),
@@ -68,11 +70,13 @@ namespace rt {
       m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
-    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    nanovdb::BBoxR worldBB = m_grid->worldBBox();
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size, worldPos, n, scaling, &worldBB);
+    m_worldBB = worldBB;
     m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) :
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling) :
     CMedium(EMediumType::NVDB_MEDIUM),
     m_isHostObject(true),
     m_handle(getHandle(path)),
@@ -98,7 +102,9 @@ namespace rt {
       m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
-    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size);
+    nanovdb::BBoxR worldBB = m_grid->worldBBox();
+    m_mediumToWorld = getMediumToWorldTransformation(m_grid->map(), m_ibbMin, m_size, worldPos, n, scaling, &worldBB);
+    m_worldBB = worldBB;
     m_worldToMedium = glm::inverse(m_mediumToWorld);
   }
 
@@ -108,6 +114,7 @@ namespace rt {
     m_handle(nullptr),
     m_grid(nullptr),
     m_readAccessor(nullptr),
+    m_worldBB(),
     m_deviceAabb(NULL),
     m_size(0),
     m_mediumToWorld(1.f),
@@ -129,6 +136,7 @@ namespace rt {
     m_handle(std::exchange(medium.m_handle, nullptr)),
     m_grid(std::exchange(medium.m_grid, nullptr)),
     m_readAccessor(std::exchange(medium.m_readAccessor, nullptr)),
+    m_worldBB(std::move(medium.m_worldBB)),
     m_deviceAabb(std::exchange(medium.m_deviceAabb, NULL)),
     m_size(std::move(medium.m_size)),
     m_mediumToWorld(std::move(medium.m_mediumToWorld)),
@@ -215,6 +223,7 @@ namespace rt {
     medium.m_deviceResource = nullptr;
     medium.m_ibbMin = m_ibbMin;
     medium.m_ibbMax = m_ibbMax;
+    medium.m_worldBB = m_worldBB;
     
     return medium;
   }
@@ -239,7 +248,7 @@ namespace rt {
     return max;
   }
 
-  glm::mat4 CNVDBMedium::getMediumToWorldTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size) {
+  glm::mat4 CNVDBMedium::getMediumToWorldTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling, nanovdb::BBoxR* bbox) {
     glm::mat4 nanoIndexToWorld(map.mMatF[0], map.mMatF[3], map.mMatF[6], 0.f,
                                map.mMatF[1], map.mMatF[4], map.mMatF[7], 0.f,
                                map.mMatF[2], map.mMatF[5], map.mMatF[8], 0.f,
@@ -248,7 +257,11 @@ namespace rt {
                           0.f, (float)size[1], 0.f, 0.f,
                           0.f, 0.f, (float)size[2], 0.f,
                           ibbMin.x, ibbMin.y, ibbMin.z, 1.f); // [0, 1] to [IdxMin, IdxMax] (Nanovdb index space
-    return nanoIndexToWorld * indexToNano;
+    glm::mat4 transformations = glm::translate(glm::mat4(1.0f), worldPos) * getRotation(n) * glm::scale(scaling);
+    glm::vec4 newWorldMin = transformations * glm::vec4(bbox->min()[0], bbox->min()[1], bbox->min()[2], 1.f);
+    glm::vec4 newWorldMax = transformations * glm::vec4(bbox->max()[0], bbox->max()[1], bbox->max()[2], 1.f);
+    *bbox = nanovdb::BBoxR(nanovdb::Vec3R{ std::min(newWorldMin.x, newWorldMax.x), std::min(newWorldMin.y, newWorldMax.y), std::min(newWorldMin.z, newWorldMax.z) }, nanovdb::Vec3R{ std::max(newWorldMin.x, newWorldMax.x), std::max(newWorldMin.y, newWorldMax.y), std::max(newWorldMin.z, newWorldMax.z) });
+    return transformations * nanoIndexToWorld * indexToNano;
   }
 
   nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* CNVDBMedium::getHandle(const std::string& path) {
@@ -265,10 +278,7 @@ namespace rt {
 
   SBuildInputWrapper CNVDBMedium::getOptixBuildInput() {
     if (!m_deviceAabb) {
-      const nanovdb::BBoxR& bbox = m_grid->worldBBox();
-      nanovdb::Vec3R boundsMin = bbox.min();
-      nanovdb::Vec3R boundsMax = bbox.max() + m_grid->voxelSize();
-      OptixAabb aabb{ boundsMin[0], boundsMin[1], boundsMin[2], boundsMax[0], boundsMax[1], boundsMax[2] }; // TODO: Make bounding box rotatable
+      OptixAabb aabb{ m_worldBB.min()[0], m_worldBB.min()[1], m_worldBB.min()[2], m_worldBB.max()[0], m_worldBB.max()[1], m_worldBB.max()[2] };
       CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceAabb), sizeof(OptixAabb)));
       CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceAabb), &aabb, sizeof(OptixAabb), cudaMemcpyHostToDevice));
     }
