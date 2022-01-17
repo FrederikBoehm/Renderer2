@@ -119,7 +119,7 @@ namespace rt {
     CRay ray = m_pixelSampler->samplePixel();
 
     bool isEyeRay = true;
-    for (size_t bounces = 0; bounces < 10; ++bounces) {
+    for (size_t bounces = 0; bounces < 50; ++bounces) {
       SInteraction si;
       //si = m_scene->intersect(ray);
       m_scene->intersect(ray, &si);
