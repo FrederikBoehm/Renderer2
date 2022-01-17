@@ -54,15 +54,42 @@ namespace rt {
     }
   }
 
+  CTexture::CTexture(CTexture&& texture) :
+    m_hasAlpha(std::move(texture.m_hasAlpha)),
+    m_width(std::move(texture.m_width)),
+    m_height(std::move(texture.m_height)),
+    m_channels(std::move(texture.m_channels)),
+    m_pathLength(std::move(texture.m_pathLength)),
+    m_path(std::exchange(texture.m_path, nullptr)),
+    m_data(std::exchange(texture.m_data, nullptr)),
+    m_deviceData(std::exchange(texture.m_deviceData, nullptr)),
+    m_deviceResource(std::exchange(texture.m_deviceResource, nullptr)),
+    m_deviceTextureObj(std::exchange(texture.m_deviceTextureObj, NULL)) {
+
+  }
+
   CTexture::~CTexture() {
-#ifndef __CUDA_ARCH__
-    //delete[] m_data; // TODO: clean up object
-#endif
+    delete[] m_data;
     delete[] m_path;
     if (m_deviceResource) {
       freeDeviceMemory();
       delete m_deviceResource;
     }
+  }
+
+  CTexture& CTexture::operator=(CTexture&& texture) {
+    m_hasAlpha = std::move(texture.m_hasAlpha);
+    m_width = std::move(texture.m_width);
+    m_height = std::move(texture.m_height);
+    m_channels = std::move(texture.m_channels);
+    m_pathLength = std::move(texture.m_pathLength);
+    m_path = std::exchange(texture.m_path, nullptr);
+    m_data = std::exchange(texture.m_data, nullptr);
+    m_deviceData = std::exchange(texture.m_deviceData, nullptr);
+    m_deviceResource = std::exchange(texture.m_deviceResource, nullptr);
+    m_deviceTextureObj = std::exchange(texture.m_deviceTextureObj, NULL);
+    
+    return *this;
   }
 
   
@@ -74,13 +101,13 @@ namespace rt {
     }
     m_deviceResource = new STexture_DeviceResource;
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
-    cudaMallocArray(&m_deviceResource->d_data, &channelDesc, m_width, m_height);
+    CUDA_ASSERT(cudaMallocArray(&m_deviceResource->d_data, &channelDesc, m_width, m_height));
   }
 
   CTexture CTexture::copyToDevice() const {
     if (m_deviceResource) {
       const size_t spitch = m_width * sizeof(float) * 4;
-      cudaMemcpy2DToArray(m_deviceResource->d_data, 0, 0, m_data, spitch, m_width * sizeof(float) * 4, m_height, cudaMemcpyHostToDevice); // TODO: Can we ensure alignment without vec4 per pixel?
+      CUDA_ASSERT(cudaMemcpy2DToArray(m_deviceResource->d_data, 0, 0, m_data, spitch, m_width * sizeof(float) * 4, m_height, cudaMemcpyHostToDevice)); // TODO: Can we ensure alignment without vec4 per pixel?
       
       cudaResourceDesc resDesc;
       memset(&resDesc, 0, sizeof(cudaResourceDesc));
@@ -95,7 +122,7 @@ namespace rt {
       texDesc.readMode = cudaReadModeElementType;
       texDesc.normalizedCoords = 1;
 
-      cudaCreateTextureObject(&m_deviceResource->d_texObj, &resDesc, &texDesc, NULL);
+      CUDA_ASSERT(cudaCreateTextureObject(&m_deviceResource->d_texObj, &resDesc, &texDesc, NULL));
     }
 
 

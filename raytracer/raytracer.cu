@@ -26,6 +26,7 @@
 #include "backend/rt_backend.hpp"
 #include <optix/optix_stubs.h>
 #include "texture/texture_manager.hpp"
+#include "backend/config_loader.hpp"
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -204,47 +205,20 @@ namespace rt {
     }
   }
 
-  Raytracer::Raytracer(uint16_t frameWidth, uint16_t frameHeight) :
-    m_frameWidth(frameWidth),
-    m_frameHeight(frameHeight),
-    m_bpp(3),
-    m_scene(),
-    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-450.f, 73.f, 450.f), glm::vec3(-10.f, 73.f, -43.f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    //m_hostCamera(frameWidth, frameHeight, 90, glm::vec3(-5.f, 1.f, 5.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    //m_hostCamera(frameWidth, frameHeight, 160, glm::vec3(0.10f, 0.15f, 0.01f), glm::vec3(0.0f, 0.1f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-    m_numSamples(32), // higher -> less noise
-    m_tonemappingFactor(100.f),
-    m_gamma(2.0f),
+  Raytracer::Raytracer(const char* configPath) :
     m_deviceCamera(nullptr),
     m_deviceFrameData(nullptr),
     m_deviceSampler(nullptr),
     m_blockSize(128) {
-    // Add scene objects
-    m_scene.addSceneobject(CHostSceneobject(new CCircle(glm::vec3(0.0f, 0.0f, 0.0f), FLT_MAX, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0.3f, 0.3f, 0.3f), 0.99f, glm::vec3(0.1f), 0.99f, 0.99f, 1.00029f, 1.2f));
-    float lightness = 0.75f / 255.0f;
-    //m_scene.addSceneobject(CHostSceneobject(new CCuboid(glm::vec3(-400.f, 50.f, 300.f), glm::vec3(20.f), glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f)); // as normal reference
-    //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(2.f, 0.5f, 0.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
-    //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.5f, 2.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
-    //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(-2.f, 0.5f, 0.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
-    //m_scene.addSceneobject(CHostSceneobject(new Sphere(glm::vec3(0.f, 0.5f, -2.f), 0.25f, glm::vec3(0.f, 1.f, 0.f)), glm::vec3(lightness, lightness, 0.85f), 0.01f, glm::vec3(0.9f), 0.01f, 0.01f, 1.00029f, 1.5f));
 
-    m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/wdas_cloud/wdas_cloud_sixteenth.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f, glm::vec3(0.f, 200.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f)))); // volume SGGX
-    //m_scene.addSceneobject(CHostSceneobject(new CNVDBMedium("../../raytracer/assets/Smoke_Plume_01/Smoke_Plume_01/embergen_smoke_plume_a_0.nvdb", glm::vec3(0.f, 0.f, 0.f), glm::vec3(50.f, 50.f, 50.f), 1.f, 0.0001f, glm::vec3(0.f, 200.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.5f)))); // volume SGGX
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/teapot.obj");
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05a.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05m.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/chestnut", "AL05y.obj", glm::vec3(100.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/pine", "scrubPine.obj", glm::vec3(-100.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "alpha_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/hairball", "hairball.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/sponza", "sponza.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/San_Miguel", "san-miguel.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
-    //m_scene.addSceneobjectsFromAssimp("../../raytracer/assets/test", "normal_map_test.obj", glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f));
-
-    // Add environment map
-    //m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/sunflowers_1k_edit.hdr"));
-    m_scene.setEnvironmentMap(CEnvironmentMap("./../../raytracer/assets/envmap.hdr"));
+    SConfig config = CConfigLoader::loadConfig(configPath);
+    m_frameWidth = config.frameWidth;
+    m_frameHeight = config.frameHeight;
+    m_bpp = config.channelsPerPixel;
+    m_gamma = config.gamma;
+    m_numSamples = config.samples;
+    m_scene = std::move(config.scene);
+    m_hostCamera = std::move(config.camera);
 
     allocateDeviceMemory();
     initOptix();
@@ -259,15 +233,12 @@ namespace rt {
 
   // Renderpipeline
   SFrame Raytracer::renderFrame(const std::function<bool()>& keyCallback) {
-    //CDeviceScene* scene = m_scene.deviceScene();
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
     rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
     bool abortRendering = false;
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
-      //CPerformanceMonitoring::startMeasurement("renderFrame");
-      //rt::renderFrame << <grid, m_blockSize, sizeof(CDeviceScene) + m_scene.sceneobjects().size() * (sizeof(CDeviceSceneobject) + dataSize) >> > (scene, m_deviceCamera, m_deviceSampler, m_numSamples, m_deviceFrame);
       OPTIX_ASSERT(optixLaunch(
         CRTBackend::instance()->pipeline(),
         0,             // stream
@@ -283,10 +254,7 @@ namespace rt {
       if (abortRendering) {
         return retrieveFrame();
       }
-      //CPerformanceMonitoring::endMeasurement("renderFrame");
     }
-    //rt::filterFrame << <grid, m_blockSize >> > (m_deviceFrame);
-    //CUDA_ASSERT(cudaDeviceSynchronize());
 
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
@@ -295,21 +263,14 @@ namespace rt {
     rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
     CUDA_ASSERT(cudaDeviceSynchronize());
 
-    ////CPerformanceMonitoring::startMeasurement("applyTonemapping");
-    ////rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_tonemappingFactor);
     rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
     CUDA_ASSERT(cudaDeviceSynchronize());
-    ////CPerformanceMonitoring::endMeasurement("applyTonemapping");
 
-    ////CPerformanceMonitoring::startMeasurement("correctGamma");
     rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
     CUDA_ASSERT(cudaDeviceSynchronize());
-    ////CPerformanceMonitoring::endMeasurement("correctGamma");
 
-    ////CPerformanceMonitoring::startMeasurement("fillByteFrame");
     rt::fillByteFrame << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
-    //CPerformanceMonitoring::endMeasurement("fillByteFrame");
 
     SFrame frame = retrieveFrame();
     return frame;
@@ -404,27 +365,27 @@ namespace rt {
 
 
 
-    cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice));
   }
 
   void Raytracer::allocateDeviceMemory() {
     m_scene.allocateDeviceMemory();
-    cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight);
-    cudaMalloc(&m_deviceCamera, sizeof(CCamera));
-    cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame));
-    cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
-    cudaMalloc(&m_deviceFilteredFrame, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
-    cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp);
-    cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth);
-    cudaMalloc(&m_deviceTonemappingValue, sizeof(float));
-    cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams));
+    CUDA_ASSERT(cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight));
+    CUDA_ASSERT(cudaMalloc(&m_deviceCamera, sizeof(CCamera)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFilteredFrame, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth));
+    CUDA_ASSERT(cudaMalloc(&m_deviceTonemappingValue, sizeof(float)));
+    CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams)));
     CTextureManager::allocateDeviceMemory();
   }
 
   void Raytracer::copyToDevice() {
     m_scene.copyToDevice();
     CCamera deviceCamera = m_hostCamera;
-    cudaMemcpy(m_deviceCamera, &deviceCamera, sizeof(CCamera), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, &deviceCamera, sizeof(CCamera), cudaMemcpyHostToDevice));
     
     SDeviceFrame f;
     f.width = m_hostCamera.sensorWidth();
@@ -433,7 +394,7 @@ namespace rt {
     f.data = m_deviceFrameData;
     f.filtered = m_deviceFilteredFrame;
     f.dataBytes = m_deviceFrameDataBytes;
-    cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice));
 
     SLaunchParams launchParams;
     launchParams.width = m_hostCamera.sensorWidth();
@@ -446,7 +407,7 @@ namespace rt {
     launchParams.camera = m_deviceCamera;
     launchParams.sampler = m_deviceSampler;
     launchParams.numSamples = m_numSamples;
-    cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice);
+    CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice));
 
     CTextureManager::copyToDevice();
   }

@@ -20,8 +20,8 @@ namespace rt {
     H_CALLABLE void copyToDevice(CEnvironmentMap* dst);
     H_CALLABLE void freeDeviceMemory();
 
-    CTexture m_texture;
   private:
+    CTexture m_texture;
     CDistribution2D m_dist;
   };
 

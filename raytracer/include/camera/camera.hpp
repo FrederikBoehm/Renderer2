@@ -13,6 +13,8 @@ namespace rt {
     friend __global__ void ::__raygen__pinhole();
     
   public:
+    H_CALLABLE CCamera();
+
     /*
       Creates a Camera object
       sensorWidth: width of the sensor in pixels
@@ -34,7 +36,7 @@ namespace rt {
     DH_CALLABLE const glm::vec3& up() const;
   private:
 
-    const float m_pixelSize;
+    float m_pixelSize;
 
     // Width and height of sensor in pixels, in our scale one pixel has width and height of 1e-5 meters = 10 micrometers
     uint16_t m_sensorWidth;

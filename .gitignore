@@ -4,3 +4,4 @@ build_vdb_converter/
 3rdparty/
 raytracer/assets
 .nvvp_workspace
+raytracer/config.json

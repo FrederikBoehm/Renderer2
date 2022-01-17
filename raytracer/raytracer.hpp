@@ -28,12 +28,15 @@ namespace rt {
 	class Raytracer {
   public:
 
-    Raytracer(uint16_t frameWidth, uint16_t frameHeight);
+    Raytracer(const char* configPath);
     ~Raytracer();
 
     SFrame renderFrame(const std::function<bool()>& keyCallback);
     SFrame renderPreview();
     void updateCamera(EPressedKey pressedKeys, const glm::vec2& mouseMoveDir);
+
+    uint16_t getFrameWidth() const;
+    uint16_t getFrameHeight() const;
 	private:
     uint16_t m_frameWidth;
     uint16_t m_frameHeight;
@@ -42,7 +45,6 @@ namespace rt {
     CHostScene m_scene;
     CCamera m_hostCamera;
     uint16_t m_numSamples;
-    float m_tonemappingFactor;
     float m_gamma;
     CCamera* m_deviceCamera;
     SDeviceFrame* m_deviceFrame;
@@ -65,6 +67,14 @@ namespace rt {
 
     SFrame retrieveFrame() const;
 	};
+
+  inline uint16_t Raytracer::getFrameWidth() const {
+    return m_frameWidth;
+  }
+
+  inline uint16_t Raytracer::getFrameHeight() const {
+    return m_frameHeight;
+  }
 
 }
 

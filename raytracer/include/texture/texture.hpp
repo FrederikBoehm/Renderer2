@@ -18,7 +18,9 @@ namespace rt {
   public:
     DH_CALLABLE CTexture();
     H_CALLABLE CTexture(const std::string& path, ETextureType type = DIFFUSE);
-    DH_CALLABLE ~CTexture();
+    H_CALLABLE CTexture(CTexture&& texture);
+    H_CALLABLE ~CTexture();
+    H_CALLABLE CTexture& operator=(CTexture&& texture);
     D_CALLABLE glm::vec3 operator()(float x, float y) const;
 
     DH_CALLABLE int width() const;

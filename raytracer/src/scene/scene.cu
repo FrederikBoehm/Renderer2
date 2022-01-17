@@ -17,15 +17,38 @@ namespace rt {
   CHostScene::CHostScene() :
     m_lightDist(nullptr),
     m_envMap(nullptr),
-    m_hostDeviceConnection(this),
-    m_deviceIasBuffer(NULL) {
+    m_traversableHandle(NULL),
+    m_deviceIasBuffer(NULL),
+    m_deviceInstances(NULL),
+    m_hostDeviceConnection(this) {
   }
 
   CHostScene::~CHostScene() {
-#ifndef __CUDA_ARCH__
-    cudaFree((void*)m_deviceIasBuffer);
-    cudaFree(reinterpret_cast<void*>(m_deviceInstances));
-#endif
+  }
+
+  CHostScene::CHostScene(CHostScene&& scene):
+    m_sceneobjects(std::move(scene.m_sceneobjects)),
+    m_lights(std::move(scene.m_lights)),
+    m_lightDist(std::exchange(scene.m_lightDist, nullptr)),
+    m_envMap(std::exchange(scene.m_envMap, nullptr)),
+    m_traversableHandle(std::move(scene.m_traversableHandle)),
+    m_deviceIasBuffer(std::exchange(scene.m_deviceIasBuffer, NULL)),
+    m_deviceInstances(std::exchange(scene.m_deviceInstances, NULL)),
+    m_hostDeviceConnection(std::move(scene.m_hostDeviceConnection), this) {
+
+  }
+
+  CHostScene& CHostScene::operator=(CHostScene&& scene) {
+    m_sceneobjects = std::move(scene.m_sceneobjects);
+    m_lights = std::move(scene.m_lights);
+    m_lightDist = std::exchange(scene.m_lightDist, nullptr);
+    m_envMap = std::exchange(scene.m_envMap, nullptr);
+    m_traversableHandle = std::move(scene.m_traversableHandle);
+    m_deviceIasBuffer = std::exchange(scene.m_deviceIasBuffer, NULL);
+    m_deviceInstances = std::exchange(scene.m_deviceInstances, NULL);
+    m_hostDeviceConnection = std::move(scene.m_hostDeviceConnection);
+    m_hostDeviceConnection.setHostScene(this);
+    return *this;
   }
 
   void CHostScene::addSceneobject(CHostSceneobject&& sceneobject) {
@@ -62,6 +85,25 @@ namespace rt {
     m_deviceLightDist(nullptr),
     m_deviceEnvMap(nullptr) {
 
+  }
+
+  CSceneConnection::CSceneConnection(CSceneConnection&& connection, CHostScene* hostScene) :
+    m_hostScene(hostScene),
+    m_deviceScene(std::exchange(connection.m_deviceScene, nullptr)),
+    m_deviceSceneobjects(std::exchange(connection.m_deviceSceneobjects, nullptr)),
+    m_deviceLights(std::exchange(connection.m_deviceLights, nullptr)),
+    m_deviceLightDist(std::exchange(connection.m_deviceLightDist, nullptr)),
+    m_deviceEnvMap(std::exchange(connection.m_deviceEnvMap, nullptr)) {
+
+  }
+  CSceneConnection& CSceneConnection::operator=(CSceneConnection&& connection) {
+    m_hostScene = std::exchange(connection.m_hostScene, nullptr);
+    m_deviceScene = std::exchange(connection.m_deviceScene, nullptr);
+    m_deviceSceneobjects = std::exchange(connection.m_deviceSceneobjects, nullptr);
+    m_deviceLights = std::exchange(connection.m_deviceLights, nullptr);
+    m_deviceLightDist = std::exchange(connection.m_deviceLightDist, nullptr);
+    m_deviceEnvMap = std::exchange(connection.m_deviceEnvMap, nullptr);
+    return *this;
   }
 
   void CSceneConnection::allocateDeviceMemory() {

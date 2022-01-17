@@ -13,10 +13,13 @@ namespace rt {
   class CSceneConnection {
   public:
     H_CALLABLE CSceneConnection(CHostScene* hostScene);
+    H_CALLABLE CSceneConnection(CSceneConnection&& connection, CHostScene* hostScene);
+    H_CALLABLE CSceneConnection& operator=(CSceneConnection&& connection);
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE void copyToDevice();
     H_CALLABLE void freeDeviceMemory();
     H_CALLABLE CDeviceScene* deviceScene();
+    H_CALLABLE void setHostScene(CHostScene* hostScene);
   private:
     CHostScene* m_hostScene;
     CDeviceScene* m_deviceScene;
@@ -32,6 +35,8 @@ namespace rt {
   public:
     H_CALLABLE CHostScene();
     H_CALLABLE ~CHostScene();
+    H_CALLABLE CHostScene(CHostScene&& scene);
+    H_CALLABLE CHostScene& operator=(CHostScene&& scene);
     H_CALLABLE const std::vector<CHostSceneobject>& sceneobjects() const;
     H_CALLABLE void addSceneobject(CHostSceneobject&& sceneobject);
     H_CALLABLE void addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling);
@@ -44,7 +49,6 @@ namespace rt {
     H_CALLABLE CDeviceScene* deviceScene();
 
     H_CALLABLE void buildOptixAccel();
-    H_CALLABLE OptixTraversableHandle getOptixTraversableHandle();
     H_CALLABLE std::vector<SRecord<const CDeviceSceneobject*>> getSBTHitRecords() const;
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
@@ -81,6 +85,10 @@ namespace rt {
 
   inline CDeviceScene* CSceneConnection::deviceScene() {
     return m_deviceScene;
+  }
+
+  inline void CSceneConnection::setHostScene(CHostScene* hostScene) {
+    m_hostScene = hostScene;
   }
 
 }
