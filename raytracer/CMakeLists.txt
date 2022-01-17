@@ -54,7 +54,8 @@ set(SOURCE_FILES
 	src/texture/texture.cu
 	src/backend/rt_backend.cu
 	src/mesh/mesh.cu
-	src/texture/texture_manager.cu)
+	src/texture/texture_manager.cu
+	src/backend/config_loader.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -108,7 +109,9 @@ set(HEADER_FILES
 	include/backend/rt_backend.hpp
 	include/backend/types.hpp
 	include/mesh/mesh.hpp
-	include/texture/texture_manager.hpp)
+	include/texture/texture_manager.hpp
+	include/backend/config_loader.hpp
+	config.json)
 
 
 
@@ -146,6 +149,8 @@ target_compile_definitions(raytracer PRIVATE "$<$<CONFIG:DEBUG>:DEBUG>" "$<$<CON
 
 if (UNIX)
 set_target_properties(raytracer PROPERTIES CUDA_ARCHITECTURES "75")
+elseif(WIN32)
+set_target_properties(raytracer PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "../../raytracer/config.json")
 endif()
 
 if (LTO)

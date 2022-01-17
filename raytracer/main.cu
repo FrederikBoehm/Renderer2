@@ -8,13 +8,16 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-int main() {
+int main(int argc, char** argv) {
   using namespace rt;
-  const uint16_t WIDTH = 1920;
-  const uint16_t HEIGHT = 1080;
 
-  rt::Raytracer raytracer(WIDTH, HEIGHT);
-  vis::CVisualisation visualizer(WIDTH, HEIGHT);
+  if (argc < 2) {
+    fprintf(stderr, "Error: Provide valid path to config file.\n");
+    return 1;
+  }
+
+  rt::Raytracer raytracer(argv[1]);
+  vis::CVisualisation visualizer(raytracer.getFrameWidth(), raytracer.getFrameHeight());
 
 
   //for (uint8_t i = 0; i < 10; ++i) {
