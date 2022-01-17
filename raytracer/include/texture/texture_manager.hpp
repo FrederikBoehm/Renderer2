@@ -10,7 +10,8 @@ namespace rt {
   enum ETextureType {
     DIFFUSE,
     NORMAL,
-    ALPHA
+    ALPHA,
+    SPECULAR
   };
 
   struct STextureKey {

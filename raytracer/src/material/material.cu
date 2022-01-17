@@ -12,9 +12,9 @@ namespace rt {
     m_orenNayarBRDF(),
     m_microfacetBRDF(),
     m_albedoTexture(nullptr),
+    m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr),
-    m_deviceResource(nullptr) {
+    m_alphaTexture(nullptr){
   }
 
   CMaterial::CMaterial(const glm::vec3& le) :
@@ -24,9 +24,9 @@ namespace rt {
     m_orenNayarBRDF(),
     m_microfacetBRDF(),
     m_albedoTexture(nullptr),
+    m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr),
-    m_deviceResource(nullptr) {
+    m_alphaTexture(nullptr) {
 
   }
 
@@ -37,9 +37,9 @@ namespace rt {
     m_orenNayarBRDF(diffuse),
     m_microfacetBRDF(glossy),
     m_albedoTexture(nullptr),
+    m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr),
-    m_deviceResource(nullptr) {
+    m_alphaTexture(nullptr) {
 
   }
 
@@ -50,9 +50,9 @@ namespace rt {
     m_orenNayarBRDF(std::move(material.m_orenNayarBRDF)),
     m_microfacetBRDF(std::move(material.m_microfacetBRDF)),
     m_albedoTexture(std::exchange(material.m_albedoTexture, nullptr)),
+    m_glossyTexture(std::exchange(material.m_glossyTexture, nullptr)),
     m_normalTexture(std::exchange(material.m_normalTexture, nullptr)),
-    m_alphaTexture(std::exchange(material.m_alphaTexture, nullptr)),
-    m_deviceResource(std::exchange(material.m_deviceResource, nullptr)) {
+    m_alphaTexture(std::exchange(material.m_alphaTexture, nullptr)) {
   }
 
   CMaterial::~CMaterial() {
@@ -61,9 +61,9 @@ namespace rt {
   CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath):
     m_Le(0.f),
     m_albedoTexture(nullptr),
+    m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr),
-    m_deviceResource(nullptr) {
+    m_alphaTexture(nullptr) {
     aiColor3D diffuse;
     material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
     m_diffuseColor = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
@@ -88,6 +88,12 @@ namespace rt {
       m_albedoTexture = CTextureManager::loadTexture(diffuseTexPath, DIFFUSE);
     }
 
+    if (material->GetTextureCount(aiTextureType_SPECULAR) > 0) {
+      aiString pathAi;
+      material->GetTexture(aiTextureType_SPECULAR, 0, &pathAi);
+      m_glossyTexture = CTextureManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), SPECULAR);
+    }
+
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0) {
       aiString pathAi;
       material->GetTexture(aiTextureType_HEIGHT, 0, &pathAi);
@@ -110,24 +116,6 @@ namespace rt {
   }
 
   void CMaterial::allocateDeviceMemory() {
-    if (!m_deviceResource) {
-      m_deviceResource = new SMaterialDeviceResource();
-      
-      if (m_albedoTexture) {
-        CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_albedoTexture, sizeof(CTexture)));
-        m_albedoTexture->allocateDeviceMemory();
-      }
-
-      if (m_normalTexture) {
-        CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_normalTexture, sizeof(CTexture)));
-        m_normalTexture->allocateDeviceMemory();
-      }
-
-      if (m_alphaTexture) {
-        CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_alphaTexture, sizeof(CTexture)));
-        m_alphaTexture->allocateDeviceMemory();
-      }
-    }
   }
 
   CMaterial CMaterial::copyToDevice() {
@@ -138,19 +126,12 @@ namespace rt {
     material.m_orenNayarBRDF = m_orenNayarBRDF;
     material.m_microfacetBRDF = m_microfacetBRDF;
     material.m_albedoTexture = m_albedoTexture ? CTextureManager::deviceTexture(m_albedoTexture->path(), DIFFUSE) : nullptr;
+    material.m_glossyTexture = m_glossyTexture ? CTextureManager::deviceTexture(m_glossyTexture->path(), SPECULAR) : nullptr;
     material.m_normalTexture = m_normalTexture ? CTextureManager::deviceTexture(m_normalTexture->path(), NORMAL) : nullptr;
     material.m_alphaTexture = m_alphaTexture ? CTextureManager::deviceTexture(m_alphaTexture->path(), ALPHA) : nullptr;
-    material.m_deviceResource = nullptr;
     return material;
   }
 
   void CMaterial::freeDeviceMemory() {
-    if (m_deviceResource) {
-      CUDA_ASSERT(cudaFree(m_deviceResource->d_albedoTexture));
-      CUDA_ASSERT(cudaFree(m_deviceResource->d_normalTexture));
-      CUDA_ASSERT(cudaFree(m_deviceResource->d_alphaTexture));
-      delete m_deviceResource;
-      m_deviceResource = nullptr;
-    }
   }
 }

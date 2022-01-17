@@ -12,12 +12,6 @@ namespace rt {
   class SHitInformation;
   class CTexture;
 
-  struct SMaterialDeviceResource {
-    CTexture* d_albedoTexture = nullptr;
-    CTexture* d_normalTexture = nullptr;
-    CTexture* d_alphaTexture = nullptr;
-  };
-
   class CMaterial {
   public:
     H_CALLABLE CMaterial();
@@ -51,10 +45,9 @@ namespace rt {
     COrenNayarBRDF m_orenNayarBRDF;
     CMicrofacetBRDF m_microfacetBRDF;
     CTexture* m_albedoTexture;
+    CTexture* m_glossyTexture;
     CTexture* m_normalTexture;
     CTexture* m_alphaTexture;
-
-    SMaterialDeviceResource* m_deviceResource;
 
     H_CALLABLE float roughnessFromExponent(float exponent) const;
     D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
@@ -113,7 +106,12 @@ namespace rt {
   }
 
   inline glm::vec3 CMaterial::glossy(const glm::vec2& tc) const {
-    return m_glossyColor;
+    if (m_glossyTexture) {
+      return m_glossyTexture->operator()(tc.x, tc.y);
+    }
+    else {
+      return m_glossyColor;
+    }
   }
 
   inline bool CMaterial::opaque(const glm::vec2& tc) const {
