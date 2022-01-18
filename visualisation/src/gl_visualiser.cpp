@@ -69,7 +69,7 @@ namespace vis {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Create a GLFWwindow object that we can use for GLFW's functions
-    m_window = glfwCreateWindow(m_width, m_height, "map_raytracer", NULL, NULL);
+    m_window = glfwCreateWindow(m_width, m_height, "raytracer", NULL, NULL);
     glfwMakeContextCurrent(m_window);
     if (m_window == NULL)
     {
