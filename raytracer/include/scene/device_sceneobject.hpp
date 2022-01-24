@@ -20,6 +20,7 @@ namespace rt {
   class CDeviceSceneobject {
     friend class CSceneobjectConnection;
     friend struct SSharedMemoryInitializer;
+    friend __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4** modelToWorld, glm::mat4** worldToModel);
   public:
     D_CALLABLE SInteraction intersect(const CRay& ray) const;
     D_CALLABLE CShape* shape() const;
@@ -28,14 +29,17 @@ namespace rt {
     D_CALLABLE const glm::vec3& dimensions() const;
     D_CALLABLE ESceneobjectFlag flag() const;
     D_CALLABLE CMaterial* material() const;
-    D_CALLABLE CMedium* medium() const;
+    D_CALLABLE CMediumInstance* medium() const;
 
   private:
     CShape* m_shape;
     CMesh* m_mesh;
     CMaterial* m_material;
-    CMedium* m_medium;
+    CMediumInstance* m_medium;
     ESceneobjectFlag m_flag;
+
+    glm::mat4 m_modelToWorld;
+    glm::mat4 m_worldToModel;
 
     //CDeviceSceneobject() {}
   };
@@ -75,17 +79,6 @@ namespace rt {
     return m_shape;
   }
 
-  inline float CDeviceSceneobject::power() const {
-    if (m_flag == ESceneobjectFlag::GEOMETRY) {
-      glm::vec3 L = m_material->Le();
-      switch (m_shape->shape()) {
-      case EShape::CIRCLE:
-        return (L.x + L.y + L.z) * ((CCircle*)m_shape)->area();
-      }
-    }
-    return 0.0f;
-  }
-
   inline ESceneobjectFlag CDeviceSceneobject::flag() const {
     return m_flag;
   }
@@ -94,7 +87,7 @@ namespace rt {
     return m_material;
   }
 
-  inline CMedium* CDeviceSceneobject::medium() const {
+  inline CMediumInstance* CDeviceSceneobject::medium() const {
     return m_medium;
   }
 

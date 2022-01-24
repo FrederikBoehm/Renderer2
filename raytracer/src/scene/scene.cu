@@ -11,6 +11,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/mesh.h>
+#include "backend/asset_manager.hpp"
 
 namespace rt {
 
@@ -185,7 +186,9 @@ namespace rt {
   //}
 
   void CHostScene::buildOptixAccel() {
-    // Build GAS for sceneobjects and gather instances
+    CAssetManager::buildOptixAccel(); // Build GAS
+
+    // Build GAS for primitive sceneobjects and gather instances
     std::vector<OptixInstance> instances;
     instances.reserve(m_sceneobjects.size());
     uint32_t instanceId = 0;
@@ -266,47 +269,12 @@ namespace rt {
   }
 
   void CHostScene::addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) {
-    Assimp::Importer importer;
+    std::vector<std::tuple<CMesh*, CMaterial*>> meshdata = CAssetManager::loadMesh(assetsBasePath, meshFileName);
 
-    const aiScene* scene = importer.ReadFile(assetsBasePath + "/" + meshFileName,
-      aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
-
-    if (!scene) {
-      std::cerr << "[ERROR] Failed to load scene: " << importer.GetErrorString() << std::endl;
+    for (auto m : meshdata) {
+      auto[mesh, material] = m;
+      addSceneobject(CHostSceneobject(mesh, material, worldPos, normal, scaling));
     }
-    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
-      const aiMesh* mesh = scene->mMeshes[i];
-      const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-      std::vector<glm::vec3> vbo;
-      vbo.reserve(mesh->mNumVertices);
-      std::vector<glm::vec3> normals;
-      normals.reserve(mesh->mNumVertices);
-      std::vector<glm::vec2> tcs;
-      bool hasTcs = mesh->HasTextureCoords(0);
-      if (hasTcs) {
-        tcs.reserve(mesh->mNumVertices);
-      }
-      for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        const aiVector3D& vertex = mesh->mVertices[i];
-        vbo.emplace_back(vertex.x, vertex.y, vertex.z);
-        const aiVector3D& normal = mesh->mNormals[i];
-        normals.emplace_back(normal.x, normal.y, normal.z);
-        if (hasTcs) {
-          const aiVector3D &tc = mesh->mTextureCoords[0][i];
-          tcs.emplace_back(tc.x, tc.y);
-        }
-      }
-
-      std::vector<glm::uvec3> ibo;
-      ibo.reserve(mesh->mNumFaces);
-      for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
-        const aiFace& face = mesh->mFaces[i];
-        ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
-      }
-
-      
-      addSceneobject(CHostSceneobject(new CMesh(vbo, ibo, normals, tcs, worldPos, normal, scaling), new CMaterial(material, assetsBasePath))); // roughness == 0.f -> lambertian reflection TODO: Maybe use shininess
-    }
   }
 }

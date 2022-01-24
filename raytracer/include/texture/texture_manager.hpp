@@ -20,7 +20,7 @@ namespace rt {
 
     std::size_t operator()(const STextureKey& textureKey) const noexcept {
       std::size_t h1 = std::hash<std::string>{}(textureKey.m_path);
-      std::size_t h2 = std::hash<size_t>{}(m_type);
+      std::size_t h2 = std::hash<size_t>{}(textureKey.m_type);
       return h1 ^ (h2 << 1);
     }
   };
@@ -42,8 +42,8 @@ namespace rt {
     H_CALLABLE static void freeDeviceMemory();
     H_CALLABLE static CTexture* deviceTexture(const std::string& path, const ETextureType type);
   private:
-    static std::unordered_map<STextureKey, CTexture*, STextureKey> m_hostTextures;
-    static std::unordered_map<STextureKey, CTexture*, STextureKey> m_deviceTextures;
+    static std::unordered_map<STextureKey, CTexture*, STextureKey> s_hostTextures;
+    static std::unordered_map<STextureKey, CTexture*, STextureKey> s_deviceTextures;
 
     H_CALLABLE CTextureManager() = delete;
   };

@@ -3,57 +3,57 @@
 #include "utility/debugging.hpp"
 
 namespace rt {
-  std::unordered_map<STextureKey, CTexture*, STextureKey> CTextureManager::m_hostTextures;
-  std::unordered_map<STextureKey, CTexture*, STextureKey> CTextureManager::m_deviceTextures;
+  std::unordered_map<STextureKey, CTexture*, STextureKey> CTextureManager::s_hostTextures;
+  std::unordered_map<STextureKey, CTexture*, STextureKey> CTextureManager::s_deviceTextures;
 
   CTexture* CTextureManager::loadTexture(const std::string& path, ETextureType type) {
-    auto texIter = m_hostTextures.find({ path, type });
-    if (texIter != m_hostTextures.end()) {
+    auto texIter = s_hostTextures.find({ path, type });
+    if (texIter != s_hostTextures.end()) {
       return texIter->second;
     }
     else {
       CTexture* tex = new CTexture(path, type);
-      m_hostTextures[{path, type}] = tex;
+      s_hostTextures[{path, type}] = tex;
       return tex;
     }
   }
 
   CTexture* CTextureManager::loadAlpha(const std::string& path) {
-    auto texIter = m_hostTextures.find({ path, ALPHA });
-    if (texIter != m_hostTextures.end()) {
+    auto texIter = s_hostTextures.find({ path, ALPHA });
+    if (texIter != s_hostTextures.end()) {
       return texIter->second;
     }
     else {
       CTexture* tex = new CTexture();
       tex->loadAlpha(path);
-      m_hostTextures[{path, ALPHA}] = tex;
+      s_hostTextures[{path, ALPHA}] = tex;
       return tex;
     }
   }
 
   void CTextureManager::allocateDeviceMemory() {
-    for (auto tex : m_hostTextures) {
-      auto test = m_deviceTextures[tex.first];
-      CUDA_ASSERT(cudaMalloc(&m_deviceTextures[tex.first], sizeof(CTexture)));
+    for (auto tex : s_hostTextures) {
+      CUDA_ASSERT(cudaMalloc(&s_deviceTextures[tex.first], sizeof(CTexture)));
       tex.second->allocateDeviceMemory();
     }
   }
 
   void CTextureManager::copyToDevice() {
-    for (auto tex : m_hostTextures) {
-      CUDA_ASSERT(cudaMemcpy(m_deviceTextures[tex.first], &tex.second->copyToDevice(), sizeof(CTexture), cudaMemcpyHostToDevice));
+    for (auto tex : s_hostTextures) {
+      CUDA_ASSERT(cudaMemcpy(s_deviceTextures[tex.first], &tex.second->copyToDevice(), sizeof(CTexture), cudaMemcpyHostToDevice));
     }
   }
 
   void CTextureManager::freeDeviceMemory() {
-    for (auto tex : m_deviceTextures) {
+    for (auto tex : s_deviceTextures) {
+      s_hostTextures[tex.first]->freeDeviceMemory();
       CUDA_ASSERT(cudaFree(tex.second));
     }
   }
 
   CTexture* CTextureManager::deviceTexture(const std::string& path, ETextureType type) {
-    auto texIter = m_deviceTextures.find({ path, type });
-    if (texIter != m_deviceTextures.end()) {
+    auto texIter = s_deviceTextures.find({ path, type });
+    if (texIter != s_deviceTextures.end()) {
       return texIter->second;
     }
     else {

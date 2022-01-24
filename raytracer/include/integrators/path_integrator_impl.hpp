@@ -8,6 +8,7 @@
 #include "scene/device_scene_impl.hpp"
 #include "medium/phase_function_impl.hpp"
 #include "medium/medium_impl.hpp"
+#include "material/material.hpp"
 namespace rt {
   inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples) :
     m_scene(scene),
@@ -17,7 +18,7 @@ namespace rt {
 
   }
 
-  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMedium* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
+  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMediumInstance* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
     glm::vec3 L(0.f);
 
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
@@ -123,7 +124,7 @@ namespace rt {
       SInteraction si;
       //si = m_scene->intersect(ray);
       m_scene->intersect(ray, &si);
-
+      
       SInteraction mi;
       if (si.medium) { //Bounding box hit
         if (ray.m_medium) { // Ray origin inside bb

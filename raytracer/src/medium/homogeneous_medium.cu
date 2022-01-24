@@ -28,7 +28,7 @@ namespace rt {
     if (sampledMedium) {
       SHitInformation hit = { true, ray.m_origin + t * ray.m_direction , glm::vec3(0.f), glm::vec3(0.f), glm::vec2(0.0f), t };
       //*mi = {};
-      *mi = { hit, nullptr, nullptr, this };
+      *mi = { hit, nullptr, nullptr, nullptr };
 
     }
     glm::vec3 Tr = glm::exp(-m_sigma_t * glm::min(t, FLT_MAX) * glm::length(ray.m_direction));

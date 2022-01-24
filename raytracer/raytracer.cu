@@ -27,6 +27,7 @@
 #include <optix/optix_stubs.h>
 #include "texture/texture_manager.hpp"
 #include "backend/config_loader.hpp"
+#include "backend/asset_manager.hpp"
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -229,6 +230,7 @@ namespace rt {
   Raytracer::~Raytracer() {
     freeDeviceMemory();
     CRTBackend::instance()->release();
+    CAssetManager::release();
   }
 
   // Renderpipeline
@@ -380,6 +382,7 @@ namespace rt {
     CUDA_ASSERT(cudaMalloc(&m_deviceTonemappingValue, sizeof(float)));
     CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams)));
     CTextureManager::allocateDeviceMemory();
+    CAssetManager::allocateDeviceMemory();
   }
 
   void Raytracer::copyToDevice() {
@@ -410,6 +413,7 @@ namespace rt {
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice));
 
     CTextureManager::copyToDevice();
+    CAssetManager::copyToDevice();
   }
 
   void Raytracer::initDeviceData() {
@@ -447,6 +451,7 @@ namespace rt {
     CUDA_ASSERT(cudaFree(m_deviceLaunchParams));
 
     CTextureManager::freeDeviceMemory();
+    CAssetManager::freeDeviceMemory();
   }
   SFrame Raytracer::retrieveFrame() const {
     SFrame frame;

@@ -9,9 +9,10 @@
 #include "device_sceneobject.hpp"
 #include "backend/types.hpp"
 #include "mesh/mesh.hpp"
+#include "medium/medium_instance.hpp"
 
 namespace rt {
-  
+  class CMedium;
 
   class CSceneobjectConnection {
   public:
@@ -29,7 +30,7 @@ namespace rt {
     CShape* m_deviceShape = nullptr;
     CMesh* m_deviceMesh = nullptr;
     CMaterial* m_deviceMaterial = nullptr;
-    CMedium* m_deviceMedium = nullptr;
+    CMediumInstance* m_deviceMedium = nullptr;
   };
 
   class CHostSceneobject {
@@ -37,10 +38,9 @@ namespace rt {
   public:
     CHostSceneobject(CShape* shape, const glm::vec3& le);
     CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
-    CHostSceneobject(CShape* shape, CMedium* medium);
-    CHostSceneobject(CNVDBMedium* medium);
-    CHostSceneobject(CMesh* mesh, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
+    CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
     CHostSceneobject(CMesh* mesh, CMaterial* material);
+    CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
     CHostSceneobject(CHostSceneobject&& sceneobject);
     ~CHostSceneobject();
 
@@ -57,11 +57,12 @@ namespace rt {
     std::shared_ptr<CShape> m_shape;
     std::shared_ptr<CMesh> m_mesh;
     std::shared_ptr<CMaterial> m_material;
-    std::shared_ptr<CMedium> m_medium;
+    std::shared_ptr<CMediumInstance> m_medium;
     ESceneobjectFlag m_flag;
     float m_absorption;
+    glm::mat4 m_modelToWorld;
+    glm::mat4 m_worldToModel;
 
-    OptixAabb m_aabb;
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
 
@@ -70,6 +71,7 @@ namespace rt {
     static std::shared_ptr<CShape> getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal);
     OptixProgramGroup getOptixProgramGroup() const;
     void getTransform(float* outMatrix) const;
+    H_CALLABLE static glm::mat4 getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
   };
 
   inline void CHostSceneobject::allocateDeviceMemory() {

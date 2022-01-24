@@ -17,7 +17,7 @@ namespace rt {
     return *m_phase;
   }
 
-  inline const nanovdb::BBoxR& CNVDBMedium::worldBB() const {
+  inline const SAABB& CNVDBMedium::worldBB() const {
     return m_worldBB;
   }
 
@@ -50,7 +50,7 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
-    glm::vec3 pMedium = glm::vec3(m_worldToMedium * glm::vec4(p.x, p.y, p.z, 1.f));
+    glm::vec3 pMedium = glm::vec3(m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f));
 
 
     glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
@@ -65,12 +65,12 @@ namespace rt {
       return glm::vec3(0.f);
     }
     else {
-      return glm::normalize(glm::vec3(m_mediumToWorld * glm::vec4(n.x, n.y, n.z, 0.f)));
+      return glm::normalize(glm::vec3(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f)));
     }
   }
 
   inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, CSampler& sampler) const {
-    glm::vec3 pMedium = glm::vec3(m_worldToMedium * glm::vec4(p.x, p.y, p.z, 1.f));
+    glm::vec3 pMedium = glm::vec3(m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f));
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
 
 
@@ -87,15 +87,14 @@ namespace rt {
       //return glm::vec3(1.f, 0.f, 0.f);
     }
     else {
-      return glm::normalize(glm::vec3(m_mediumToWorld * glm::vec4(n.x, n.y, n.z, 0.f)));
+      return glm::normalize(glm::vec3(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f)));
     }
   }
 
   inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
-    const CRay ray = rayWorld.transform(m_worldToMedium);
+    const CRay ray = rayWorld.transform(m_modelToIndex);
     const CRay rayWorldCopy = rayWorld;
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
-    uint3 launchIdx = optixGetLaunchIndex();
     float t = 0.f;
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
@@ -105,11 +104,12 @@ namespace rt {
       float d = density(ray.m_origin + t * ray.m_direction, accessor);
       if (d * m_invMaxDensity > sampler.uniformSample01()) {
         ray.m_t_max = t;
-        CRay rayWorldNew = ray.transform(m_mediumToWorld);
+        CRay rayWorldNew = ray.transform(m_indexToModel);
+        rayWorld.m_t_max = rayWorldNew.m_t_max;
         glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
         glm::vec3 n = normal(worldPos, accessor);
         SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
-        *mi = { hitInfo, nullptr, nullptr, this };
+        *mi = { hitInfo, nullptr, nullptr, nullptr };
         return m_sigma_s / m_sigma_t;
       }
     }
@@ -118,7 +118,7 @@ namespace rt {
 
   inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler) const {
     const CRay rayWorldCopy = rayWorld;
-    const CRay ray = rayWorld.transform(m_worldToMedium);
+    const CRay ray = rayWorld.transform(m_modelToIndex);
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
     float tr = 1.f;
     float t = 0.f;

@@ -6,6 +6,7 @@
 #include "scene/environmentmap.hpp"
 #include "medium/nvdb_medium.hpp"
 #include <exception>
+#include "backend/asset_manager.hpp"
 
 namespace rt {
   H_CALLABLE inline bool parseVec3(const nlohmann::json& jArray, glm::vec3* outVec) {
@@ -166,12 +167,14 @@ namespace rt {
     valid = valid && parseVec3(sceneobject["Scaling"], &scaling);
 
     if (valid) {
-      scene->addSceneobject(new CNVDBMedium(
+      CNVDBMedium* medium = CAssetManager::loadMedium(
         path.get<std::string>(),
         sigmaA,
         sigmaS,
         diffuseRoughness.get<float>(),
-        specularRoughness.get<float>(),
+        specularRoughness.get<float>());
+      scene->addSceneobject(CHostSceneobject(
+        medium,
         pos,
         orientation,
         scaling));
