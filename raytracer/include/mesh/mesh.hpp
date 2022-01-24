@@ -5,6 +5,7 @@
 #include "utility/qualifiers.hpp"
 #include <optix/optix_types.h>
 #include "scene/types.hpp"
+#include <string>
 namespace rt {
   struct SMeshDeviceResource {
     glm::vec3* d_vbo;
@@ -15,24 +16,27 @@ namespace rt {
 
   class CMesh {
   public:
-    H_CALLABLE CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs);
-    H_CALLABLE CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling);
+    H_CALLABLE CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs);
     H_CALLABLE CMesh();
     H_CALLABLE CMesh(CMesh&& mesh);
     H_CALLABLE ~CMesh();
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CMesh copyToDevice();
     H_CALLABLE void freeDeviceMemory();
-    H_CALLABLE SBuildInputWrapper getOptixBuildInput();
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
+    H_CALLABLE void buildOptixAccel();
+    H_CALLABLE OptixTraversableHandle getOptixHandle() const;
 
     DH_CALLABLE const glm::vec3* vbo() const;
     DH_CALLABLE const glm::uvec3* ibo() const;
     DH_CALLABLE const glm::vec3* normals() const;
     DH_CALLABLE const glm::vec2* tcs() const;
-    DH_CALLABLE const glm::mat4& modelToWorld() const;
-    DH_CALLABLE const glm::mat4& worldToModel() const;
+    H_CALLABLE std::string path() const;
+    H_CALLABLE size_t submeshId() const;
   private:
+    uint16_t m_pathLength;
+    char* m_path;
+    size_t m_submeshId;
     size_t m_numVertices;
     glm::vec3* m_vbo;
     size_t m_numIndices;
@@ -40,14 +44,14 @@ namespace rt {
     glm::vec3* m_normals;
     glm::vec2* m_tcs;
     size_t m_numTcs;
-    glm::mat4 m_modelToWorld;
-    glm::mat4 m_worldToModel;
     bool m_deviceObject;
+
+    OptixTraversableHandle m_traversableHandle;
+    CUdeviceptr m_deviceGasBuffer;
 
     SMeshDeviceResource* m_deviceResource;
 
     H_CALLABLE void initBuffers(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs);
-    H_CALLABLE static glm::mat4 getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling);
   };
 
   inline const glm::vec3* CMesh::vbo() const {
@@ -66,12 +70,16 @@ namespace rt {
     return m_tcs;
   }
 
-  inline const glm::mat4& CMesh::modelToWorld() const {
-    return m_modelToWorld;
+  inline OptixTraversableHandle CMesh::getOptixHandle() const {
+    return m_traversableHandle;
   }
 
-  inline const glm::mat4& CMesh::worldToModel() const {
-    return m_worldToModel;
+  inline std::string CMesh::path() const {
+    return std::string(m_path, m_pathLength);
+  }
+
+  inline size_t CMesh::submeshId() const {
+    return m_submeshId;
   }
 }
 #endif // !MESH_HPP

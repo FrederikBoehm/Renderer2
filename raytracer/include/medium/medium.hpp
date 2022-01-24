@@ -4,6 +4,7 @@
 #include "utility/qualifiers.hpp"
 #include "henyey_greenstein_phase_function.hpp"
 #include <optix/optix_types.h>
+#include <string>
 namespace rt {
   class CRay;
   class CSampler;
@@ -28,6 +29,8 @@ namespace rt {
     DH_CALLABLE const CPhaseFunction& phase() const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
+    H_CALLABLE std::string path() const;
+    H_CALLABLE OptixTraversableHandle getOptixHandle() const;
 
   protected:
     H_CALLABLE CMedium(const EMediumType mediumType);

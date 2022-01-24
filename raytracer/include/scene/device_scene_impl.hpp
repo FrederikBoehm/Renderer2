@@ -1,7 +1,7 @@
 #ifndef DEVICE_SCENE_IMPL_HPP
 #define DEVICE_SCENE_IMPL_HPP
 #include "device_scene.hpp"
-#include "medium/medium_impl.hpp"
+#include "medium/medium_instance_impl.hpp"
 #include "device_sceneobject.hpp"
 #include "sampling/distribution_1d.hpp"
 #include "scene/environmentmap.hpp"
@@ -69,7 +69,7 @@ namespace rt {
   inline glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler) const {
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
-    const CMedium* currentMedium = ray.m_medium;
+    const CMediumInstance* currentMedium = ray.m_medium;
     glm::vec3 Tr(1.f);
     while (true) {
       CRay r = CRay::spawnRay(p0, p1, currentMedium);
@@ -93,7 +93,7 @@ namespace rt {
     *Tr = glm::vec3(1.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
-    const CMedium* currentMedium = ray.m_medium;
+    const CMediumInstance* currentMedium = ray.m_medium;
     while (true) {
       CRay r = CRay::spawnRay(p0, p1, currentMedium);
 
@@ -116,7 +116,7 @@ namespace rt {
     *Tr = glm::vec3(1.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
-    const CMedium* currentMedium = ray.m_medium;
+    const CMediumInstance* currentMedium = ray.m_medium;
     while (true) {
       CRay r = CRay::spawnRay(p0, p1, currentMedium);
 

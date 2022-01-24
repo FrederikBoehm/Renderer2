@@ -17,7 +17,7 @@ namespace rt {
     H_CALLABLE CMaterial();
     H_CALLABLE CMaterial(const glm::vec3& le);
     H_CALLABLE CMaterial(const glm::vec3& diffuseColor, const glm::vec3& glossyColor, const COrenNayarBRDF& diffuseBRDF, const CMicrofacetBRDF& glossy);
-    H_CALLABLE CMaterial(const aiMaterial* material, const std::string& assetsBasepath);
+    H_CALLABLE CMaterial(const aiMaterial* material, const std::string& assetsBasepath, size_t submeshId);
     H_CALLABLE CMaterial(CMaterial&& material);
     DH_CALLABLE ~CMaterial();
 
@@ -37,8 +37,11 @@ namespace rt {
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CMaterial copyToDevice();
     H_CALLABLE void freeDeviceMemory();
+    H_CALLABLE std::string path() const;
+    H_CALLABLE size_t submeshId() const;
 
   private:
+    bool m_deviceObject;
     glm::vec3 m_Le; // Emissive light if light source
     glm::vec3 m_diffuseColor;
     glm::vec3 m_glossyColor;
@@ -48,6 +51,10 @@ namespace rt {
     CTexture* m_glossyTexture;
     CTexture* m_normalTexture;
     CTexture* m_alphaTexture;
+
+    uint16_t m_pathLength;
+    char* m_assetsBasePath;
+    size_t m_submeshId; // Id of corresponding mesh
 
     H_CALLABLE float roughnessFromExponent(float exponent) const;
     D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
@@ -140,6 +147,14 @@ namespace rt {
     else {
       return frame.N();
     }
+  }
+
+  inline std::string CMaterial::path() const {
+    return std::string(m_assetsBasePath, m_pathLength);
+  }
+
+  inline size_t CMaterial::submeshId() const {
+    return m_submeshId;
   }
 
 }

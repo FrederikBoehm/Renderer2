@@ -55,7 +55,10 @@ set(SOURCE_FILES
 	src/backend/rt_backend.cu
 	src/mesh/mesh.cu
 	src/texture/texture_manager.cu
-	src/backend/config_loader.cu)
+	src/backend/config_loader.cu
+	src/backend/asset_manager.cu
+	src/backend/build_optix_accel.cu
+	src/medium/medium_instance.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -111,7 +114,12 @@ set(HEADER_FILES
 	include/mesh/mesh.hpp
 	include/texture/texture_manager.hpp
 	include/backend/config_loader.hpp
-	config.json)
+	config.json
+	include/backend/asset_manager.hpp
+	include/backend/build_optix_accel.hpp
+	include/intersect/aabb.hpp
+	include/medium/medium_instance.hpp
+	include/medium/medium_instance_impl.hpp)
 
 
 

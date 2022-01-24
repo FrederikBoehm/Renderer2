@@ -2,89 +2,58 @@
 #include "utility/debugging.hpp"
 #include <backend/rt_backend.hpp>
 #include "utility/functions.hpp"
+#include "backend/build_optix_accel.hpp"
 namespace rt {
-  CMesh::CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs):
-    m_modelToWorld(1.f),
-    m_worldToModel(1.f),
+  CMesh::CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs):
+    m_pathLength(path.size()),
+    m_path((char*)malloc(path.size())),
+    m_submeshId(submeshId),
     m_deviceObject(false),
+    m_traversableHandle(NULL),
+    m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
     initBuffers(vbo, ibo, normals, tcs);
-    //m_aabb = { bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z };
-
-    //std::vector<glm::vec3> vbo2;
-    //vbo2.push_back(glm::vec3(10.f, 0.f, 0.f));
-    //vbo2.push_back(glm::vec3(0.f, 10.f, 0.f));
-    //vbo2.push_back(glm::vec3(0.f, 0.f, 10.f));
-    //std::vector<glm::uvec3> ibo2;
-    //ibo2.push_back(glm::uvec3(0, 1, 2));
-    //m_numVertices = vbo2.size();
-    //size_t vboBytes = sizeof(glm::vec3) * vbo2.size();
-    //m_vbo = static_cast<glm::vec3*>(malloc(vboBytes));
-    //m_numIndices = ibo2.size();
-    //size_t iboBytes = sizeof(glm::uvec3) * ibo2.size();
-    //m_ibo = static_cast<glm::uvec3*>(malloc(iboBytes));
-    //size_t normalsBytes = sizeof(glm::vec3) * normals.size();
-    //m_normals = static_cast<glm::vec3*>(malloc(normalsBytes));
-
-    //uint64_t vboAdress = reinterpret_cast<uint64_t>(m_vbo);
-    //uint64_t iboAdress = reinterpret_cast<uint64_t>(m_ibo);
-    //size_t maxIndex = 0;
-    //for (auto index : ibo2) {
-    //  size_t triangleMax = glm::max(index.x, glm::max(index.y, index.z));
-    //  maxIndex = glm::max(triangleMax, maxIndex);
-    //}
-
-    //glm::vec3 lastVertex = vbo2.data()[maxIndex];
-
-    //memcpy(m_vbo, vbo2.data(), vboBytes);
-    //memcpy(m_ibo, ibo2.data(), iboBytes);
-    //memcpy(m_normals, normals.data(), normalsBytes);
-    //m_aabb = { bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z };
-  }
-
-  CMesh::CMesh(const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) :
-    m_modelToWorld(getModelToWorldTransform(worldPos, normal, scaling)),
-    m_worldToModel(glm::inverse(m_modelToWorld)),
-    m_deviceObject(false),
-    m_deviceResource(nullptr) {
-    m_numTcs = tcs.size();
-    initBuffers(vbo, ibo, normals, tcs);
+    memcpy(m_path, path.data(), path.size());
   }
 
   CMesh::CMesh():
+    m_pathLength(0),
+    m_path(nullptr),
+    m_submeshId(0),
     m_numVertices(0),
     m_vbo(nullptr),
     m_numIndices(0),
     m_ibo(nullptr),
     m_normals(nullptr),
     m_tcs(nullptr),
-    //m_aabb{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f },
-    //m_deviceAabb(nullptr),
-    m_modelToWorld(1.f),
-    m_worldToModel(1.f),
     m_deviceObject(false),
+    m_traversableHandle(NULL),
+    m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
 
   }
 
   CMesh::CMesh(CMesh&& mesh):
+    m_pathLength(std::move(mesh.m_pathLength)),
+    m_path(std::exchange(mesh.m_path, nullptr)),
+    m_submeshId(std::move(mesh.m_submeshId)),
     m_numVertices(std::move(mesh.m_numVertices)),
     m_vbo(std::exchange(mesh.m_vbo, nullptr)),
     m_numIndices(std::move(mesh.m_numIndices)),
     m_ibo(std::exchange(mesh.m_ibo, nullptr)),
     m_normals(std::exchange(mesh.m_normals, nullptr)),
     m_tcs(std::exchange(mesh.m_tcs, nullptr)),
-    m_modelToWorld(1.f),
-    m_worldToModel(1.f),
-    //m_aabb(std::move(mesh.m_aabb)),
-    //m_deviceAabb(std::move(mesh.m_deviceAabb)),
     m_deviceObject(std::move(mesh.m_deviceObject)),
+    m_traversableHandle(std::exchange(mesh.m_traversableHandle, NULL)),
+    m_deviceGasBuffer(std::exchange(mesh.m_deviceGasBuffer, NULL)),
     m_deviceResource(std::move(mesh.m_deviceResource)) {
 
   }
 
   CMesh::~CMesh() {
     if (!m_deviceObject) {
+      free(m_path);
+      m_path = nullptr;
       free(m_vbo);
       m_vbo = nullptr;
       free(m_ibo);
@@ -151,7 +120,6 @@ namespace rt {
     deviceMesh.m_ibo = m_deviceResource->d_ibo;
     deviceMesh.m_normals = m_deviceResource->d_normals;
     deviceMesh.m_tcs = m_deviceResource->d_tcs;
-    //deviceMesh.m_aabb = m_aabb;
     deviceMesh.m_deviceObject = true;
     return deviceMesh;
   }
@@ -165,11 +133,7 @@ namespace rt {
     }
   }
 
-  SBuildInputWrapper CMesh::getOptixBuildInput() {
-    //if (!m_deviceAabb) {
-      //CUDA_ASSERT(cudaMalloc(reinterpret_cast<void**>(&m_deviceAabb), sizeof(OptixAabb)));
-      //CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceAabb), &m_aabb, sizeof(OptixAabb), cudaMemcpyHostToDevice));
-    //}
+  void CMesh::buildOptixAccel() {
     if (m_deviceResource) {
       CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceResource->d_vbo), m_vbo, sizeof(glm::vec3) * m_numVertices, cudaMemcpyHostToDevice)); // TODO: Find way to copy vertices and indices only once
       CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceResource->d_ibo), m_ibo, sizeof(glm::uvec3) * m_numIndices, cudaMemcpyHostToDevice));
@@ -177,26 +141,25 @@ namespace rt {
     else {
       fprintf(stderr, "[ERROR] CMesh::getOptixBuildInput: vertex buffer and index buffer not allocated on device.\n");
     }
-    SBuildInputWrapper wrapper;
-    wrapper.flags.push_back(OPTIX_GEOMETRY_FLAG_NONE);
 
-    wrapper.buildInput = {};
-    wrapper.buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-    wrapper.buildInput.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-    wrapper.buildInput.triangleArray.vertexStrideInBytes = sizeof(glm::vec3);
-    wrapper.buildInput.triangleArray.numVertices = m_numVertices;
-    wrapper.buildInput.triangleArray.vertexBuffers = reinterpret_cast<CUdeviceptr*>(&m_deviceResource->d_vbo);
-    wrapper.buildInput.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-    wrapper.buildInput.triangleArray.numIndexTriplets = m_numIndices;
-    wrapper.buildInput.triangleArray.indexBuffer = reinterpret_cast<CUdeviceptr>(m_deviceResource->d_ibo);
-    //CUdeviceptr iboPtr = reinterpret_cast<CUdeviceptr>(m_deviceResource->d_ibo);
-    wrapper.buildInput.triangleArray.indexStrideInBytes = sizeof(glm::uvec3);
-    wrapper.buildInput.triangleArray.numSbtRecords = 1;
-    wrapper.buildInput.triangleArray.sbtIndexOffsetBuffer = 0;
-    wrapper.buildInput.triangleArray.sbtIndexOffsetSizeInBytes = 0;
-    wrapper.buildInput.triangleArray.primitiveIndexOffset = 0;
-    wrapper.buildInput.triangleArray.flags = wrapper.flags.data();
-    return wrapper;
+    OptixBuildInput buildInput;
+    buildInput = {};
+    buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+    buildInput.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+    buildInput.triangleArray.vertexStrideInBytes = sizeof(glm::vec3);
+    buildInput.triangleArray.numVertices = m_numVertices;
+    buildInput.triangleArray.vertexBuffers = reinterpret_cast<CUdeviceptr*>(&m_deviceResource->d_vbo);
+    buildInput.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+    buildInput.triangleArray.numIndexTriplets = m_numIndices;
+    buildInput.triangleArray.indexBuffer = reinterpret_cast<CUdeviceptr>(m_deviceResource->d_ibo);
+    buildInput.triangleArray.indexStrideInBytes = sizeof(glm::uvec3);
+    buildInput.triangleArray.numSbtRecords = 1;
+    buildInput.triangleArray.sbtIndexOffsetBuffer = 0;
+    buildInput.triangleArray.sbtIndexOffsetSizeInBytes = 0;
+    buildInput.triangleArray.primitiveIndexOffset = 0;
+    OptixGeometryFlags flags[] = { OPTIX_GEOMETRY_FLAG_NONE };
+    buildInput.triangleArray.flags = reinterpret_cast<unsigned int*>(flags);
+    rt::buildOptixAccel(buildInput, &m_traversableHandle, &m_deviceGasBuffer);
 
   }
 
@@ -204,7 +167,4 @@ namespace rt {
     return CRTBackend::instance()->programGroups().m_hitMesh;
   }
 
-  glm::mat4 CMesh::getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) {
-    return glm::translate(glm::mat4(1.0f), worldPos) * getRotation(normal) * glm::scale(scaling);
-  }
 }

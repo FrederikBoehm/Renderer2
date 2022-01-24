@@ -11,6 +11,8 @@
 #include "backend/rt_backend.hpp"
 #include "utility/debugging.hpp"
 #include <optix/optix_stubs.h>
+#include "utility/functions.hpp"
+#include "backend/asset_manager.hpp"
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
@@ -23,17 +25,6 @@ namespace rt {
     }
   }
 
-  CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& le):
-    m_shape(shape),
-    m_mesh(nullptr),
-    m_material(nullptr),
-    m_medium(nullptr),
-    m_flag(ESceneobjectFlag::GEOMETRY),
-    m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
-    m_material = std::make_shared<CMaterial>(CMaterial(le));
-  }
-
   CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
     m_shape(shape),
     m_mesh(nullptr),
@@ -42,55 +33,53 @@ namespace rt {
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
-    m_material = std::make_shared<CMaterial>(CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT)));
+    m_material = new CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT));
+
   }
 
-  CHostSceneobject::CHostSceneobject(CShape* shape, CMedium* medium):
-    m_shape(shape),
-    m_mesh(nullptr),
-    m_material(nullptr),
-    m_medium(medium),
-    m_flag(ESceneobjectFlag::VOLUME),
-    m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
-  }
-
-  CHostSceneobject::CHostSceneobject(CNVDBMedium* medium) :
+  CHostSceneobject::CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) :
     m_shape(nullptr),
     m_mesh(nullptr),
     m_material(nullptr),
-    m_medium(medium),
+    m_medium(new CMediumInstance(medium, &m_modelToWorld, &m_worldToModel)),
     m_flag(ESceneobjectFlag::VOLUME),
+    m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
+    m_worldToModel(glm::inverse(m_modelToWorld)),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
     m_shape(std::move(sceneobject.m_shape)),
-    m_mesh(std::move(sceneobject.m_mesh)),
-    m_material(std::move(sceneobject.m_material)),
+    m_mesh(std::exchange(sceneobject.m_mesh, nullptr)),
+    m_material(std::exchange(sceneobject.m_material, nullptr)),
     m_medium(std::move(sceneobject.m_medium)),
     m_flag(std::move(sceneobject.m_flag)),
+    m_modelToWorld(std::move(sceneobject.m_modelToWorld)),
+    m_worldToModel(std::move(sceneobject.m_worldToModel)),
     m_deviceGasBuffer(std::exchange(sceneobject.m_deviceGasBuffer, NULL)),
     m_hostDeviceConnection(this) {
   }
 
-  CHostSceneobject::CHostSceneobject(CMesh* mesh, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
-    m_shape(nullptr),
-    m_mesh(mesh),
-    m_material(nullptr),
-    m_medium(nullptr),
-    m_flag(ESceneobjectFlag::GEOMETRY),
-    m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
-    m_material = std::make_shared<CMaterial>(CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT)));
-  }
   CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material):
     m_shape(nullptr),
     m_mesh(mesh),
     m_material(material),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
+    m_deviceGasBuffer(NULL),
+    m_hostDeviceConnection(this) {
+
+  }
+
+  CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) :
+    m_shape(nullptr),
+    m_mesh(mesh),
+    m_material(material),
+    m_medium(nullptr),
+    m_flag(ESceneobjectFlag::GEOMETRY),
+    m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
+    m_worldToModel(glm::inverse(m_modelToWorld)),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
 
@@ -121,31 +110,21 @@ namespace rt {
         break;
       }
     }
-    if (m_hostSceneobject->m_mesh) {
-      CUDA_ASSERT(cudaMalloc(&m_deviceMesh, sizeof(CMesh)));
-      m_hostSceneobject->m_mesh->allocateDeviceMemory();
-    }
-    if (m_hostSceneobject->m_material) {
+    if (m_hostSceneobject->m_material && m_hostSceneobject->m_shape) {
       CUDA_ASSERT(cudaMalloc(&m_deviceMaterial, sizeof(CMaterial)));
       m_hostSceneobject->m_material->allocateDeviceMemory();
     }
     if (m_hostSceneobject->m_medium) {
-      switch (m_hostSceneobject->m_medium->type()) {
-      case EMediumType::HOMOGENEOUS_MEDIUM:
-        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CHomogeneousMedium)));
-        break;
-      case EMediumType::HETEROGENOUS_MEDIUM:
-        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CHeterogenousMedium)));
-        std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
-        break;
-      case EMediumType::NVDB_MEDIUM:
-        CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CNVDBMedium)));
-        std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium)->allocateDeviceMemory();
-        break;
-      }
+      CUDA_ASSERT(cudaMalloc(&m_deviceMedium, sizeof(CMediumInstance)));
     }
     
   }
+
+  __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4** modelToWorld, glm::mat4** worldToModel) {
+    *modelToWorld = &sceneobject->m_modelToWorld;
+    *worldToModel = &sceneobject->m_worldToModel;
+  }
+
   void CSceneobjectConnection::copyToDevice() {
     if (m_deviceShape) {
       switch (m_hostSceneobject->m_shape->shape()) {
@@ -163,37 +142,48 @@ namespace rt {
         break;
       }
     }
-    if (m_deviceMesh) {
-      CUDA_ASSERT(cudaMemcpy(m_deviceMesh, &m_hostSceneobject->m_mesh->copyToDevice(), sizeof(CMesh), cudaMemcpyHostToDevice));
-    }
-    if (m_deviceMaterial) {
+    if (m_deviceMaterial && m_deviceShape) {
       CUDA_ASSERT(cudaMemcpy(m_deviceMaterial, &m_hostSceneobject->m_material->copyToDevice(), sizeof(CMaterial), cudaMemcpyHostToDevice));
     }
     if (m_deviceMedium) {
-      switch (m_hostSceneobject->m_medium->type()) {
-      case EMediumType::HOMOGENEOUS_MEDIUM:
-        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, m_hostSceneobject->m_medium.get(), sizeof(CHomogeneousMedium), cudaMemcpyHostToDevice));
-        break;
-      case EMediumType::HETEROGENOUS_MEDIUM: {
-        std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
-        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &hetMedium->copyToDevice(), sizeof(CHeterogenousMedium), cudaMemcpyHostToDevice));
-        break;
-      }
-      case EMediumType::NVDB_MEDIUM: {
-        std::shared_ptr<CNVDBMedium> nvdbMedium = std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium);
-        CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &nvdbMedium->copyToDevice(), sizeof(CNVDBMedium), cudaMemcpyHostToDevice));
-        break;
-      }
-      }
+      // Get device pointers for sceneobject transforms
+      glm::mat4** d_modelToWorld;
+      glm::mat4** d_worldToModel;
+      CUDA_ASSERT(cudaMalloc(&d_modelToWorld, sizeof(glm::mat4*)));
+      CUDA_ASSERT(cudaMalloc(&d_worldToModel, sizeof(glm::mat4*)));
+
+      getTransformPointers << <1, 1 >> > (m_deviceSceneobject, d_modelToWorld, d_worldToModel);
+      CUDA_ASSERT(cudaDeviceSynchronize());
+
+      glm::mat4* modelToWorldPtr;
+      glm::mat4* worldToModelPtr;
+      CUDA_ASSERT(cudaMemcpy(&modelToWorldPtr, d_modelToWorld, sizeof(glm::mat4*), cudaMemcpyDeviceToHost));
+      CUDA_ASSERT(cudaMemcpy(&worldToModelPtr, d_worldToModel, sizeof(glm::mat4*), cudaMemcpyDeviceToHost));
+
+      CMediumInstance deviceMedium(CAssetManager::deviceMedium(m_hostSceneobject->m_medium->path()), modelToWorldPtr, worldToModelPtr);
+      CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &deviceMedium, sizeof(CMediumInstance), cudaMemcpyHostToDevice));
+
     }
     if (m_deviceSceneobject) {
 
       CDeviceSceneobject deviceSceneobject;
       deviceSceneobject.m_shape = m_deviceShape;
-      deviceSceneobject.m_mesh = m_deviceMesh;
-      deviceSceneobject.m_material = m_deviceMaterial;
+      deviceSceneobject.m_mesh = m_hostSceneobject->m_mesh ? CAssetManager::deviceMesh(m_hostSceneobject->m_mesh->path(), m_hostSceneobject->m_mesh->submeshId()) : nullptr;
+      if (m_hostSceneobject->m_material) {
+        if (m_hostSceneobject->m_shape) {
+          deviceSceneobject.m_material = m_deviceMaterial;
+        }
+        else {
+          deviceSceneobject.m_material = CAssetManager::deviceMaterial(m_hostSceneobject->m_material->path(), m_hostSceneobject->m_material->submeshId());
+        }
+      }
+      else {
+        deviceSceneobject.m_material = nullptr;
+      }
       deviceSceneobject.m_medium = m_deviceMedium;
       deviceSceneobject.m_flag = m_hostSceneobject->m_flag;
+      deviceSceneobject.m_modelToWorld = m_hostSceneobject->m_modelToWorld;
+      deviceSceneobject.m_worldToModel = m_hostSceneobject->m_worldToModel;
       CUDA_ASSERT(cudaMemcpy(m_deviceSceneobject, &deviceSceneobject, sizeof(CDeviceSceneobject), cudaMemcpyHostToDevice));
     }
   }
@@ -203,31 +193,10 @@ namespace rt {
     m_hostSceneobject->m_deviceGasBuffer = NULL;
     CUDA_ASSERT(cudaFree(m_deviceShape));
     m_deviceShape = nullptr;
-    if (m_deviceMesh) {
-      m_hostSceneobject->m_mesh->freeDeviceMemory();
-      CUDA_ASSERT(cudaFree(m_deviceMesh));
-      m_deviceMesh = nullptr;
-    }
-    if (m_deviceMaterial) {
+    if (m_deviceMaterial && m_hostSceneobject->m_shape) {
       m_hostSceneobject->m_material->freeDeviceMemory();
       CUDA_ASSERT(cudaFree(m_deviceMaterial));
       m_deviceMaterial = nullptr;
-    }
-    if (m_deviceMedium) {
-      switch (m_hostSceneobject->m_medium->type()) {
-        case EMediumType::HETEROGENOUS_MEDIUM: {
-          std::shared_ptr<CHeterogenousMedium> hetMedium = std::static_pointer_cast<CHeterogenousMedium>(m_hostSceneobject->m_medium);
-          hetMedium->freeDeviceMemory();
-          break;
-        }
-        case EMediumType::NVDB_MEDIUM: {
-          std::shared_ptr<CNVDBMedium> nvdbMedium = std::static_pointer_cast<CNVDBMedium>(m_hostSceneobject->m_medium);
-          nvdbMedium->freeDeviceMemory();
-          break;
-        }
-      }
-      CUDA_ASSERT(cudaFree(m_deviceMedium));
-      m_deviceMedium = nullptr;
     }
   }
 
@@ -243,21 +212,22 @@ namespace rt {
   }
 
   CHostSceneobject::~CHostSceneobject() {
+    if (m_shape) { // TODO: Find better way to clean up material if using primitive shape
+      delete m_material;
+    }
   }
 
   void CHostSceneobject::buildOptixAccel() {
     SBuildInputWrapper buildInputWrapper;
-    if (m_medium.get() && m_medium->type() == NVDB_MEDIUM) {
-      buildInputWrapper = ((CNVDBMedium*)m_medium.get())->getOptixBuildInput();
-    }
-    else if (m_mesh) {
-      buildInputWrapper = m_mesh->getOptixBuildInput();
-    }
-    else if (m_shape) {
+    if (m_shape) {
       buildInputWrapper = m_shape->getOptixBuildInput();
     }
+    else if (m_medium || m_mesh) {
+      return;
+    }
     else {
-      fprintf(stderr, "[ERROR] Could not create build input.\n");
+      fprintf(stderr, "[ERROR] Could not create OptiX accel.\n");
+      return;
     }
 
     OptixAccelBuildOptions accelOptions = {};
@@ -312,9 +282,8 @@ namespace rt {
   }
 
   void CHostSceneobject::getTransform(float* outMatrix) const {
-    if (m_mesh) {
-      //fprintf(stderr, "getTransform not implemented\n");
-      const glm::mat4& modelToWorldTransform = m_mesh->modelToWorld();
+    if (m_mesh || m_medium) {
+      const glm::mat4& modelToWorldTransform = m_modelToWorld;
       outMatrix[0]    = modelToWorldTransform[0][0]; // Column to row major
       outMatrix[1]    = modelToWorldTransform[1][0];
       outMatrix[2]    = modelToWorldTransform[2][0];
@@ -343,11 +312,15 @@ namespace rt {
     instance.instanceId = instanceId;
     instance.sbtOffset = sbtOffset;
     instance.visibilityMask = 0xff; // TODO: Check what has to be set here
-    instance.traversableHandle = m_traversableHandle;
-    //float identity[] = { 1.f, 0.f, 0.f, 0.f,
-    //                     0.f, 1.f, 0.f, 0.f,
-    //                     0.f, 0.f, 1.f, 0.f };
-    //memcpy(instance.transform, identity, sizeof(float) * 12);
+    if (m_mesh) {
+      instance.traversableHandle = m_mesh->getOptixHandle();
+    }
+    else if (m_medium) {
+      instance.traversableHandle = m_medium->getOptixHandle();
+    }
+    else {
+      instance.traversableHandle = m_traversableHandle;
+    }
     getTransform(instance.transform);
 
     return instance;
@@ -360,7 +333,7 @@ namespace rt {
     else if (m_shape.get()) {
       return m_shape->getOptixProgramGroup();
     }
-    else if (m_mesh.get()) {
+    else if (m_mesh) {
       return m_mesh->getOptixProgramGroup();
     }
     fprintf(stderr, "[ERROR] CHostSceneobject::getOptixProgramGroup no valid program group found.\n");
@@ -375,6 +348,10 @@ namespace rt {
     }
     hitRecord.data = m_hostDeviceConnection.deviceSceneobject();
     return hitRecord;
+  }
+
+  glm::mat4 CHostSceneobject::getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) {
+    return glm::translate(glm::mat4(1.0f), worldPos) * getRotation(orientation) * glm::scale(scaling);
   }
 
 

@@ -6,6 +6,7 @@
 
 namespace rt {
   CMaterial::CMaterial() :
+    m_deviceObject(false),
     m_Le(glm::vec3(0.0f)),
     m_diffuseColor(0.f),
     m_glossyColor(0.f),
@@ -14,10 +15,14 @@ namespace rt {
     m_albedoTexture(nullptr),
     m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr){
+    m_alphaTexture(nullptr),
+    m_pathLength(0),
+    m_assetsBasePath(nullptr),
+    m_submeshId(0) {
   }
 
   CMaterial::CMaterial(const glm::vec3& le) :
+    m_deviceObject(false),
     m_Le(le),
     m_diffuseColor(0.f),
     m_glossyColor(0.f),
@@ -26,11 +31,15 @@ namespace rt {
     m_albedoTexture(nullptr),
     m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr) {
+    m_alphaTexture(nullptr),
+    m_pathLength(0),
+    m_assetsBasePath(nullptr),
+    m_submeshId(0) {
 
   }
 
   CMaterial::CMaterial(const glm::vec3& diffuseColor, const glm::vec3& glossyColor, const COrenNayarBRDF& diffuse, const CMicrofacetBRDF& glossy) :
+    m_deviceObject(false),
     m_Le(glm::vec3(0.0f)),
     m_diffuseColor(diffuseColor),
     m_glossyColor(glossyColor),
@@ -39,11 +48,15 @@ namespace rt {
     m_albedoTexture(nullptr),
     m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr) {
+    m_alphaTexture(nullptr),
+    m_pathLength(0),
+    m_assetsBasePath(nullptr),
+    m_submeshId(0) {
 
   }
 
   CMaterial::CMaterial(CMaterial&& material) :
+    m_deviceObject(std::move(material.m_deviceObject)),
     m_Le(std::move(material.m_Le)),
     m_diffuseColor(std::move(material.m_diffuseColor)),
     m_glossyColor(std::move(material.m_glossyColor)),
@@ -52,18 +65,30 @@ namespace rt {
     m_albedoTexture(std::exchange(material.m_albedoTexture, nullptr)),
     m_glossyTexture(std::exchange(material.m_glossyTexture, nullptr)),
     m_normalTexture(std::exchange(material.m_normalTexture, nullptr)),
-    m_alphaTexture(std::exchange(material.m_alphaTexture, nullptr)) {
+    m_alphaTexture(std::exchange(material.m_alphaTexture, nullptr)),
+    m_pathLength(std::move(material.m_pathLength)),
+    m_assetsBasePath(std::exchange(material.m_assetsBasePath, nullptr)),
+    m_submeshId(std::move(material.m_submeshId)) {
   }
 
   CMaterial::~CMaterial() {
+    if (!m_deviceObject) {
+      delete m_assetsBasePath;
+    }
   }
 
-  CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath):
+  CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath, size_t submeshId):
+    m_deviceObject(false),
     m_Le(0.f),
     m_albedoTexture(nullptr),
     m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
-    m_alphaTexture(nullptr) {
+    m_alphaTexture(nullptr),
+    m_pathLength(assetsBasepath.size()),
+    m_assetsBasePath((char*)malloc(assetsBasepath.size())),
+    m_submeshId(submeshId) {
+    memcpy(m_assetsBasePath, assetsBasepath.data(), m_pathLength);
+
     aiColor3D diffuse;
     material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
     m_diffuseColor = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
@@ -120,6 +145,7 @@ namespace rt {
 
   CMaterial CMaterial::copyToDevice() {
     CMaterial material;
+    material.m_deviceObject = true;
     material.m_Le = m_Le;
     material.m_diffuseColor = m_diffuseColor;
     material.m_glossyColor = m_glossyColor;

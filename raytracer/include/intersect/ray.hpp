@@ -6,25 +6,25 @@
 #include <glm/glm.hpp>
 #include "utility/functions.hpp"
 namespace rt {
-  class CMedium;
+  class CMediumInstance;
 
   class CRay {
   public:
     inline static constexpr float OFFSET = 1e-4f;
     inline static constexpr float DEFAULT_TMAX = 1e+12;
-    DH_CALLABLE CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max = DEFAULT_TMAX, const CMedium* medium = nullptr);
+    DH_CALLABLE CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max = DEFAULT_TMAX, const CMediumInstance* medium = nullptr);
     glm::vec3 m_origin;
     glm::vec3 m_direction;
     mutable float m_t_max;
-    const CMedium* m_medium;
+    const CMediumInstance* m_medium;
     DH_CALLABLE static glm::vec3 offsetRayOrigin(const glm::vec3& p, const glm::vec3& offsetDir);
     DH_CALLABLE CRay offsetRayOrigin(const glm::vec3& offsetDir);
     DH_CALLABLE CRay transform(const glm::mat4& worldToModel) const;
     DH_CALLABLE CRay robustTransform(const glm::mat4& worldToModel, const glm::vec3& offsetDir) const;
-    DH_CALLABLE static CRay spawnRay(const glm::vec3& start, const glm::vec3& end, const CMedium* originMedium = nullptr);
+    DH_CALLABLE static CRay spawnRay(const glm::vec3& start, const glm::vec3& end, const CMediumInstance* originMedium = nullptr);
   };
 
-  inline CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max, const CMedium* medium) :
+  inline CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max, const CMediumInstance* medium) :
     m_origin(origin), m_direction(glm::normalize(direction)), m_t_max(t_max), m_medium(medium) {
 
   }
@@ -43,7 +43,7 @@ namespace rt {
     return r.offsetRayOrigin(offsetDir);
   }
 
-  inline CRay CRay::spawnRay(const glm::vec3& start, const glm::vec3& end, const CMedium* originMedium) {
+  inline CRay CRay::spawnRay(const glm::vec3& start, const glm::vec3& end, const CMediumInstance* originMedium) {
     glm::vec3 dir = end - start;
     glm::vec3 offsetted = offsetRayOrigin(start, glm::normalize(end - start));
     glm::vec3 newDir = end - offsetted;

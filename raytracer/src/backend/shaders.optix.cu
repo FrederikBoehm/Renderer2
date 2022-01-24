@@ -191,8 +191,8 @@ extern "C" __global__ void __intersection__volume() {
   glm::vec3 rayOrigin(tempOrigin.x, tempOrigin.y, tempOrigin.z);
   glm::vec3 rayDirection(tempDirection.x, tempDirection.y, tempDirection.z);
 
-  const CNVDBMedium* medium = static_cast<const CNVDBMedium*>(sceneobject->medium());
-  const nanovdb::BBox<nanovdb::Vec3R>& aabb = medium->worldBB();
+  const CMediumInstance* medium = sceneobject->medium();
+  const nanovdb::BBox<nanovdb::Vec3f>& aabb = reinterpret_cast<const nanovdb::BBox<nanovdb::Vec3f>&>(medium->worldBB());
   float t0 = 0.f;
   float t1 = CRay::DEFAULT_TMAX;
   float initialT1 = t1;
@@ -201,7 +201,7 @@ extern "C" __global__ void __intersection__volume() {
   bool intersects = ray.intersects(aabb, t0, t1);
   if (intersects && t1 < initialT1) {
     float t;
-    nanovdb::Vec3R nanovdbOrigin(tempOrigin.x, tempOrigin.y, tempOrigin.z);
+    nanovdb::Vec3f nanovdbOrigin(tempOrigin.x, tempOrigin.y, tempOrigin.z);
     if (aabb.isInside(nanovdbOrigin)) {// When ray starts in medium it seems that t1 gives first intersection while t0 remaining unchanged
       t = t1;
     }
