@@ -50,7 +50,7 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
-    glm::vec3 pMedium = glm::vec3(m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f));
+    glm::vec3 pMedium = m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f);
 
 
     glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
@@ -65,12 +65,12 @@ namespace rt {
       return glm::vec3(0.f);
     }
     else {
-      return glm::normalize(glm::vec3(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f)));
+      return glm::normalize(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f));
     }
   }
 
   inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, CSampler& sampler) const {
-    glm::vec3 pMedium = glm::vec3(m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f));
+    glm::vec3 pMedium = m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f);
     nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
 
 
@@ -87,7 +87,7 @@ namespace rt {
       //return glm::vec3(1.f, 0.f, 0.f);
     }
     else {
-      return glm::normalize(glm::vec3(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f)));
+      return glm::normalize(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f));
     }
   }
 

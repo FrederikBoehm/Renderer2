@@ -43,9 +43,10 @@ namespace rt {
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
     nanovdb::BBoxR worldBB = m_grid->worldBBox();
-    m_indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    glm::mat4 indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_indexToModel = indexToModel;
     m_worldBB = worldBB;
-    m_modelToIndex = glm::inverse(m_indexToModel);
+    m_modelToIndex = glm::inverse(indexToModel);
   }
 
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling) :
@@ -72,9 +73,10 @@ namespace rt {
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
     nanovdb::BBoxR worldBB = m_grid->worldBBox();
-    m_indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    glm::mat4 indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_indexToModel = indexToModel;
     m_worldBB = worldBB;
-    m_modelToIndex = glm::inverse(m_indexToModel);
+    m_modelToIndex = glm::inverse(indexToModel);
   }
 
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) :
@@ -109,9 +111,10 @@ namespace rt {
       m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
       m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
     }
-    m_indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    glm::mat4 indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
+    m_indexToModel = indexToModel;
     m_worldBB = m_grid->worldBBox();
-    m_modelToIndex = glm::inverse(m_indexToModel);
+    m_modelToIndex = glm::inverse(indexToModel);
   }
 
   CNVDBMedium::CNVDBMedium() :

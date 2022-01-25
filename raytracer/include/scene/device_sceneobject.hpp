@@ -20,7 +20,7 @@ namespace rt {
   class CDeviceSceneobject {
     friend class CSceneobjectConnection;
     friend struct SSharedMemoryInitializer;
-    friend __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4** modelToWorld, glm::mat4** worldToModel);
+    friend __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4x3** modelToWorld, glm::mat4x3** worldToModel);
   public:
     D_CALLABLE SInteraction intersect(const CRay& ray) const;
     D_CALLABLE CShape* shape() const;
@@ -38,8 +38,8 @@ namespace rt {
     CMediumInstance* m_medium;
     ESceneobjectFlag m_flag;
 
-    glm::mat4 m_modelToWorld;
-    glm::mat4 m_worldToModel;
+    glm::mat4x3 m_modelToWorld;
+    glm::mat4x3 m_worldToModel;
 
     //CDeviceSceneobject() {}
   };

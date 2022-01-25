@@ -39,8 +39,8 @@ namespace rt {
       if (t > 0 && t <= ray.m_t_max) { // Intersection in front of ray origin
         si.hit = true;
         glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + t * rayModelSpace.m_direction;
-        si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-        si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
+        si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
+        si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
         si.normalG = si.normal;
         si.tc = glm::vec2(0.f);
         si.t = t;
@@ -58,8 +58,8 @@ namespace rt {
         if (minimum > 0.0f && minimum <= ray.m_t_max) {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + minimum * rayModelSpace.m_direction;
-          si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
+          si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
+          si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
           si.normalG = si.normal;
           si.tc = glm::vec2(0.f);
           si.t = minimum;
@@ -67,8 +67,8 @@ namespace rt {
         else if (minimum <= 0.0f && maximum <= ray.m_t_max) {
           si.hit = true;
           glm::vec3 intersectionObjectSpace = rayModelSpace.m_origin + maximum * rayModelSpace.m_direction;
-          si.pos = glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f));
-          si.normal = glm::normalize(glm::vec3(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f)));
+          si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
+          si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
           si.normalG = si.normal;
           si.tc = glm::vec2(0.f);
           si.t = maximum;

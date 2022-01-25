@@ -60,7 +60,7 @@ namespace rt {
 
   inline glm::vec3 CCircle::sample(CSampler& sampler) const {
     glm::vec3 pd = m_radius * sampler.concentricSampleDisk();
-    return glm::vec3(m_modelToWorld * glm::vec4(pd, 1.0f));
+    return m_modelToWorld * glm::vec4(pd, 1.0f);
   }
 
   inline float CCircle::pdf(const SInteraction& lightHit, const CRay& shadowRay) const {

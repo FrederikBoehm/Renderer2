@@ -27,7 +27,7 @@ namespace rt {
     m_up(up),
     m_nearPlaneDistance(CCamera::getNearPlaneDistance(sensorWidth, m_fov, m_pixelSize)),
     m_worldToView(glm::lookAt(m_position, lookAt, up)),
-    m_viewToWorld(glm::inverse(m_worldToView)){
+    m_viewToWorld(glm::inverse(glm::mat4(m_worldToView))){
 
   }
 
@@ -40,14 +40,16 @@ namespace rt {
     glm::vec3 diff = pos - m_position;
     m_position = pos;
     m_lookAt += diff;
-    m_worldToView = glm::lookAt(m_position, m_lookAt, m_up);
-    m_viewToWorld = glm::inverse(m_worldToView);
+    glm::mat4 worldToView = glm::lookAt(m_position, m_lookAt, m_up);
+    m_worldToView = worldToView;
+    m_viewToWorld = glm::inverse(worldToView);
   }
 
   void CCamera::updateLookAt(const glm::vec3& lookAt) {
     m_lookAt = lookAt;
-    m_worldToView = glm::lookAt(m_position, m_lookAt, m_up);
-    m_viewToWorld = glm::inverse(m_worldToView);
+    glm::mat4 worldToView = glm::lookAt(m_position, m_lookAt, m_up);
+    m_worldToView = worldToView;
+    m_viewToWorld = glm::inverse(worldToView);
   }
 
   glm::vec3 CCamera::normalizeLookAt(const glm::vec3& camPos, const glm::vec3& lookAt) {

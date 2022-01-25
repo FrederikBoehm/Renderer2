@@ -71,8 +71,8 @@ namespace rt {
     glm::ivec3 m_size;
     glm::vec3 m_sigma_a;
     glm::vec3 m_sigma_s;
-    glm::mat4 m_indexToModel;
-    glm::mat4 m_modelToIndex;
+    glm::mat4x3 m_indexToModel;
+    glm::mat4x3 m_modelToIndex;
     CPhaseFunction* m_phase;
     glm::ivec3 m_ibbMin;
     glm::ivec3 m_ibbMax;

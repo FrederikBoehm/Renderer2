@@ -343,14 +343,13 @@ namespace rt {
 
     // Move camera only along along three axes around up vector
     {
-      glm::vec3 viewDir = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(0.f, 0.f, -1.f, 0.f));
+      glm::vec3 viewDir = m_hostCamera.viewToWorld() * glm::vec4(0.f, 0.f, -1.f, 0.f);
       glm::vec3 moveDirRight = glm::cross(viewDir, m_hostCamera.up());
       glm::vec3 moveDirForward = glm::cross(m_hostCamera.up(), moveDirRight);
 
-      glm::mat4 moveToWorld = glm::mat4(glm::vec4(glm::normalize(moveDirRight), 0.f), glm::vec4(glm::normalize(m_hostCamera.up()), 0.f), glm::vec4(glm::normalize(moveDirForward), 0.f), glm::vec4(m_hostCamera.position(), 1.f));
-      glm::vec3 posWorldSpace = glm::vec3(moveToWorld * glm::vec4(posCamSpace, 1.f));
+      glm::mat4x3 moveToWorld = glm::mat4x3(glm::normalize(moveDirRight), glm::normalize(m_hostCamera.up()), glm::normalize(moveDirForward), m_hostCamera.position());
+      glm::vec3 posWorldSpace = moveToWorld * glm::vec4(posCamSpace, 1.f);
 
-      //glm::vec3 posWorldSpace = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(posCamSpace, 1.f));
       m_hostCamera.updatePosition(posWorldSpace);
     }
 
@@ -359,7 +358,7 @@ namespace rt {
       viewDir += glm::vec3(mouseMoveDir.x, mouseMoveDir.y, 0.f) * 0.03f;
       viewDir = glm::normalize(viewDir);
       glm::vec3 lookAtCamSpace = viewDir;
-      glm::vec3 lookAtWorldSpace = glm::vec3(m_hostCamera.viewToWorld() * glm::vec4(lookAtCamSpace, 1.f));
+      glm::vec3 lookAtWorldSpace = m_hostCamera.viewToWorld() * glm::vec4(lookAtCamSpace, 1.f);
       m_hostCamera.updateLookAt(lookAtWorldSpace);
     }
 

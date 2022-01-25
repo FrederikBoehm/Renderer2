@@ -59,8 +59,8 @@ namespace rt {
     std::shared_ptr<CMediumInstance> m_medium;
     ESceneobjectFlag m_flag;
     float m_absorption;
-    glm::mat4 m_modelToWorld;
-    glm::mat4 m_worldToModel;
+    glm::mat4x3 m_modelToWorld;
+    glm::mat4x3 m_worldToModel;
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;

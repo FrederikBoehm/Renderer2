@@ -22,7 +22,7 @@ namespace rt {
     glm::vec3 L(0.f);
 
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
-    glm::vec3 woTangent = glm::vec3(frame.worldToTangent() * glm::vec4(wo, 0.0f));
+    glm::vec3 woTangent = frame.worldToTangent() * wo;
     uint3 launchIdx = optixGetLaunchIndex();
 
     // Sample light source
@@ -31,7 +31,7 @@ namespace rt {
       float lightPdf = 0.f;
       glm::vec3 Le = scene.sampleLightSources(sampler, &lightWorldSpaceDirection, &lightPdf);
       if (lightPdf > 0.f) {
-        glm::vec3 lightTangentSpaceDirection = glm::normalize(glm::vec3(frame.worldToTangent() * glm::vec4(lightWorldSpaceDirection, 0.0f)));
+        glm::vec3 lightTangentSpaceDirection = glm::normalize(frame.worldToTangent() * lightWorldSpaceDirection);
 
         CRay rayLight = CRay(si.hitInformation.pos, lightWorldSpaceDirection, CRay::DEFAULT_TMAX, currentMedium);
         rayLight.offsetRayOrigin(si.hitInformation.normal);
@@ -75,7 +75,7 @@ namespace rt {
       if (si.material) {
         glm::vec3 wiTangent(0.f);
         f = si.material->sampleF(si.hitInformation.tc, woTangent, &wiTangent, sampler, &scatteringPdf);
-        wi = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wiTangent, 0.0f)));
+        wi = glm::normalize(frame.tangentToWorld() * wiTangent);
         f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
       }
       else {
@@ -197,7 +197,7 @@ namespace rt {
             break;
           }
 
-          glm::vec3 brdfWorldSpaceDirection = glm::normalize(glm::vec3(frame.tangentToWorld() * glm::vec4(wi, 0.0f)));
+          glm::vec3 brdfWorldSpaceDirection = glm::normalize(frame.tangentToWorld() * wi);
           CRay rayBrdf = CRay(si.hitInformation.pos, brdfWorldSpaceDirection, CRay::DEFAULT_TMAX, ray.m_medium);
           rayBrdf.offsetRayOrigin(si.hitInformation.normal);
           float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);

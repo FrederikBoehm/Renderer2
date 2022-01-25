@@ -38,8 +38,8 @@ namespace rt {
     const EShape m_shape;
     glm::vec3 m_worldPos;
     glm::vec3 m_normal;
-    glm::mat4 m_modelToWorld;
-    glm::mat4 m_worldToModel;
+    glm::mat4x3 m_modelToWorld;
+    glm::mat4x3 m_worldToModel;
     CUdeviceptr m_deviceAabb;
     OptixProgramGroup m_optixProgramGroup;
   };
@@ -48,8 +48,8 @@ namespace rt {
     m_shape(shape),
     m_worldPos(worldPos),
     m_normal(normal),
-    m_modelToWorld(glm::translate(glm::mat4(1.0f), worldPos) * getRotation(normal)),
-    m_worldToModel(glm::inverse(m_modelToWorld)),
+    m_modelToWorld(glm::translate(worldPos) * getRotation(normal)),
+    m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_deviceAabb(NULL) {
 
   }

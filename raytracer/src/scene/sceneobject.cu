@@ -44,7 +44,7 @@ namespace rt {
     m_medium(new CMediumInstance(medium, &m_modelToWorld, &m_worldToModel)),
     m_flag(ESceneobjectFlag::VOLUME),
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
-    m_worldToModel(glm::inverse(m_modelToWorld)),
+    m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
   }
@@ -79,7 +79,7 @@ namespace rt {
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
-    m_worldToModel(glm::inverse(m_modelToWorld)),
+    m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
 
@@ -120,7 +120,7 @@ namespace rt {
     
   }
 
-  __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4** modelToWorld, glm::mat4** worldToModel) {
+  __global__ void getTransformPointers(CDeviceSceneobject* sceneobject, glm::mat4x3** modelToWorld, glm::mat4x3** worldToModel) {
     *modelToWorld = &sceneobject->m_modelToWorld;
     *worldToModel = &sceneobject->m_worldToModel;
   }
@@ -147,18 +147,18 @@ namespace rt {
     }
     if (m_deviceMedium) {
       // Get device pointers for sceneobject transforms
-      glm::mat4** d_modelToWorld;
-      glm::mat4** d_worldToModel;
-      CUDA_ASSERT(cudaMalloc(&d_modelToWorld, sizeof(glm::mat4*)));
-      CUDA_ASSERT(cudaMalloc(&d_worldToModel, sizeof(glm::mat4*)));
+      glm::mat4x3** d_modelToWorld;
+      glm::mat4x3** d_worldToModel;
+      CUDA_ASSERT(cudaMalloc(&d_modelToWorld, sizeof(glm::mat4x3*)));
+      CUDA_ASSERT(cudaMalloc(&d_worldToModel, sizeof(glm::mat4x3*)));
 
       getTransformPointers << <1, 1 >> > (m_deviceSceneobject, d_modelToWorld, d_worldToModel);
       CUDA_ASSERT(cudaDeviceSynchronize());
 
-      glm::mat4* modelToWorldPtr;
-      glm::mat4* worldToModelPtr;
-      CUDA_ASSERT(cudaMemcpy(&modelToWorldPtr, d_modelToWorld, sizeof(glm::mat4*), cudaMemcpyDeviceToHost));
-      CUDA_ASSERT(cudaMemcpy(&worldToModelPtr, d_worldToModel, sizeof(glm::mat4*), cudaMemcpyDeviceToHost));
+      glm::mat4x3* modelToWorldPtr;
+      glm::mat4x3* worldToModelPtr;
+      CUDA_ASSERT(cudaMemcpy(&modelToWorldPtr, d_modelToWorld, sizeof(glm::mat4x3*), cudaMemcpyDeviceToHost));
+      CUDA_ASSERT(cudaMemcpy(&worldToModelPtr, d_worldToModel, sizeof(glm::mat4x3*), cudaMemcpyDeviceToHost));
 
       CMediumInstance deviceMedium(CAssetManager::deviceMedium(m_hostSceneobject->m_medium->path()), modelToWorldPtr, worldToModelPtr);
       CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &deviceMedium, sizeof(CMediumInstance), cudaMemcpyHostToDevice));
@@ -283,7 +283,7 @@ namespace rt {
 
   void CHostSceneobject::getTransform(float* outMatrix) const {
     if (m_mesh || m_medium) {
-      const glm::mat4& modelToWorldTransform = m_modelToWorld;
+      const glm::mat4x3& modelToWorldTransform = m_modelToWorld;
       outMatrix[0]    = modelToWorldTransform[0][0]; // Column to row major
       outMatrix[1]    = modelToWorldTransform[1][0];
       outMatrix[2]    = modelToWorldTransform[2][0];
@@ -351,7 +351,7 @@ namespace rt {
   }
 
   glm::mat4 CHostSceneobject::getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) {
-    return glm::translate(glm::mat4(1.0f), worldPos) * getRotation(orientation) * glm::scale(scaling);
+    return glm::translate(worldPos) * getRotation(orientation) * glm::scale(scaling);
   }
 
 

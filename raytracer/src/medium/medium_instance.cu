@@ -2,7 +2,7 @@
 #include "medium/nvdb_medium.hpp"
 
 namespace rt {
-  CMediumInstance::CMediumInstance(CNVDBMedium* medium, const glm::mat4* modelToWorld, const glm::mat4* worldToModel) :
+  CMediumInstance::CMediumInstance(CNVDBMedium* medium, const glm::mat4x3* modelToWorld, const glm::mat4x3* worldToModel) :
     m_medium(medium),
     m_modelToWorld(modelToWorld),
     m_worldToModel(worldToModel) {

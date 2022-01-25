@@ -19,8 +19,8 @@ namespace rt {
     const CMediumInstance* m_medium;
     DH_CALLABLE static glm::vec3 offsetRayOrigin(const glm::vec3& p, const glm::vec3& offsetDir);
     DH_CALLABLE CRay offsetRayOrigin(const glm::vec3& offsetDir);
-    DH_CALLABLE CRay transform(const glm::mat4& worldToModel) const;
-    DH_CALLABLE CRay robustTransform(const glm::mat4& worldToModel, const glm::vec3& offsetDir) const;
+    DH_CALLABLE CRay transform(const glm::mat4x3& worldToModel) const;
+    DH_CALLABLE CRay robustTransform(const glm::mat4x3& worldToModel, const glm::vec3& offsetDir) const;
     DH_CALLABLE static CRay spawnRay(const glm::vec3& start, const glm::vec3& end, const CMediumInstance* originMedium = nullptr);
   };
 
@@ -30,15 +30,15 @@ namespace rt {
   }
 
   // Change basis of ray
-  inline CRay CRay::transform(const glm::mat4& transformMatrix) const {
-    glm::vec3 origin = glm::vec3(transformMatrix * glm::vec4(m_origin, 1.0f));
-    glm::vec3 endpoint = glm::vec3(transformMatrix * (glm::vec4(m_origin, 1.0f) + m_t_max * glm::vec4(m_direction, 0.f)));
-    glm::vec3 direction = glm::normalize(glm::vec3(transformMatrix * glm::vec4(m_direction, 0.0f)));
+  inline CRay CRay::transform(const glm::mat4x3& transformMatrix) const {
+    glm::vec3 origin = transformMatrix * glm::vec4(m_origin, 1.0f);
+    glm::vec3 endpoint = transformMatrix * (glm::vec4(m_origin, 1.0f) + m_t_max * glm::vec4(m_direction, 0.f));
+    glm::vec3 direction = glm::normalize(transformMatrix * glm::vec4(m_direction, 0.0f));
     CRay r(origin, direction, glm::length(endpoint - origin), m_medium);
     return r;
   }
 
-  inline CRay CRay::robustTransform(const glm::mat4& worldToModel, const glm::vec3& offsetDir) const {
+  inline CRay CRay::robustTransform(const glm::mat4x3& worldToModel, const glm::vec3& offsetDir) const {
     CRay r = transform(worldToModel);
     return r.offsetRayOrigin(offsetDir);
   }

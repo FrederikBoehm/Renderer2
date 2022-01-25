@@ -6,7 +6,7 @@
 namespace rt {
   struct SAABB {
 
-    DH_CALLABLE SAABB transform(const glm::mat4& transformation) const {
+    DH_CALLABLE SAABB transform(const glm::mat4x3& transformation) const {
       glm::vec3 newMin = transformation * glm::vec4(m_min, 1.f);
       glm::vec3 newMax = transformation * glm::vec4(m_max, 1.f);
       return { newMin, newMax };
