@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cuda_runtime.h>
-#include "texture_manager.hpp"
+#include "backend/asset_manager.hpp"
 #include <optix/optix_types.h>
 namespace rt {
   struct STexture_DeviceResource {
@@ -14,7 +14,7 @@ namespace rt {
   };
 
   class CTexture {
-    friend class CTextureManager;
+    friend class CAssetManager;
   public:
     DH_CALLABLE CTexture();
     H_CALLABLE CTexture(const std::string& path, ETextureType type = DIFFUSE);

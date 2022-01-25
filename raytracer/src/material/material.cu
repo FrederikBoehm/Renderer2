@@ -2,7 +2,7 @@
 #include <assimp/material.h>
 #include "texture/texture.hpp"
 #include "utility/debugging.hpp"
-#include "texture/texture_manager.hpp"
+#include "backend/asset_manager.hpp"
 
 namespace rt {
   CMaterial::CMaterial() :
@@ -110,29 +110,29 @@ namespace rt {
       aiString pathAi;
       material->GetTexture(aiTextureType_DIFFUSE, 0, &pathAi);
       diffuseTexPath = assetsBasepath + "/" + pathAi.C_Str();
-      m_albedoTexture = CTextureManager::loadTexture(diffuseTexPath, DIFFUSE);
+      m_albedoTexture = CAssetManager::loadTexture(diffuseTexPath, DIFFUSE);
     }
 
     if (material->GetTextureCount(aiTextureType_SPECULAR) > 0) {
       aiString pathAi;
       material->GetTexture(aiTextureType_SPECULAR, 0, &pathAi);
-      m_glossyTexture = CTextureManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), SPECULAR);
+      m_glossyTexture = CAssetManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), SPECULAR);
     }
 
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0) {
       aiString pathAi;
       material->GetTexture(aiTextureType_HEIGHT, 0, &pathAi);
-      m_normalTexture = CTextureManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), NORMAL);
+      m_normalTexture = CAssetManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), NORMAL);
     }
 
     if (material->GetTextureCount(aiTextureType_OPACITY) > 0) {
       aiString pathAi;
       material->GetTexture(aiTextureType_OPACITY, 0, &pathAi);
-      m_alphaTexture = CTextureManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), ALPHA);
+      m_alphaTexture = CAssetManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), ALPHA);
     }
     else if (m_albedoTexture && m_albedoTexture->hasAlpha()) {
       m_alphaTexture = new CTexture();
-      m_alphaTexture = CTextureManager::loadAlpha(diffuseTexPath);
+      m_alphaTexture = CAssetManager::loadAlpha(diffuseTexPath);
     }
   }
 
@@ -151,10 +151,10 @@ namespace rt {
     material.m_glossyColor = m_glossyColor;
     material.m_orenNayarBRDF = m_orenNayarBRDF;
     material.m_microfacetBRDF = m_microfacetBRDF;
-    material.m_albedoTexture = m_albedoTexture ? CTextureManager::deviceTexture(m_albedoTexture->path(), DIFFUSE) : nullptr;
-    material.m_glossyTexture = m_glossyTexture ? CTextureManager::deviceTexture(m_glossyTexture->path(), SPECULAR) : nullptr;
-    material.m_normalTexture = m_normalTexture ? CTextureManager::deviceTexture(m_normalTexture->path(), NORMAL) : nullptr;
-    material.m_alphaTexture = m_alphaTexture ? CTextureManager::deviceTexture(m_alphaTexture->path(), ALPHA) : nullptr;
+    material.m_albedoTexture = m_albedoTexture ? CAssetManager::deviceTexture(m_albedoTexture->path(), DIFFUSE) : nullptr;
+    material.m_glossyTexture = m_glossyTexture ? CAssetManager::deviceTexture(m_glossyTexture->path(), SPECULAR) : nullptr;
+    material.m_normalTexture = m_normalTexture ? CAssetManager::deviceTexture(m_normalTexture->path(), NORMAL) : nullptr;
+    material.m_alphaTexture = m_alphaTexture ? CAssetManager::deviceTexture(m_alphaTexture->path(), ALPHA) : nullptr;
     return material;
   }
 

@@ -25,7 +25,6 @@
 #include "medium/nvdb_medium.hpp"
 #include "backend/rt_backend.hpp"
 #include <optix/optix_stubs.h>
-#include "texture/texture_manager.hpp"
 #include "backend/config_loader.hpp"
 #include "backend/asset_manager.hpp"
 
@@ -381,7 +380,6 @@ namespace rt {
     CUDA_ASSERT(cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth));
     CUDA_ASSERT(cudaMalloc(&m_deviceTonemappingValue, sizeof(float)));
     CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams)));
-    CTextureManager::allocateDeviceMemory();
     CAssetManager::allocateDeviceMemory();
   }
 
@@ -412,7 +410,6 @@ namespace rt {
     launchParams.numSamples = m_numSamples;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice));
 
-    CTextureManager::copyToDevice();
     CAssetManager::copyToDevice();
   }
 
@@ -450,7 +447,6 @@ namespace rt {
     CUDA_ASSERT(cudaFree(m_deviceTonemappingValue));
     CUDA_ASSERT(cudaFree(m_deviceLaunchParams));
 
-    CTextureManager::freeDeviceMemory();
     CAssetManager::freeDeviceMemory();
   }
   SFrame Raytracer::retrieveFrame() const {

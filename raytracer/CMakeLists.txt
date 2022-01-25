@@ -54,7 +54,7 @@ set(SOURCE_FILES
 	src/texture/texture.cu
 	src/backend/rt_backend.cu
 	src/mesh/mesh.cu
-	src/texture/texture_manager.cu
+	#src/texture/texture_manager.cu
 	src/backend/config_loader.cu
 	src/backend/asset_manager.cu
 	src/backend/build_optix_accel.cu
@@ -112,7 +112,7 @@ set(HEADER_FILES
 	include/backend/rt_backend.hpp
 	include/backend/types.hpp
 	include/mesh/mesh.hpp
-	include/texture/texture_manager.hpp
+	#include/texture/texture_manager.hpp
 	include/backend/config_loader.hpp
 	config.json
 	include/backend/asset_manager.hpp

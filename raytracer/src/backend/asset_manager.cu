@@ -8,6 +8,7 @@
 #include "material/material.hpp"
 #include "utility/debugging.hpp"
 #include "medium/nvdb_medium.hpp"
+#include "texture/texture.hpp"
 
 namespace rt {
   std::unordered_map<std::string, size_t> CAssetManager::s_submeshes;
@@ -17,6 +18,8 @@ namespace rt {
   std::unordered_map<SMaterialKey, CMaterial*, SMaterialHasher> CAssetManager::s_deviceMaterials;
   std::unordered_map<SMediumKey, CNVDBMedium*, SMediumHasher> CAssetManager::s_hostMedia;
   std::unordered_map<SMediumKey, CNVDBMedium*, SMediumHasher> CAssetManager::s_deviceMedia;
+  std::unordered_map<STextureKey, CTexture*, STextureHasher> CAssetManager::s_hostTextures;
+  std::unordered_map<STextureKey, CTexture*, STextureHasher> CAssetManager::s_deviceTextures;
 
   std::vector<std::tuple<CMesh*, CMaterial*>> CAssetManager::loadWithAssimp(const std::string& assetsBasePath, const std::string& meshFileName, size_t submeshOffset) {
     std::string meshPath = assetsBasePath + "/" + meshFileName;
@@ -120,7 +123,36 @@ namespace rt {
     return medium;
   }
 
+  CTexture* CAssetManager::loadTexture(const std::string& path, ETextureType type) {
+    auto texIter = s_hostTextures.find({ path, type });
+    if (texIter != s_hostTextures.end()) {
+      return texIter->second;
+    }
+    else {
+      CTexture* tex = new CTexture(path, type);
+      s_hostTextures[{path, type}] = tex;
+      return tex;
+    }
+  }
+
+  CTexture* CAssetManager::loadAlpha(const std::string& path) {
+    auto texIter = s_hostTextures.find({ path, ALPHA });
+    if (texIter != s_hostTextures.end()) {
+      return texIter->second;
+    }
+    else {
+      CTexture* tex = new CTexture();
+      tex->loadAlpha(path);
+      s_hostTextures[{path, ALPHA}] = tex;
+      return tex;
+    }
+  }
+
   void CAssetManager::allocateDeviceMemory() {
+    for (auto tex : s_hostTextures) {
+      CUDA_ASSERT(cudaMalloc(&s_deviceTextures[tex.first], sizeof(CTexture)));
+      tex.second->allocateDeviceMemory();
+    }
     for (auto mesh : s_hostMeshes) {
       CUDA_ASSERT(cudaMalloc(&s_deviceMeshes[mesh.first], sizeof(CMesh)));
       mesh.second->allocateDeviceMemory();
@@ -136,6 +168,9 @@ namespace rt {
   }
 
   void CAssetManager::copyToDevice() {
+    for (auto tex : s_hostTextures) {
+      CUDA_ASSERT(cudaMemcpy(s_deviceTextures[tex.first], &tex.second->copyToDevice(), sizeof(CTexture), cudaMemcpyHostToDevice));
+    }
     for (auto mesh : s_hostMeshes) {
       CUDA_ASSERT(cudaMemcpy(s_deviceMeshes[mesh.first], &mesh.second->copyToDevice(), sizeof(CMesh), cudaMemcpyHostToDevice));
     }
@@ -148,6 +183,10 @@ namespace rt {
   }
 
   void CAssetManager::freeDeviceMemory() {
+    for (auto tex : s_deviceTextures) {
+      s_hostTextures[tex.first]->freeDeviceMemory();
+      CUDA_ASSERT(cudaFree(tex.second));
+    }
     for (auto mesh : s_deviceMeshes) {
       s_hostMeshes[mesh.first]->freeDeviceMemory();
       CUDA_ASSERT(cudaFree(mesh.second));
@@ -201,12 +240,28 @@ namespace rt {
     }
   }
 
+  CTexture* CAssetManager::deviceTexture(const std::string& path, ETextureType type) {
+    auto texIter = s_deviceTextures.find({ path, type });
+    if (texIter != s_deviceTextures.end()) {
+      return texIter->second;
+    }
+    else {
+      return nullptr;
+    }
+  }
+
   void CAssetManager::release() {
+    for (auto texture : s_hostTextures) {
+      delete texture.second;
+    }
     for (auto mesh : s_hostMeshes) {
       delete mesh.second;
     }
     for (auto medium : s_hostMedia) {
       delete medium.second;
+    }
+    for (auto material : s_hostMaterials) {
+      delete material.second;
     }
   }
 }
