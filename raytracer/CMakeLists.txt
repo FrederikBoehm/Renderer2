@@ -10,6 +10,7 @@ target_compile_features(cuda_to_ptx PRIVATE cxx_std_17)
 #target_compile_definitions(cuda_to_ptx PRIVATE NANOVDB_USE_INTRINSICS=1 BOOST_PP_VARIADICS=0)
 target_compile_definitions(cuda_to_ptx PRIVATE -DNANOVDB_USE_INTRINSICS=1 _ENABLE_EXTENDED_ALIGNED_STORAGE)
 #target_compile_options(cuda_to_ptx PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-DNANOVDB_USE_INTRINSICS>")
+set_property(TARGET cuda_to_ptx PROPERTY CUDA_ARCHITECTURES 52-virtual)
 
 target_include_directories(cuda_to_ptx PRIVATE include)
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/glm")
@@ -168,4 +169,19 @@ endif()
 if (GUI)
 target_compile_definitions(raytracer PRIVATE GUI_PLATFORM)
 endif()
+
+add_custom_command(TARGET raytracer POST_BUILD        
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:assimp>
+        $<TARGET_FILE_DIR:raytracer>)
+
+add_custom_command(TARGET raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:glad>
+        $<TARGET_FILE_DIR:raytracer>)
+
+add_custom_command(TARGET raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:glfw>
+        $<TARGET_FILE_DIR:raytracer>)
 
