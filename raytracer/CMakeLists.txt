@@ -23,6 +23,7 @@ get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIR
 
 target_include_directories(cuda_to_ptx PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE_DEBUG}>
 											 $<$<CONFIG:Release>:${NANOVDB_INCLUDE_RELEASE}>)
+add_dependencies(cuda_to_ptx openvdb_external_dbg openvdb_external_rel)
 
 set(SOURCE_FILES 
 	main.cu
@@ -141,11 +142,13 @@ target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE
 target_link_libraries(raytracer PRIVATE glm)
 target_link_libraries(raytracer PRIVATE visualisation)
 target_link_libraries(raytracer PRIVATE assimp)
+add_dependencies(raytracer cuda_to_ptx)
 #target_link_libraries(raytracer PRIVATE cuda_to_ptx)
 #message("[DEBUG] Adding link library openvdb")
-#target_link_libraries(raytracer PRIVATE debug lib_openvdb_external_dbg optimized lib_openvdb_external_rel)
+target_link_libraries(raytracer PRIVATE debug lib_openvdb_external_dbg optimized lib_openvdb_external_rel)
 #target_link_libraries(raytracer PRIVATE lib_openvdb_external_rel)
 #target_link_libraries(raytracer PRIVATE openvdb)
+target_link_libraries(raytracer PRIVATE TBB::tbb) # Required from openvdb
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES} ${OPTIX_SOURCE_FILES})
 
@@ -155,6 +158,10 @@ target_compile_options(raytracer PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-gencode=ar
 target_compile_features(raytracer PRIVATE cxx_std_17)
 target_compile_definitions(raytracer PRIVATE NANOVDB_USE_INTRINSICS=1 BOOST_PP_VARIADICS=0 _ENABLE_EXTENDED_ALIGNED_STORAGE)
 target_compile_definitions(raytracer PRIVATE "$<$<CONFIG:DEBUG>:DEBUG>" "$<$<CONFIG:RELEASE>:RELEASE>")
+
+if (MSVC)
+target_compile_options(raytracer PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:/bigobj>")
+endif()
 
 if (UNIX)
 set_target_properties(raytracer PROPERTIES CUDA_ARCHITECTURES "75")
@@ -183,5 +190,20 @@ add_custom_command(TARGET raytracer POST_BUILD
 add_custom_command(TARGET raytracer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:glfw>
+        $<TARGET_FILE_DIR:raytracer>)
+
+get_target_property(OPENVDB_BIN_DEBUG lib_openvdb_external_dbg IMPORTED_LOCATION)
+get_target_property(OPENVDB_BIN_RELEASE lib_openvdb_external_rel IMPORTED_LOCATION)
+
+add_custom_command(TARGET raytracer POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<$<CONFIG:DEBUG>:${OPENVDB_BIN_DEBUG}>
+		$<$<CONFIG:RELEASE>:${OPENVDB_BIN_RELEASE}>
+		$<TARGET_FILE_DIR:raytracer>)
+
+add_custom_command(TARGET raytracer POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<$<CONFIG:DEBUG>:${TBB_BIN_DEBUG}>
+		$<$<CONFIG:RELEASE>:${TBB_BIN_RELEASE}>
         $<TARGET_FILE_DIR:raytracer>)
 

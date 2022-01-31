@@ -8,10 +8,10 @@ ExternalProject_Add(openvdb_external_dbg
         CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
 				   "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/3rdparty/openvdb_dbg/install"
 				   "-DVCPKG_TARGET_TRIPLET:STRING=x64-windows"
-				   "-DOPENVDB_BUILD_CORE=OFF"
+				   "-DOPENVDB_BUILD_CORE=ON"
 				   "-DOPENVDB_CORE_STATIC:BOOL=OFF"
 				   "-DOPENVDB_CORE_SHARED:BOOL=ON"
-				   "-DUSE_TBB=OFF"
+				   "-DUSE_TBB=OFF" # For nanovdb
 				   "-DUSE_BLOSC=OFF"
 				   "-DUSE_ZLIB=OFF"
                    "-DUSE_NANOVDB:BOOL=ON"
@@ -39,10 +39,10 @@ ExternalProject_Add(openvdb_external_rel
         CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/scripts/buildsystems/vcpkg.cmake"
 				   "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/3rdparty/openvdb_rel/install"
 				   "-DVCPKG_TARGET_TRIPLET:STRING=x64-windows"
-				   "-DOPENVDB_BUILD_CORE=OFF"
+				   "-DOPENVDB_BUILD_CORE=ON"
 				   "-DOPENVDB_CORE_STATIC:BOOL=OFF"
 				   "-DOPENVDB_CORE_SHARED:BOOL=ON"
-				   "-DUSE_TBB=OFF"
+				   "-DUSE_TBB=OFF" # For nanovdb
 				   "-DUSE_BLOSC=OFF"
 				   "-DUSE_ZLIB=OFF"
                    "-DUSE_NANOVDB:BOOL=ON"
@@ -96,7 +96,7 @@ set(NANOVDB_USE_INTRINSICS ON CACHE BOOL "Use compiler intrinsics" FORCE)
 set(GUI false CACHE BOOL "Setup project with available GUI")
 set(LTO false CACHE BOOL "Setup project with link time optimization")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Cmake install prefix" FORCE)
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
+set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING INTERNAL FORCE)
 set(CMAKE_BUILD_PARALLEL_LEVEL 4)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -106,6 +106,22 @@ endif()
 if (UNIX)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
+
+set(TBB_HINT_PATH ${CMAKE_SOURCE_DIR}/3rdparty/vcpkg/installed/x64-windows)
+find_package(TBB HINTS ${TBB_HINT_PATH} CONFIG REQUIRED)
+set(TBB_BIN_RELEASE "")
+set(TBB_BIN_DEBUG "")
+if (WIN32)
+	file(GLOB_RECURSE TBB_BIN_RELEASE ${TBB_HINT_PATH}/*/tbb.dll)
+	file(GLOB_RECURSE TBB_BIN_DEBUG ${TBB_HINT_PATH}/*/tbb_debug.dll)
+endif()
+
+if (NOT TBB_BIN_RELEASE)
+	message(FATAL_ERROR "Could not initialize TBB_BIN_RELEASE")
+endif ()
+if (NOT TBB_BIN_DEBUG)
+	message(FATAL_ERROR "Could not initialize TBB_BIN_DEBUG")
+endif ()
 
 add_library(lib_openvdb_external_dbg SHARED IMPORTED)
 add_dependencies(lib_openvdb_external_dbg openvdb_external_dbg)
