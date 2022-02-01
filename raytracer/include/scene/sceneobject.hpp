@@ -10,6 +10,7 @@
 #include "backend/types.hpp"
 #include "mesh/mesh.hpp"
 #include "medium/medium_instance.hpp"
+#include "scene/sceneobject_mask.hpp"
 
 namespace rt {
   class CMedium;
@@ -36,10 +37,9 @@ namespace rt {
   class CHostSceneobject {
     friend class CSceneobjectConnection;
   public:
-    CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT);
-    CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
-    CHostSceneobject(CMesh* mesh, CMaterial* material);
-    CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
+    CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT, ESceneobjectMask mask = ESceneobjectMask::NONE);
+    CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling, ESceneobjectMask mask = ESceneobjectMask::NONE);
+    CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling, ESceneobjectMask mask = ESceneobjectMask::NONE);
     CHostSceneobject(CHostSceneobject&& sceneobject);
     ~CHostSceneobject();
 
@@ -52,6 +52,9 @@ namespace rt {
     void buildOptixAccel();
     OptixInstance getOptixInstance(uint32_t instanceId, uint32_t sbtOffset) const;
     SRecord<const CDeviceSceneobject*> getSBTHitRecord() const;
+    const SAABB& worldAABB() const;
+    SAABB modelAABB() const;
+    ESceneobjectMask mask() const;
   private:
     std::shared_ptr<CShape> m_shape;
     CMesh* m_mesh;
@@ -61,6 +64,8 @@ namespace rt {
     float m_absorption;
     glm::mat4x3 m_modelToWorld;
     glm::mat4x3 m_worldToModel;
+    SAABB m_aabb;
+    ESceneobjectMask m_mask;
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
@@ -95,6 +100,14 @@ namespace rt {
 
   inline const CDeviceSceneobject* CSceneobjectConnection::deviceSceneobject() const {
     return m_deviceSceneobject;
+  }
+
+  inline const SAABB& CHostSceneobject::worldAABB() const {
+    return m_aabb;
+  }
+
+  inline ESceneobjectMask CHostSceneobject::mask() const {
+    return m_mask;
   }
 
 }

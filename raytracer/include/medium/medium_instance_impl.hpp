@@ -35,6 +35,10 @@ namespace rt {
     const SAABB& aabb = m_medium->worldBB();
     return aabb.transform(*m_modelToWorld);
   }
+
+  inline SAABB CMediumInstance::modelBB() const {
+    return m_medium->worldBB();
+  }
 }
 
 #endif // !MEDIUM_INSTANCE_IMPL_HPP

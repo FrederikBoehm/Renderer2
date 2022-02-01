@@ -5,6 +5,8 @@
 #include "utility/qualifiers.hpp"
 #include "scene/sceneobject.hpp"
 #include "device_scene.hpp"
+#include "filtering/openvdb_backend.hpp"
+#include "scene/sceneobject_mask.hpp"
 
 namespace rt {
   
@@ -39,7 +41,7 @@ namespace rt {
     H_CALLABLE CHostScene& operator=(CHostScene&& scene);
     H_CALLABLE const std::vector<CHostSceneobject>& sceneobjects() const;
     H_CALLABLE void addSceneobject(CHostSceneobject&& sceneobject);
-    H_CALLABLE void addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling);
+    H_CALLABLE void addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling, ESceneobjectMask mask = ESceneobjectMask::NONE);
     H_CALLABLE void addLightsource(CHostSceneobject&& lightsource);
     H_CALLABLE void setEnvironmentMap(CEnvironmentMap&& envMap);
 
@@ -50,6 +52,7 @@ namespace rt {
 
     H_CALLABLE void buildOptixAccel();
     H_CALLABLE std::vector<SRecord<const CDeviceSceneobject*>> getSBTHitRecords() const;
+    H_CALLABLE std::vector<SAABB> getObjectBBs(ESceneobjectMask mask = ESceneobjectMask::ALL) const;
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
     std::vector<CHostSceneobject> m_lights;

@@ -27,7 +27,7 @@ namespace rt {
     Assimp::Importer importer;
 
     const aiScene* scene = importer.ReadFile(meshPath,
-      aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
+      aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes | aiProcess_GenBoundingBoxes);
 
     if (!scene) {
       std::cerr << "[ERROR] Failed to load scene: " << importer.GetErrorString() << std::endl;
@@ -66,7 +66,7 @@ namespace rt {
         ibo.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
       }
 
-      CMesh* mesh = new CMesh(meshPath, i, vbo, ibo, normals, tcs);
+      CMesh* mesh = new CMesh(meshPath, i, vbo, ibo, normals, tcs, reinterpret_cast<const SAABB&>(meshAi->mAABB));
       CMaterial* material = new CMaterial(materialAi, assetsBasePath, i);
 
       s_hostMeshes[{meshPath, i}] = mesh;

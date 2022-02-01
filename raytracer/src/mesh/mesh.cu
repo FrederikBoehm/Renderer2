@@ -4,19 +4,20 @@
 #include "utility/functions.hpp"
 #include "backend/build_optix_accel.hpp"
 namespace rt {
-  CMesh::CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs):
+  CMesh::CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs, const SAABB& aabb):
     m_pathLength(path.size()),
     m_path((char*)malloc(path.size())),
     m_submeshId(submeshId),
     m_deviceObject(false),
     m_traversableHandle(NULL),
     m_deviceGasBuffer(NULL),
+    m_aabb(aabb),
     m_deviceResource(nullptr) {
     initBuffers(vbo, ibo, normals, tcs);
     memcpy(m_path, path.data(), path.size());
   }
 
-  CMesh::CMesh():
+  CMesh::CMesh() :
     m_pathLength(0),
     m_path(nullptr),
     m_submeshId(0),
@@ -29,6 +30,7 @@ namespace rt {
     m_deviceObject(false),
     m_traversableHandle(NULL),
     m_deviceGasBuffer(NULL),
+    m_aabb(),
     m_deviceResource(nullptr) {
 
   }
@@ -46,6 +48,7 @@ namespace rt {
     m_deviceObject(std::move(mesh.m_deviceObject)),
     m_traversableHandle(std::exchange(mesh.m_traversableHandle, NULL)),
     m_deviceGasBuffer(std::exchange(mesh.m_deviceGasBuffer, NULL)),
+    m_aabb(std::move(mesh.m_aabb)),
     m_deviceResource(std::move(mesh.m_deviceResource)) {
 
   }
@@ -120,6 +123,7 @@ namespace rt {
     deviceMesh.m_ibo = m_deviceResource->d_ibo;
     deviceMesh.m_normals = m_deviceResource->d_normals;
     deviceMesh.m_tcs = m_deviceResource->d_tcs;
+    deviceMesh.m_aabb = m_aabb;
     deviceMesh.m_deviceObject = true;
     return deviceMesh;
   }

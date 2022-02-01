@@ -26,10 +26,10 @@ namespace rt {
     H_CALLABLE SBuildInputWrapper getOptixBuildInput();
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
   
+    H_CALLABLE OptixAabb getAABB() const;
   private:
     float m_radius;
 
-    H_CALLABLE OptixAabb getAABB() const;
   };
 
   inline SHitInformation CCircle::intersect(const CRay& ray) const {

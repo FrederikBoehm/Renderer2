@@ -1,7 +1,7 @@
 #ifndef AABB_HPP
 #define AABB_HPP
 #include <glm/glm.hpp>
-#include "utility/debugging.hpp"
+#include "utility/qualifiers.hpp"
 #include "nanovdb/NanoVDB.h"
 namespace rt {
   struct SAABB {
@@ -9,7 +9,7 @@ namespace rt {
     DH_CALLABLE SAABB transform(const glm::mat4x3& transformation) const {
       glm::vec3 newMin = transformation * glm::vec4(m_min, 1.f);
       glm::vec3 newMax = transformation * glm::vec4(m_max, 1.f);
-      return { newMin, newMax };
+      return { glm::min(newMin, newMax), glm::max(newMin, newMax) };
     }
 
     DH_CALLABLE SAABB& operator=(const nanovdb::BBoxR& bbox) {

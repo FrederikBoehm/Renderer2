@@ -3,16 +3,23 @@
 #include "utility/qualifiers.hpp"
 #include "scene/scene.hpp"
 #include "camera/camera.hpp"
+#include <memory>
 
 namespace rt {
+  struct SFilteringConfig {
+    bool filter;
+    glm::ivec3 numVoxels;
+  };
+
   struct SConfig {
     uint16_t frameWidth;
     uint16_t frameHeight;
     uint8_t channelsPerPixel;
     uint16_t samples;
     float gamma;
-    CCamera camera;
-    CHostScene scene;
+    std::shared_ptr<CCamera> camera;
+    std::shared_ptr<CHostScene> scene;
+    SFilteringConfig filteringConfig;
   };
 
   class CConfigLoader {

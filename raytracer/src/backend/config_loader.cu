@@ -7,6 +7,7 @@
 #include "medium/nvdb_medium.hpp"
 #include <exception>
 #include "backend/asset_manager.hpp"
+#include "scene/sceneobject_mask.hpp"
 
 namespace rt {
   H_CALLABLE inline bool parseVec3(const nlohmann::json& jArray, glm::vec3* outVec) {
@@ -16,6 +17,17 @@ namespace rt {
       outVec->x = jArray[0].get<float>();
       outVec->y = jArray[1].get<float>();
       outVec->z = jArray[2].get<float>();
+    }
+    return valid;
+  }
+
+  H_CALLABLE inline bool parseVec3(const nlohmann::json& jArray, glm::ivec3* outVec) {
+    bool valid = true;
+    valid = valid && !jArray.empty() && jArray.size() == 3 && outVec;
+    if (valid) {
+      outVec->x = jArray[0].get<int>();
+      outVec->y = jArray[1].get<int>();
+      outVec->z = jArray[2].get<int>();
     }
     return valid;
   }
@@ -38,6 +50,17 @@ namespace rt {
     return valid;
   }
 
+  H_CALLABLE bool fillFilteringInfo(const nlohmann::json& filtering, SConfig* config) {
+    auto filter = filtering["Active"];
+    glm::ivec3 numVoxels;
+    bool valid = !filtering.empty() && parseVec3(filtering["NumVoxels"], &numVoxels) && !filter.empty();
+    if (valid) {
+      config->filteringConfig.filter = filter.get<bool>();
+      config->filteringConfig.numVoxels = numVoxels;
+    }
+    return valid;
+  }
+
   H_CALLABLE bool fillCameraInfo(const nlohmann::json& camera, SConfig* config) {
     auto fov = camera["Fov"];
 
@@ -48,7 +71,7 @@ namespace rt {
     bool valid = !camera.empty() && !fov.empty() && parseVec3(camera["Pos"], &pos) && parseVec3(camera["LookAt"], &lookAt) && parseVec3(camera["Up"], &up);
 
     if (valid) {
-      config->camera = CCamera(config->frameWidth,
+      config->camera = std::make_shared<CCamera>(config->frameWidth,
         config->frameHeight,
         fov.get<float>(),
         pos,
@@ -87,6 +110,8 @@ namespace rt {
     valid = valid && !alphaX.empty() && !alphaY.empty() && !etaI.empty() && !etaT.empty();
 
     if (valid) {
+      auto mask = sceneobject.find("Mask");
+
       scene->addSceneobject(CHostSceneobject(
         new CCircle(pos, radius.get<float>(), normal),
         diffuseReflection,
@@ -95,7 +120,8 @@ namespace rt {
         alphaX.get<float>(),
         alphaY.get<float>(),
         etaI.get<float>(),
-        etaT.get<float>()));
+        etaT.get<float>(),
+        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
     }
     return valid;
   }
@@ -128,6 +154,8 @@ namespace rt {
     valid = valid && !alphaX.empty() && !alphaY.empty() && !etaI.empty() && !etaT.empty();
 
     if (valid) {
+      auto mask = sceneobject.find("Mask");
+
       scene->addSceneobject(CHostSceneobject(
         new Sphere(pos, radius.get<float>(), normal),
         diffuseReflection,
@@ -136,7 +164,8 @@ namespace rt {
         alphaX.get<float>(),
         alphaY.get<float>(),
         etaI.get<float>(),
-        etaT.get<float>()));
+        etaT.get<float>(),
+        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
     }
     return valid;
   }
@@ -167,6 +196,8 @@ namespace rt {
     valid = valid && parseVec3(sceneobject["Scaling"], &scaling);
 
     if (valid) {
+      auto mask = sceneobject.find("Mask");
+
       CNVDBMedium* medium = CAssetManager::loadMedium(
         path.get<std::string>(),
         sigmaA,
@@ -177,7 +208,8 @@ namespace rt {
         medium,
         pos,
         orientation,
-        scaling));
+        scaling,
+        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
     }
     return valid;
   }
@@ -199,23 +231,28 @@ namespace rt {
     valid = valid && parseVec3(sceneobject["Scaling"], &scaling);
 
     if (valid) {
+      auto mask = sceneobject.find("Mask");
+
       scene->addSceneobjectsFromAssimp(
         directory.get<std::string>(),
         filename.get<std::string>(),
         pos,
         orientation,
-        scaling);
+        scaling,
+        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>()));
     }
     return valid;
   }
 
   H_CALLABLE bool fillSceneInfo(const nlohmann::json& scene, SConfig* config) {
+    config->scene = std::make_shared<CHostScene>();
+
     bool valid = true;
     auto envmap = scene["Envmap"];
 
     valid = valid && !scene.empty() && !envmap.empty();
     if (valid) {
-      config->scene.setEnvironmentMap(CEnvironmentMap(envmap.get<std::string>()));
+      config->scene->setEnvironmentMap(CEnvironmentMap(envmap.get<std::string>()));
     }
 
     auto sceneobjects = scene["Sceneobjects"];
@@ -225,16 +262,16 @@ namespace rt {
       if (valid) {
         std::string typeStr = type.get<std::string>();
         if (typeStr == "Circle") {
-          valid = valid && addCircle(sceneobject, &config->scene);
+          valid = valid && addCircle(sceneobject, config->scene.get());
         }
         else if (typeStr == "Sphere") {
-          valid = valid && addSphere(sceneobject, &config->scene);
+          valid = valid && addSphere(sceneobject, config->scene.get());
         }
         else if (typeStr == "Medium") {
-          valid = valid && addMedium(sceneobject, &config->scene);
+          valid = valid && addMedium(sceneobject, config->scene.get());
         }
         else if (typeStr == "Mesh") {
-          valid = valid && addMesh(sceneobject, &config->scene);
+          valid = valid && addMesh(sceneobject, config->scene.get());
         }
       }
     }
@@ -253,6 +290,7 @@ namespace rt {
     SConfig config;
 
     valid = valid && fillGeneralInfo(jConfig["General"], &config);
+    valid = valid && fillFilteringInfo(jConfig["Filtering"], &config);
     valid = valid && fillCameraInfo(jConfig["Camera"], &config);
     valid = valid && fillSceneInfo(jConfig["Scene"], &config);
     if (!valid) {

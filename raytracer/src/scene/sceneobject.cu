@@ -13,6 +13,7 @@
 #include <optix/optix_stubs.h>
 #include "utility/functions.hpp"
 #include "backend/asset_manager.hpp"
+#include "medium/medium_instance_impl.hpp"
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
@@ -25,19 +26,27 @@ namespace rt {
     }
   }
 
-  CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT) :
+  CHostSceneobject::CHostSceneobject(CShape* shape, const glm::vec3& diffuseReflection, float diffuseRougness, const glm::vec3& specularReflection, float alphaX, float alphaY, float etaI, float etaT, ESceneobjectMask mask) :
     m_shape(shape),
     m_mesh(nullptr),
     m_material(nullptr),
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
+    m_mask(mask),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_material = new CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT));
-
+    switch (shape->shape()) {
+    case CIRCLE:
+      m_aabb = reinterpret_cast<SAABB&>(reinterpret_cast<CCircle*>(m_shape.get())->getAABB());
+      break;
+    case SPHERE:
+      m_aabb = reinterpret_cast<SAABB&>(reinterpret_cast<Sphere*>(m_shape.get())->getAABB());
+      break;
+    }
   }
 
-  CHostSceneobject::CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) :
+  CHostSceneobject::CHostSceneobject(CNVDBMedium* medium, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling, ESceneobjectMask mask) :
     m_shape(nullptr),
     m_mesh(nullptr),
     m_material(nullptr),
@@ -45,8 +54,10 @@ namespace rt {
     m_flag(ESceneobjectFlag::VOLUME),
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
+    m_mask(mask),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
+    m_aabb = m_medium->worldBB();
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -57,22 +68,14 @@ namespace rt {
     m_flag(std::move(sceneobject.m_flag)),
     m_modelToWorld(std::move(sceneobject.m_modelToWorld)),
     m_worldToModel(std::move(sceneobject.m_worldToModel)),
+    m_aabb(std::move(sceneobject.m_aabb)),
+    m_mask(std::move(sceneobject.m_mask)),
+    m_traversableHandle(std::exchange(sceneobject.m_traversableHandle, NULL)),
     m_deviceGasBuffer(std::exchange(sceneobject.m_deviceGasBuffer, NULL)),
     m_hostDeviceConnection(this) {
   }
 
-  CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material):
-    m_shape(nullptr),
-    m_mesh(mesh),
-    m_material(material),
-    m_medium(nullptr),
-    m_flag(ESceneobjectFlag::GEOMETRY),
-    m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
-
-  }
-
-  CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) :
+  CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling, ESceneobjectMask mask) :
     m_shape(nullptr),
     m_mesh(mesh),
     m_material(material),
@@ -80,9 +83,10 @@ namespace rt {
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
+    m_mask(mask),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
-
+    m_aabb = m_mesh->aabb().transform(m_modelToWorld);
   }
 
   CSceneobjectConnection::CSceneobjectConnection(CHostSceneobject* hostSceneobject):
@@ -352,6 +356,18 @@ namespace rt {
 
   glm::mat4 CHostSceneobject::getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling) {
     return glm::translate(worldPos) * getRotation(orientation) * glm::scale(scaling);
+  }
+
+  SAABB CHostSceneobject::modelAABB() const {
+    if (m_shape.get()) {
+      return m_shape->aabb();
+    }
+    else if (m_mesh) {
+      return m_mesh->aabb();
+    }
+    else if (m_medium) {
+      return m_medium->modelBB();
+    }
   }
 
 

@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <glm/glm.hpp>
+#include "filtering/openvdb_backend.hpp"
+#include "backend/config_loader.hpp"
 
 int main(int argc, char** argv) {
   using namespace rt;
@@ -16,21 +18,29 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  rt::Raytracer raytracer(argv[1]);
+  SConfig config = CConfigLoader::loadConfig(argv[1]);
+  if (config.filteringConfig.filter) {
+
+    filter::SOpenvdbBackendConfig openvdbConfig;
+    openvdbConfig.boundingBoxes = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
+    openvdbConfig.numVoxels = config.filteringConfig.numVoxels;
+    if (openvdbConfig.boundingBoxes.size() > 0) {
+      filter::COpenvdbBackend* openvdbBackend = filter::COpenvdbBackend::instance();
+      openvdbBackend->init(openvdbConfig);
+      openvdbBackend->setValues();
+      nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = openvdbBackend->getNanoGridHandle();
+      openvdbBackend->writeToFile(gridHandle, "./filtering", "filtered_mesh.nvdb");
+    }
+    else {
+      printf("[WARNING]: No bounding boxes provided --> proceed without filtering.\n");
+    }
+
+  }
+
+  rt::Raytracer raytracer(config);
+
   vis::CVisualisation visualizer(raytracer.getFrameWidth(), raytracer.getFrameHeight());
 
-
-  //for (uint8_t i = 0; i < 10; ++i) {
-  //  CPerformanceMonitoring::startMeasurement("renderFrame (Method)");
-  //  SFrame frame = raytracer.renderFrame();
-  //  CPerformanceMonitoring::endMeasurement("renderFrame (Method)");
-  //  //rt::Raytracer raytracer2(WIDTH, HEIGHT);
-  //}
-
-  //std::fstream s("./renderFrame_method.csv", std::fstream::out);
-  //std::string output = rt::CPerformanceMonitoring::toString();
-  //s.write(output.c_str(), output.size());
-  //std::cout << output << std::endl;
 
 #ifdef GUI_PLATFORM
   {
@@ -53,7 +63,7 @@ int main(int argc, char** argv) {
       mouseMoveDirection = visualizer.getMouseMoveDirection();
       renderDetailed = true;
     }
-    
+
     if (renderDetailed) {
       auto keyCallback = [&visualizer]() -> bool {
         visualizer.pollEvents();

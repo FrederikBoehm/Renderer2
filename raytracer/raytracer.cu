@@ -205,20 +205,18 @@ namespace rt {
     }
   }
 
-  Raytracer::Raytracer(const char* configPath) :
+  Raytracer::Raytracer(const SConfig& config) :
+    m_frameWidth(config.frameWidth),
+    m_frameHeight(config.frameHeight),
+    m_bpp(config.channelsPerPixel),
+    m_gamma(config.gamma),
+    m_numSamples(config.samples),
+    m_scene(config.scene),
+    m_hostCamera(config.camera),
     m_deviceCamera(nullptr),
     m_deviceFrameData(nullptr),
     m_deviceSampler(nullptr),
     m_blockSize(128) {
-
-    SConfig config = CConfigLoader::loadConfig(configPath);
-    m_frameWidth = config.frameWidth;
-    m_frameHeight = config.frameHeight;
-    m_bpp = config.channelsPerPixel;
-    m_gamma = config.gamma;
-    m_numSamples = config.samples;
-    m_scene = std::move(config.scene);
-    m_hostCamera = std::move(config.camera);
 
     allocateDeviceMemory();
     initOptix();
@@ -343,14 +341,14 @@ namespace rt {
 
     // Move camera only along along three axes around up vector
     {
-      glm::vec3 viewDir = m_hostCamera.viewToWorld() * glm::vec4(0.f, 0.f, -1.f, 0.f);
-      glm::vec3 moveDirRight = glm::cross(viewDir, m_hostCamera.up());
-      glm::vec3 moveDirForward = glm::cross(m_hostCamera.up(), moveDirRight);
+      glm::vec3 viewDir = m_hostCamera->viewToWorld() * glm::vec4(0.f, 0.f, -1.f, 0.f);
+      glm::vec3 moveDirRight = glm::cross(viewDir, m_hostCamera->up());
+      glm::vec3 moveDirForward = glm::cross(m_hostCamera->up(), moveDirRight);
 
-      glm::mat4x3 moveToWorld = glm::mat4x3(glm::normalize(moveDirRight), glm::normalize(m_hostCamera.up()), glm::normalize(moveDirForward), m_hostCamera.position());
+      glm::mat4x3 moveToWorld = glm::mat4x3(glm::normalize(moveDirRight), glm::normalize(m_hostCamera->up()), glm::normalize(moveDirForward), m_hostCamera->position());
       glm::vec3 posWorldSpace = moveToWorld * glm::vec4(posCamSpace, 1.f);
 
-      m_hostCamera.updatePosition(posWorldSpace);
+      m_hostCamera->updatePosition(posWorldSpace);
     }
 
     {
@@ -358,24 +356,24 @@ namespace rt {
       viewDir += glm::vec3(mouseMoveDir.x, mouseMoveDir.y, 0.f) * 0.03f;
       viewDir = glm::normalize(viewDir);
       glm::vec3 lookAtCamSpace = viewDir;
-      glm::vec3 lookAtWorldSpace = m_hostCamera.viewToWorld() * glm::vec4(lookAtCamSpace, 1.f);
-      m_hostCamera.updateLookAt(lookAtWorldSpace);
+      glm::vec3 lookAtWorldSpace = m_hostCamera->viewToWorld() * glm::vec4(lookAtCamSpace, 1.f);
+      m_hostCamera->updateLookAt(lookAtWorldSpace);
     }
 
 
 
 
-    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, &m_hostCamera, sizeof(CCamera), cudaMemcpyHostToDevice));
+    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, m_hostCamera.get(), sizeof(CCamera), cudaMemcpyHostToDevice));
   }
 
   void Raytracer::allocateDeviceMemory() {
-    m_scene.allocateDeviceMemory();
+    m_scene->allocateDeviceMemory();
     CUDA_ASSERT(cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight));
     CUDA_ASSERT(cudaMalloc(&m_deviceCamera, sizeof(CCamera)));
     CUDA_ASSERT(cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame)));
-    CUDA_ASSERT(cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
-    CUDA_ASSERT(cudaMalloc(&m_deviceFilteredFrame, sizeof(float)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
-    CUDA_ASSERT(cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera.sensorWidth()*m_hostCamera.sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFrameData, sizeof(float)*m_hostCamera->sensorWidth()*m_hostCamera->sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFilteredFrame, sizeof(float)*m_hostCamera->sensorWidth()*m_hostCamera->sensorHeight()*m_bpp));
+    CUDA_ASSERT(cudaMalloc(&m_deviceFrameDataBytes, sizeof(uint8_t)*m_hostCamera->sensorWidth()*m_hostCamera->sensorHeight()*m_bpp));
     CUDA_ASSERT(cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth));
     CUDA_ASSERT(cudaMalloc(&m_deviceTonemappingValue, sizeof(float)));
     CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams)));
@@ -383,13 +381,12 @@ namespace rt {
   }
 
   void Raytracer::copyToDevice() {
-    m_scene.copyToDevice();
-    CCamera deviceCamera = m_hostCamera;
-    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, &deviceCamera, sizeof(CCamera), cudaMemcpyHostToDevice));
+    m_scene->copyToDevice();
+    CUDA_ASSERT(cudaMemcpy(m_deviceCamera, m_hostCamera.get(), sizeof(CCamera), cudaMemcpyHostToDevice));
     
     SDeviceFrame f;
-    f.width = m_hostCamera.sensorWidth();
-    f.height = m_hostCamera.sensorHeight();
+    f.width = m_hostCamera->sensorWidth();
+    f.height = m_hostCamera->sensorHeight();
     f.bpp = m_bpp;
     f.data = m_deviceFrameData;
     f.filtered = m_deviceFilteredFrame;
@@ -397,13 +394,13 @@ namespace rt {
     CUDA_ASSERT(cudaMemcpy(m_deviceFrame, &f, sizeof(SDeviceFrame), cudaMemcpyHostToDevice));
 
     SLaunchParams launchParams;
-    launchParams.width = m_hostCamera.sensorWidth();
-    launchParams.height = m_hostCamera.sensorHeight();
+    launchParams.width = m_hostCamera->sensorWidth();
+    launchParams.height = m_hostCamera->sensorHeight();
     launchParams.bpp = m_bpp;
     launchParams.data = m_deviceFrameData;
     launchParams.filtered = m_deviceFilteredFrame;
     launchParams.dataBytes = m_deviceFrameDataBytes;
-    launchParams.scene = m_scene.deviceScene();
+    launchParams.scene = m_scene->deviceScene();
     launchParams.camera = m_deviceCamera;
     launchParams.sampler = m_deviceSampler;
     launchParams.numSamples = m_numSamples;
@@ -432,13 +429,13 @@ namespace rt {
     rtBackend->createModule(modulePath);
     rtBackend->createProgramGroups();
     rtBackend->createPipeline();
-    const std::vector <SRecord<const CDeviceSceneobject*>> sbtHitRecords = m_scene.getSBTHitRecords();
+    const std::vector <SRecord<const CDeviceSceneobject*>> sbtHitRecords = m_scene->getSBTHitRecords();
     rtBackend->createSBT(sbtHitRecords);
-    m_scene.buildOptixAccel();
+    m_scene->buildOptixAccel();
   }
 
   void Raytracer::freeDeviceMemory() {
-    m_scene.freeDeviceMemory();
+    m_scene->freeDeviceMemory();
     CUDA_ASSERT(cudaFree(m_deviceCamera));
     CUDA_ASSERT(cudaFree(m_deviceFrameData));
     CUDA_ASSERT(cudaFree(m_deviceFrame));

@@ -4,11 +4,13 @@
 #include <glm/glm.hpp>
 #include "intersect/aabb.hpp"
 #include <string>
+#include <optix/optix_types.h>
 namespace rt {
   class CNVDBMedium;
   class CPhaseFunction;
   class CRay;
   class SInteraction;
+  class CSampler;
 
   // Adaptor for NanoVDB Media: Transforms between world and model space
   class CMediumInstance {
@@ -20,6 +22,7 @@ namespace rt {
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
     DH_CALLABLE const CPhaseFunction& phase() const;
     DH_CALLABLE SAABB worldBB() const;
+    DH_CALLABLE SAABB modelBB() const;
     
     H_CALLABLE std::string path() const;
     H_CALLABLE OptixTraversableHandle getOptixHandle() const;

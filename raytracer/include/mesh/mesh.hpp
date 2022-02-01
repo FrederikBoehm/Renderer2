@@ -6,6 +6,7 @@
 #include <optix/optix_types.h>
 #include "scene/types.hpp"
 #include <string>
+#include "intersect/aabb.hpp"
 namespace rt {
   struct SMeshDeviceResource {
     glm::vec3* d_vbo;
@@ -16,7 +17,7 @@ namespace rt {
 
   class CMesh {
   public:
-    H_CALLABLE CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs);
+    H_CALLABLE CMesh(const std::string& path, size_t submeshId, const std::vector<glm::vec3>& vbo, const std::vector<glm::uvec3>& ibo, const std::vector<glm::vec3>& normals, const std::vector<glm::vec2>& tcs, const SAABB& aabb);
     H_CALLABLE CMesh();
     H_CALLABLE CMesh(CMesh&& mesh);
     H_CALLABLE ~CMesh();
@@ -31,6 +32,7 @@ namespace rt {
     DH_CALLABLE const glm::uvec3* ibo() const;
     DH_CALLABLE const glm::vec3* normals() const;
     DH_CALLABLE const glm::vec2* tcs() const;
+    DH_CALLABLE const SAABB& aabb() const;
     H_CALLABLE std::string path() const;
     H_CALLABLE size_t submeshId() const;
   private:
@@ -48,6 +50,8 @@ namespace rt {
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
+
+    SAABB m_aabb;
 
     SMeshDeviceResource* m_deviceResource;
 
@@ -68,6 +72,10 @@ namespace rt {
 
   inline const glm::vec2* CMesh::tcs() const {
     return m_tcs;
+  }
+
+  inline const SAABB& CMesh::aabb() const {
+    return m_aabb;
   }
 
   inline OptixTraversableHandle CMesh::getOptixHandle() const {

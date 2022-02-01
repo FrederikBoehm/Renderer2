@@ -8,6 +8,7 @@
 #include <optix/optix_types.h>
 #include "scene/types.hpp"
 #include "utility/functions.hpp"
+#include "intersect/aabb.hpp"
 
 //#include "intersect/ray.hpp"
 
@@ -30,6 +31,7 @@ namespace rt {
     DH_CALLABLE virtual ~CShape();
     H_CALLABLE SBuildInputWrapper getOptixBuildInput();
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
+    H_CALLABLE const SAABB& aabb() const;
 
   protected:
     DH_CALLABLE CShape(EShape shape, const glm::vec3& worldPos, const glm::vec3& normal);

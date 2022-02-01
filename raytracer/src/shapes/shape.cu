@@ -33,5 +33,14 @@ namespace rt {
     return OptixProgramGroup();
   }
 
+  const SAABB& CShape::aabb() const {
+    switch (m_shape) {
+    case SPHERE:
+      return reinterpret_cast<const SAABB&>(static_cast<const Sphere*>(this)->getAABB());
+    case CIRCLE:
+      return reinterpret_cast<const SAABB&>(static_cast<const CCircle*>(this)->getAABB());
+    }
+  }
+
   
 }

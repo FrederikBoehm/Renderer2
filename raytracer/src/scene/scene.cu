@@ -268,13 +268,23 @@ namespace rt {
     return powf(2.f / (exponent + 2.f), 0.25f);
   }
 
-  void CHostScene::addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling) {
+  void CHostScene::addSceneobjectsFromAssimp(const std::string& assetsBasePath, const std::string& meshFileName, const glm::vec3& worldPos, const glm::vec3& normal, const glm::vec3& scaling, ESceneobjectMask mask) {
     std::vector<std::tuple<CMesh*, CMaterial*>> meshdata = CAssetManager::loadMesh(assetsBasePath, meshFileName);
 
     for (auto m : meshdata) {
       auto[mesh, material] = m;
-      addSceneobject(CHostSceneobject(mesh, material, worldPos, normal, scaling));
+      addSceneobject(CHostSceneobject(mesh, material, worldPos, normal, scaling, mask));
     }
 
+  }
+
+  std::vector<SAABB> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
+    std::vector<SAABB> bbs;
+    for (const auto& sceneobject : m_sceneobjects) {
+      if (sceneobject.mask() & mask) {
+        bbs.push_back(sceneobject.modelAABB());
+      }
+    }
+    return bbs;
   }
 }

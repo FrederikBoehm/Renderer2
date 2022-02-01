@@ -11,6 +11,7 @@
 #include "../common/frame.hpp"
 #include "../common/pressed_key.hpp"
 #include <functional>
+#include "backend/config_loader.hpp"
 
 namespace rt {
   struct SDeviceFrame {
@@ -28,7 +29,7 @@ namespace rt {
 	class Raytracer {
   public:
 
-    Raytracer(const char* configPath);
+    Raytracer(const SConfig& config);
     ~Raytracer();
 
     SFrame renderFrame(const std::function<bool()>& keyCallback);
@@ -42,8 +43,8 @@ namespace rt {
     uint16_t m_frameHeight;
     uint8_t m_bpp;
 
-    CHostScene m_scene;
-    CCamera m_hostCamera;
+    std::shared_ptr<CHostScene> m_scene;
+    std::shared_ptr<CCamera> m_hostCamera;
     uint16_t m_numSamples;
     float m_gamma;
     CCamera* m_deviceCamera;

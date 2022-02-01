@@ -42,9 +42,6 @@ namespace rt {
 
   inline float CNVDBMedium::D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
     glm::vec3 pCopy = p;
-    if (!insideExclusive(p, m_ibbMin, m_ibbMax)) {
-      return 0.f;
-    }
     nanovdb::Coord coord(p.x, p.y, p.z);
     return accessor.getValue(coord);
   }
