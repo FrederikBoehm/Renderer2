@@ -14,11 +14,15 @@
 #include "integrators/path_integrator_impl.hpp"
 #include "camera/pixel_sampler.hpp"
 #include "mesh/mesh.hpp"
+#include "filtering/mesh_filter.hpp"
+#include "filtering/launch_params.hpp"
 
 
 using namespace rt;
+using namespace filter;
 
 __constant__ rt::SLaunchParams params;
+__constant__ filter::SFilterLaunchParams paramsFiltering;
 
 
 extern "C" __global__ void __closesthit__ch() {
@@ -242,5 +246,15 @@ extern "C" __global__ void __raygen__rg() {
   params.data[currentPixel + 0] += L.x;
   params.data[currentPixel + 1] += L.y;
   params.data[currentPixel + 2] += L.z;
+}
 
+extern "C" __global__ void __raygen__filtering() {
+  uint3 launchIdx = optixGetLaunchIndex();
+  uint3 launchDim = optixGetLaunchDimensions();
+
+  size_t id = launchIdx.x + launchIdx.y * launchDim.x + launchIdx.z * launchDim.x * launchDim.y;
+  CSampler& sampler = paramsFiltering.samplers[id];
+  CMeshFilter filter(reinterpret_cast<glm::ivec3&>(optixGetLaunchIndex()), paramsFiltering.indexToModel, paramsFiltering.modelToIndex, paramsFiltering.modelToWorld, paramsFiltering.worldToModel, paramsFiltering.numVoxels, paramsFiltering.worldBB, sampler);
+  float density = filter.run(*paramsFiltering.scene, paramsFiltering.samplesPerVoxel);
+  paramsFiltering.filteredData[id] = density;
 }

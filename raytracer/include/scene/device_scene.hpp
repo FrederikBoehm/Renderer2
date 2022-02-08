@@ -8,12 +8,13 @@ namespace rt {
   class CDistribution1D;
   class CEnvironmentMap;
   class CDeviceSceneobject;
+  class CRay;
 
   class CDeviceScene {
     friend class CSceneConnection;
     friend struct SSharedMemoryInitializer;
   public:
-    D_CALLABLE void intersect(const CRay& ray, SInteraction* closestInteraction) const;
+    D_CALLABLE void intersect(const CRay& ray, SInteraction* closestInteraction, OptixVisibilityMask visibilityMask = 255) const;
     D_CALLABLE glm::vec3 sampleLightSources(CSampler& sampler, glm::vec3* direction, float* pdf) const;
     D_CALLABLE glm::vec3 le(const glm::vec3& direction, float* pdf) const;
     D_CALLABLE float lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const;

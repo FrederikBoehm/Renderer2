@@ -188,6 +188,7 @@ namespace rt {
       deviceSceneobject.m_flag = m_hostSceneobject->m_flag;
       deviceSceneobject.m_modelToWorld = m_hostSceneobject->m_modelToWorld;
       deviceSceneobject.m_worldToModel = m_hostSceneobject->m_worldToModel;
+      deviceSceneobject.m_mask = m_hostSceneobject->m_mask;
       CUDA_ASSERT(cudaMemcpy(m_deviceSceneobject, &deviceSceneobject, sizeof(CDeviceSceneobject), cudaMemcpyHostToDevice));
     }
   }
@@ -315,7 +316,7 @@ namespace rt {
     instance.flags = OPTIX_INSTANCE_FLAG_NONE;
     instance.instanceId = instanceId;
     instance.sbtOffset = sbtOffset;
-    instance.visibilityMask = 0xff; // TODO: Check what has to be set here
+    instance.visibilityMask = m_mask;
     if (m_mesh) {
       instance.traversableHandle = m_mesh->getOptixHandle();
     }

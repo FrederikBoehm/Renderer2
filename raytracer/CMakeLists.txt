@@ -62,7 +62,9 @@ set(SOURCE_FILES
 	src/backend/build_optix_accel.cu
 	src/medium/medium_instance.cu
 	src/filtering/openvdb_backend.cpp
-	src/scene/sceneobject_mask.cpp)
+	src/scene/sceneobject_mask.cpp
+	pipeline.cu
+	filter.cu)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -126,7 +128,11 @@ set(HEADER_FILES
 	include/medium/medium_instance_impl.hpp
 	include/filtering/openvdb_backend.hpp
 	include/filtering/openvdb_data.hpp
-	include/scene/sceneobject_mask.hpp)
+	include/scene/sceneobject_mask.hpp
+	include/filtering/mesh_filter.hpp
+	pipeline.hpp
+	filter.hpp
+	include/filtering/launch_params.hpp)
 
 
 

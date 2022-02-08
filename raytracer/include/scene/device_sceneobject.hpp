@@ -7,6 +7,7 @@
 #include "shapes/sphere.hpp"
 #include "interaction.hpp"
 #include <optix/optix_types.h>
+#include "sceneobject_mask.hpp"
 namespace rt {
   class CHostSceneobject;
   class CNVDBMedium;
@@ -40,6 +41,8 @@ namespace rt {
 
     glm::mat4x3 m_modelToWorld;
     glm::mat4x3 m_worldToModel;
+
+    ESceneobjectMask m_mask;
 
     //CDeviceSceneobject() {}
   };

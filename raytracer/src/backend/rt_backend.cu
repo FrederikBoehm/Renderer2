@@ -47,6 +47,32 @@ namespace rt {
     OPTIX_ASSERT(optixDeviceContextDestroy(m_context));
   }
 
+  void CRTBackend::reset() {
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.raygenRecord)));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.missRecordBase)));
+    CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_sbt.hitgroupRecordBase)));
+    m_sbt.raygenRecord = NULL;
+    m_sbt.missRecordBase = NULL;
+    m_sbt.hitgroupRecordBase = NULL;
+
+    OPTIX_ASSERT(optixPipelineDestroy(m_pipeline));
+    m_pipeline = nullptr;
+
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_raygen));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_miss));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitSurface));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitVolume));
+    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitMesh));
+    m_programGroups.m_raygen = nullptr;
+    m_programGroups.m_miss = nullptr;
+    m_programGroups.m_hitSurface = nullptr;
+    m_programGroups.m_hitVolume = nullptr;
+    m_programGroups.m_hitMesh = nullptr;
+
+    OPTIX_ASSERT(optixModuleDestroy(m_module));
+    m_module = nullptr;
+  }
+
   CRTBackend* CRTBackend::instance() {
     if (s_instance == nullptr) {
       s_instance = new CRTBackend();
@@ -54,24 +80,24 @@ namespace rt {
     return s_instance;
   }
 
-  OptixPipelineCompileOptions CRTBackend::getCompileOptions() {
+  OptixPipelineCompileOptions CRTBackend::getCompileOptions(const char* launchParams) {
     OptixPipelineCompileOptions pipelineCompileOptions = {};
     pipelineCompileOptions.usesMotionBlur = false;
     pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING | OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
     pipelineCompileOptions.numPayloadValues = 9;
     pipelineCompileOptions.numAttributeValues = 7;
     pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW;
-    pipelineCompileOptions.pipelineLaunchParamsVariableName = "params";
+    pipelineCompileOptions.pipelineLaunchParamsVariableName = launchParams;
     return pipelineCompileOptions;
   }
 
-  void CRTBackend::createModule(const std::string& ptxFile) {
+  void CRTBackend::createModule(const std::string& ptxFile, const char* launchParams) {
     OptixModuleCompileOptions moduleCompileOptions = {};
     moduleCompileOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
     moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
     moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
 
-    OptixPipelineCompileOptions pipelineCompileOptions = getCompileOptions();
+    OptixPipelineCompileOptions pipelineCompileOptions = getCompileOptions(launchParams);
 
     char log[2048];
     size_t sizeofLog = sizeof(log);
@@ -95,7 +121,7 @@ namespace rt {
     std::cout << log << std::endl;
   }
 
-  void CRTBackend::createProgramGroups() {
+  void CRTBackend::createProgramGroups(const SProgramGroupFunctionNames& functionNames) {
     OptixProgramGroupOptions programGroupOptions = {};
 
     char log[2048];
@@ -106,7 +132,7 @@ namespace rt {
       OptixProgramGroupDesc raygenProgGroupDesc = {};
       raygenProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
       raygenProgGroupDesc.raygen.module = m_module;
-      raygenProgGroupDesc.raygen.entryFunctionName = "__raygen__rg";
+      raygenProgGroupDesc.raygen.entryFunctionName = functionNames.raygen;
 
       OPTIX_ASSERT(optixProgramGroupCreate(
         m_context,
@@ -124,7 +150,7 @@ namespace rt {
       OptixProgramGroupDesc missProgGroupDesc = {};
       missProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
       missProgGroupDesc.miss.module = m_module;
-      missProgGroupDesc.miss.entryFunctionName = "__miss__ms";
+      missProgGroupDesc.miss.entryFunctionName = functionNames.miss;
       sizeofLog = sizeof(log);
       OPTIX_ASSERT(optixProgramGroupCreate(
         m_context,
@@ -142,11 +168,11 @@ namespace rt {
       OptixProgramGroupDesc hitProgGroupDesc = {};
       hitProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
       hitProgGroupDesc.hitgroup.moduleCH = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
+      hitProgGroupDesc.hitgroup.entryFunctionNameCH = functionNames.closesthit;
       hitProgGroupDesc.hitgroup.moduleAH = nullptr;
       hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
       hitProgGroupDesc.hitgroup.moduleIS = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameIS = "__intersection__surface";
+      hitProgGroupDesc.hitgroup.entryFunctionNameIS = functionNames.intersectSurface;
       sizeofLog = sizeof(log);
       OPTIX_ASSERT(optixProgramGroupCreate(
         m_context,
@@ -164,11 +190,11 @@ namespace rt {
       OptixProgramGroupDesc hitProgGroupDesc = {};
       hitProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
       hitProgGroupDesc.hitgroup.moduleCH = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
+      hitProgGroupDesc.hitgroup.entryFunctionNameCH = functionNames.closesthit;
       hitProgGroupDesc.hitgroup.moduleAH = nullptr;
       hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
       hitProgGroupDesc.hitgroup.moduleIS = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameIS = "__intersection__volume";
+      hitProgGroupDesc.hitgroup.entryFunctionNameIS = functionNames.intersectionVolume;
       sizeofLog = sizeof(log);
       OPTIX_ASSERT(optixProgramGroupCreate(
         m_context,
@@ -186,11 +212,11 @@ namespace rt {
       OptixProgramGroupDesc hitProgGroupDesc = {};
       hitProgGroupDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
       hitProgGroupDesc.hitgroup.moduleCH = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
+      hitProgGroupDesc.hitgroup.entryFunctionNameCH = functionNames.closesthit;
       //hitProgGroupDesc.hitgroup.moduleAH = nullptr;
       //hitProgGroupDesc.hitgroup.entryFunctionNameAH = nullptr;
       hitProgGroupDesc.hitgroup.moduleAH = m_module;
-      hitProgGroupDesc.hitgroup.entryFunctionNameAH = "__anyhit__mesh";
+      hitProgGroupDesc.hitgroup.entryFunctionNameAH = functionNames.anyhitMesh;
       hitProgGroupDesc.hitgroup.moduleIS = nullptr;
       hitProgGroupDesc.hitgroup.entryFunctionNameIS = nullptr;
       sizeofLog = sizeof(log);
@@ -207,8 +233,8 @@ namespace rt {
 
   }
 
-  void CRTBackend::createPipeline() {
-    OptixPipelineCompileOptions pipelineCompileOptions = getCompileOptions();
+  void CRTBackend::createPipeline(const char* launchParams) {
+    OptixPipelineCompileOptions pipelineCompileOptions = getCompileOptions(launchParams);
 
     OptixPipelineLinkOptions pipelineLinkOptions = {};
     pipelineLinkOptions.maxTraceDepth = 4;

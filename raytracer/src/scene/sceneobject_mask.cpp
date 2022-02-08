@@ -8,6 +8,9 @@ namespace rt {
     else if (maskString == "FILTER") {
       return ESceneobjectMask::FILTER;
     }
+    else if (maskString == "RENDER") {
+      return ESceneobjectMask::RENDER;
+    }
     else {
       return ESceneobjectMask::ALL;
     }

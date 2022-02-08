@@ -278,13 +278,15 @@ namespace rt {
 
   }
 
-  std::vector<SAABB> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
-    std::vector<SAABB> bbs;
+  std::tuple<std::vector<SAABB>, std::vector<SAABB>> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
+    std::vector<SAABB> modelBBs;
+    std::vector<SAABB> worldBBs;
     for (const auto& sceneobject : m_sceneobjects) {
       if (sceneobject.mask() & mask) {
-        bbs.push_back(sceneobject.modelAABB());
+        modelBBs.push_back(sceneobject.modelAABB());
+        worldBBs.push_back(sceneobject.worldAABB());
       }
     }
-    return bbs;
+    return { modelBBs, worldBBs };
   }
 }

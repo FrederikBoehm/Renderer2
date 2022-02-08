@@ -367,7 +367,6 @@ namespace rt {
   }
 
   void Raytracer::allocateDeviceMemory() {
-    m_scene->allocateDeviceMemory();
     CUDA_ASSERT(cudaMalloc(&m_deviceSampler, sizeof(CSampler) * m_frameWidth * m_frameHeight));
     CUDA_ASSERT(cudaMalloc(&m_deviceCamera, sizeof(CCamera)));
     CUDA_ASSERT(cudaMalloc(&m_deviceFrame, sizeof(SDeviceFrame)));
@@ -377,11 +376,9 @@ namespace rt {
     CUDA_ASSERT(cudaMalloc(&m_deviceAverage, sizeof(float)*m_frameWidth));
     CUDA_ASSERT(cudaMalloc(&m_deviceTonemappingValue, sizeof(float)));
     CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SLaunchParams)));
-    CAssetManager::allocateDeviceMemory();
   }
 
   void Raytracer::copyToDevice() {
-    m_scene->copyToDevice();
     CUDA_ASSERT(cudaMemcpy(m_deviceCamera, m_hostCamera.get(), sizeof(CCamera), cudaMemcpyHostToDevice));
     
     SDeviceFrame f;
@@ -406,7 +403,6 @@ namespace rt {
     launchParams.numSamples = m_numSamples;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice));
 
-    CAssetManager::copyToDevice();
   }
 
   void Raytracer::initDeviceData() {
@@ -435,7 +431,6 @@ namespace rt {
   }
 
   void Raytracer::freeDeviceMemory() {
-    m_scene->freeDeviceMemory();
     CUDA_ASSERT(cudaFree(m_deviceCamera));
     CUDA_ASSERT(cudaFree(m_deviceFrameData));
     CUDA_ASSERT(cudaFree(m_deviceFrame));
@@ -443,7 +438,6 @@ namespace rt {
     CUDA_ASSERT(cudaFree(m_deviceTonemappingValue));
     CUDA_ASSERT(cudaFree(m_deviceLaunchParams));
 
-    CAssetManager::freeDeviceMemory();
   }
   SFrame Raytracer::retrieveFrame() const {
     SFrame frame;

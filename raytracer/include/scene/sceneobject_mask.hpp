@@ -6,6 +6,7 @@ namespace rt {
   enum ESceneobjectMask : uint8_t {
     NONE = 0,
     FILTER = 1,
+    RENDER = 2,
     ALL = 255
   };
 

@@ -3,13 +3,15 @@
 #include <vector>
 #include "intersect/aabb.hpp"
 #include <nanovdb/util/GridHandle.h>
+#include "filtering/launch_params.hpp"
 namespace filter {
 
   struct SOpenvdbBackendConfig {
-    std::vector<rt::SAABB> boundingBoxes;
+    std::vector<rt::SAABB> modelSpaceBoundingBoxes;
+    std::vector<rt::SAABB> worldSpaceBoundingBoxes;
     glm::ivec3 numVoxels = glm::ivec3(100);
   };
-  
+
 
   struct SOpenvdbData;
   class COpenvdbBackend {
@@ -17,15 +19,18 @@ namespace filter {
     static COpenvdbBackend* instance();
 
     void init(const SOpenvdbBackendConfig& config);
-    void setValues();
-    nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle();
-    void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName);
+    void setValues(const std::vector<float>& filteredData);
+    nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle() const;
+    void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const;
+
+    const SFilterLaunchParams& launchParams() const;
   private:
     static COpenvdbBackend* s_instance;
 
     SOpenvdbData* m_data;
+    SFilterLaunchParams m_launchParams;
 
-  
+
     COpenvdbBackend();
     ~COpenvdbBackend();
 
@@ -35,5 +40,9 @@ namespace filter {
     COpenvdbBackend& operator=(COpenvdbBackend&&) = delete; // Singleton
 
   };
+
+  inline const SFilterLaunchParams& COpenvdbBackend::launchParams() const {
+    return m_launchParams;
+  }
 }
 #endif

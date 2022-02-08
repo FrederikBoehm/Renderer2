@@ -5,10 +5,11 @@
 #include "device_sceneobject.hpp"
 #include "sampling/distribution_1d.hpp"
 #include "scene/environmentmap.hpp"
+#include "intersect/ray.hpp"
 
 namespace rt {
 
-  inline void CDeviceScene::intersect(const CRay& ray, SInteraction* closestInteraction) const {
+  inline void CDeviceScene::intersect(const CRay& ray, SInteraction* closestInteraction, OptixVisibilityMask visibilityMask) const {
     unsigned int siAdress[2];
     memcpy(siAdress, &closestInteraction, sizeof(SInteraction*));
     optixTrace(m_traversableHandle,
@@ -17,7 +18,7 @@ namespace rt {
       0.f,
       ray.m_t_max,
       0.f,
-      255,
+      visibilityMask,
       0,
       0,
       1,

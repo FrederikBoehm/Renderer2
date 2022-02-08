@@ -9,7 +9,6 @@
 #include "backend/asset_manager.hpp"
 #include "scene/sceneobject_mask.hpp"
 
-namespace rt {
   H_CALLABLE inline bool parseVec3(const nlohmann::json& jArray, glm::vec3* outVec) {
     bool valid = true;
     valid = valid && !jArray.empty() && jArray.size() == 3 && outVec;
@@ -29,6 +28,16 @@ namespace rt {
       outVec->y = jArray[1].get<int>();
       outVec->z = jArray[2].get<int>();
     }
+    return valid;
+  }
+
+  H_CALLABLE inline bool getMask(const nlohmann::json& jArray, rt::ESceneobjectMask* mask) {
+    bool valid = !jArray.empty();
+    uint8_t m = rt::ESceneobjectMask::NONE;
+    for (auto& item : jArray) {
+      m |= rt::getMask(item.get<std::string>());
+    }
+    *mask = static_cast<rt::ESceneobjectMask>(m);
     return valid;
   }
 
@@ -52,11 +61,13 @@ namespace rt {
 
   H_CALLABLE bool fillFilteringInfo(const nlohmann::json& filtering, SConfig* config) {
     auto filter = filtering["Active"];
+    auto samplesPerVoxel = filtering["SamplesPerVoxel"];
     glm::ivec3 numVoxels;
-    bool valid = !filtering.empty() && parseVec3(filtering["NumVoxels"], &numVoxels) && !filter.empty();
+    bool valid = !filtering.empty() && parseVec3(filtering["NumVoxels"], &numVoxels) && !filter.empty() && !samplesPerVoxel.empty();
     if (valid) {
       config->filteringConfig.filter = filter.get<bool>();
       config->filteringConfig.numVoxels = numVoxels;
+      config->filteringConfig.samplesPerVoxel = samplesPerVoxel.get<uint32_t>();
     }
     return valid;
   }
@@ -71,7 +82,7 @@ namespace rt {
     bool valid = !camera.empty() && !fov.empty() && parseVec3(camera["Pos"], &pos) && parseVec3(camera["LookAt"], &lookAt) && parseVec3(camera["Up"], &up);
 
     if (valid) {
-      config->camera = std::make_shared<CCamera>(config->frameWidth,
+      config->camera = std::make_shared<rt::CCamera>(config->frameWidth,
         config->frameHeight,
         fov.get<float>(),
         pos,
@@ -82,7 +93,7 @@ namespace rt {
     return valid;
   }
 
-  H_CALLABLE bool addCircle(const nlohmann::json& sceneobject, CHostScene* scene) {
+  H_CALLABLE bool addCircle(const nlohmann::json& sceneobject, rt::CHostScene* scene) {
     bool valid = true;
 
     glm::vec3 pos;
@@ -110,10 +121,14 @@ namespace rt {
     valid = valid && !alphaX.empty() && !alphaY.empty() && !etaI.empty() && !etaT.empty();
 
     if (valid) {
-      auto mask = sceneobject.find("Mask");
+      auto maskArray = sceneobject.find("Mask");
+      rt::ESceneobjectMask mask = rt::ESceneobjectMask::RENDER;
+      if (maskArray != sceneobject.end()) {
+        getMask(sceneobject["Mask"], &mask);
+      }
 
-      scene->addSceneobject(CHostSceneobject(
-        new CCircle(pos, radius.get<float>(), normal),
+      scene->addSceneobject(rt::CHostSceneobject(
+        new rt::CCircle(pos, radius.get<float>(), normal),
         diffuseReflection,
         diffuseRoughness.get<float>(),
         specularReflection,
@@ -121,12 +136,12 @@ namespace rt {
         alphaY.get<float>(),
         etaI.get<float>(),
         etaT.get<float>(),
-        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
+        mask));
     }
     return valid;
   }
 
-  H_CALLABLE bool addSphere(const nlohmann::json& sceneobject, CHostScene* scene) {
+  H_CALLABLE bool addSphere(const nlohmann::json& sceneobject, rt::CHostScene* scene) {
     bool valid = true;
 
     glm::vec3 pos;
@@ -154,10 +169,14 @@ namespace rt {
     valid = valid && !alphaX.empty() && !alphaY.empty() && !etaI.empty() && !etaT.empty();
 
     if (valid) {
-      auto mask = sceneobject.find("Mask");
+      auto maskArray = sceneobject.find("Mask");
+      rt::ESceneobjectMask mask = rt::ESceneobjectMask::RENDER;
+      if (maskArray != sceneobject.end()) {
+        getMask(sceneobject["Mask"], &mask);
+      }
 
-      scene->addSceneobject(CHostSceneobject(
-        new Sphere(pos, radius.get<float>(), normal),
+      scene->addSceneobject(rt::CHostSceneobject(
+        new rt::Sphere(pos, radius.get<float>(), normal),
         diffuseReflection,
         diffuseRoughness.get<float>(),
         specularReflection,
@@ -165,12 +184,12 @@ namespace rt {
         alphaY.get<float>(),
         etaI.get<float>(),
         etaT.get<float>(),
-        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
+        mask));
     }
     return valid;
   }
 
-  H_CALLABLE bool addMedium(const nlohmann::json& sceneobject, CHostScene* scene) {
+  H_CALLABLE bool addMedium(const nlohmann::json& sceneobject, rt::CHostScene* scene) {
     bool valid = true;
 
     auto path = sceneobject["Path"];
@@ -196,25 +215,29 @@ namespace rt {
     valid = valid && parseVec3(sceneobject["Scaling"], &scaling);
 
     if (valid) {
-      auto mask = sceneobject.find("Mask");
+      auto maskArray = sceneobject.find("Mask");
+      rt::ESceneobjectMask mask = rt::ESceneobjectMask::RENDER;
+      if (maskArray != sceneobject.end()) {
+        getMask(sceneobject["Mask"], &mask);
+      }
 
-      CNVDBMedium* medium = CAssetManager::loadMedium(
+      rt::CNVDBMedium* medium = rt::CAssetManager::loadMedium(
         path.get<std::string>(),
         sigmaA,
         sigmaS,
         diffuseRoughness.get<float>(),
         specularRoughness.get<float>());
-      scene->addSceneobject(CHostSceneobject(
+      scene->addSceneobject(rt::CHostSceneobject(
         medium,
         pos,
         orientation,
         scaling,
-        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>())));
+        mask));
     }
     return valid;
   }
 
-  H_CALLABLE bool addMesh(const nlohmann::json& sceneobject, CHostScene* scene) {
+  H_CALLABLE bool addMesh(const nlohmann::json& sceneobject, rt::CHostScene* scene) {
     bool valid = true;
 
     auto directory = sceneobject["Directory"];
@@ -231,7 +254,11 @@ namespace rt {
     valid = valid && parseVec3(sceneobject["Scaling"], &scaling);
 
     if (valid) {
-      auto mask = sceneobject.find("Mask");
+      auto maskArray = sceneobject.find("Mask");
+      rt::ESceneobjectMask mask = rt::ESceneobjectMask::RENDER;
+      if (maskArray != sceneobject.end()) {
+        getMask(sceneobject["Mask"], &mask);
+      }
 
       scene->addSceneobjectsFromAssimp(
         directory.get<std::string>(),
@@ -239,20 +266,20 @@ namespace rt {
         pos,
         orientation,
         scaling,
-        mask == sceneobject.end() ? ESceneobjectMask::NONE : getMask(mask->get<std::string>()));
+        mask);
     }
     return valid;
   }
 
   H_CALLABLE bool fillSceneInfo(const nlohmann::json& scene, SConfig* config) {
-    config->scene = std::make_shared<CHostScene>();
+    config->scene = std::make_shared<rt::CHostScene>();
 
     bool valid = true;
     auto envmap = scene["Envmap"];
 
     valid = valid && !scene.empty() && !envmap.empty();
     if (valid) {
-      config->scene->setEnvironmentMap(CEnvironmentMap(envmap.get<std::string>()));
+      config->scene->setEnvironmentMap(rt::CEnvironmentMap(envmap.get<std::string>()));
     }
 
     auto sceneobjects = scene["Sceneobjects"];
@@ -299,4 +326,3 @@ namespace rt {
 
     return config;
   }
-}

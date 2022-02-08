@@ -7,6 +7,7 @@
 #include "device_scene.hpp"
 #include "filtering/openvdb_backend.hpp"
 #include "scene/sceneobject_mask.hpp"
+#include <tuple>
 
 namespace rt {
   
@@ -52,7 +53,7 @@ namespace rt {
 
     H_CALLABLE void buildOptixAccel();
     H_CALLABLE std::vector<SRecord<const CDeviceSceneobject*>> getSBTHitRecords() const;
-    H_CALLABLE std::vector<SAABB> getObjectBBs(ESceneobjectMask mask = ESceneobjectMask::ALL) const;
+    H_CALLABLE std::tuple<std::vector<SAABB>, std::vector<SAABB>> getObjectBBs(ESceneobjectMask mask = ESceneobjectMask::ALL) const; // returns modelBBs and worldBBs
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
     std::vector<CHostSceneobject> m_lights;
