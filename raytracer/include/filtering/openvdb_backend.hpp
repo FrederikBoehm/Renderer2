@@ -4,6 +4,7 @@
 #include "intersect/aabb.hpp"
 #include <nanovdb/util/GridHandle.h>
 #include "filtering/launch_params.hpp"
+#include "filtered_data.hpp"
 namespace filter {
 
   struct SOpenvdbBackendConfig {
@@ -19,7 +20,7 @@ namespace filter {
     static COpenvdbBackend* instance();
 
     void init(const SOpenvdbBackendConfig& config);
-    void setValues(const std::vector<float>& filteredData);
+    void setValues(const std::vector<SFilteredData>& filteredData);
     nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle() const;
     void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const;
 

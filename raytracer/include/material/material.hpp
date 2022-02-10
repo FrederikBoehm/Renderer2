@@ -40,6 +40,9 @@ namespace rt {
     H_CALLABLE std::string path() const;
     H_CALLABLE size_t submeshId() const;
 
+    D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
+    D_CALLABLE glm::vec3 glossy(const glm::vec2& tc) const;
+    DH_CALLABLE float specularRoughness() const;
   private:
     bool m_deviceObject;
     glm::vec3 m_Le; // Emissive light if light source
@@ -57,8 +60,6 @@ namespace rt {
     size_t m_submeshId; // Id of corresponding mesh
 
     H_CALLABLE float roughnessFromExponent(float exponent) const;
-    D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
-    D_CALLABLE glm::vec3 glossy(const glm::vec2& tc) const;
   };
 
   // Evaluates material at a hitPoint. Gives the color of that point
@@ -119,6 +120,10 @@ namespace rt {
     else {
       return m_glossyColor;
     }
+  }
+
+  inline float CMaterial::specularRoughness() const {
+    return m_microfacetBRDF.roughness();
   }
 
   inline bool CMaterial::opaque(const glm::vec2& tc) const {

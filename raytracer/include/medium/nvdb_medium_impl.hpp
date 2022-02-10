@@ -5,13 +5,10 @@
 #include "utility/functions.hpp"
 #include "intersect/ray.hpp"
 #include "scene/interaction.hpp"
+#include "filtering/filtered_data.hpp"
 
 namespace rt {
 
-
-  inline const nanovdb::NanoGrid<float>* CNVDBMedium::grid() const {
-    return m_grid;
-  }
 
   inline const CPhaseFunction& CNVDBMedium::phase() const {
     return *m_phase;
@@ -21,7 +18,10 @@ namespace rt {
     return m_worldBB;
   }
 
-  inline float CNVDBMedium::density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
+  template <typename TReadAccessor>
+  inline float CNVDBMedium::density(const glm::vec3& p, const TReadAccessor& accessor) const {
+    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
+      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
     glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);
     glm::vec3 d = pSamples - (glm::vec3)pi;
@@ -46,7 +46,17 @@ namespace rt {
     return accessor.getValue(coord);
   }
 
-  inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
+  inline float CNVDBMedium::D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+    glm::vec3 pCopy = p;
+    nanovdb::Coord coord(p.x, p.y, p.z);
+    nanovdb::Vec4d value = accessor.getValue(coord);
+    return reinterpret_cast<filter::SFilteredData&>(value).density;
+  }
+
+  template <typename TReadAccessor>
+  inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, const TReadAccessor& accessor) const {
+    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
+      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
     glm::vec3 pMedium = m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f);
 
 
@@ -67,31 +77,39 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, CSampler& sampler) const {
-    glm::vec3 pMedium = m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f);
-    nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
-
-
-    glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
-    glm::ivec3 pi = glm::floor(pSamples);
-
-    float x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
-    float y = D(pi - glm::ivec3(0, 1, 0), accessor) - D(pi + glm::ivec3(0, 1, 0), accessor);
-    float z = D(pi - glm::ivec3(0, 0, 1), accessor) - D(pi + glm::ivec3(0, 0, 1), accessor);
-
-    glm::vec3 n = glm::normalize(glm::vec3(x, y, z));
-    if (glm::any(glm::isnan(n)) || glm::any(glm::isinf(n))) { // this can happen if x, y, z is zero or really close to zero
+    glm::vec3 n;
+    switch (m_gridType) {
+    case nanovdb::GridType::Float:
+      n = normal(p, m_grid->getAccessor());
+      break;
+    case nanovdb::GridType::Vec4d:
+      n = normal(p, m_vec4grid->getAccessor());
+      break;
+    }
+    if (n == glm::vec3(0.f)) {
       return sampler.uniformSampleSphere(); // As a fallback sample sphere uniformly
-      //return glm::vec3(1.f, 0.f, 0.f);
     }
     else {
-      return glm::normalize(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f));
+      return n;
     }
   }
 
   inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
+    switch (m_gridType) {
+    case nanovdb::GridType::Float:
+      return sampleInternal(rayWorld, sampler, mi, m_grid->getAccessor());
+    case nanovdb::GridType::Vec4d:
+      return sampleInternal(rayWorld, sampler, mi, m_vec4grid->getAccessor());
+    }
+  }
+
+  template <typename TReadAccessor>
+  inline glm::vec3 CNVDBMedium::sampleInternal(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, const TReadAccessor& accessor) const {
+    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
+      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
+
     const CRay ray = rayWorld.transform(m_modelToIndex);
     const CRay rayWorldCopy = rayWorld;
-    nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
     float t = 0.f;
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
@@ -114,9 +132,21 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler) const {
+    switch (m_gridType) {
+    case nanovdb::GridType::Float:
+      return trInternal(rayWorld, sampler, m_grid->getAccessor());
+    case nanovdb::GridType::Vec4d:
+      return trInternal(rayWorld, sampler, m_vec4grid->getAccessor());
+    }
+  }
+
+  template <typename TReadAccessor>
+  inline glm::vec3 CNVDBMedium::trInternal(const CRay& rayWorld, CSampler& sampler, const TReadAccessor& accessor) const {
+    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
+      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
+    
     const CRay rayWorldCopy = rayWorld;
     const CRay ray = rayWorld.transform(m_modelToIndex);
-    nanovdb::DefaultReadAccessor<float> accessor(m_grid->getAccessor());
     float tr = 1.f;
     float t = 0.f;
     while (true) {

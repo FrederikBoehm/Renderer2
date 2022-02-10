@@ -132,7 +132,8 @@ set(HEADER_FILES
 	include/filtering/mesh_filter.hpp
 	pipeline.hpp
 	filter.hpp
-	include/filtering/launch_params.hpp)
+	include/filtering/launch_params.hpp
+	include/filtering/filtered_data.hpp)
 
 
 

@@ -20,7 +20,6 @@ namespace rt {
 
   class CNVDBMedium : public CMedium {
     struct DeviceResource {
-      nanovdb::DefaultReadAccessor<float>* d_readAccessor = nullptr;
       CPhaseFunction* d_phase = nullptr;
     };
 
@@ -41,15 +40,15 @@ namespace rt {
     H_CALLABLE CNVDBMedium copyToDevice() const;
     H_CALLABLE void freeDeviceMemory() const;
 
-    DH_CALLABLE float density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
+    template <typename TReadAccessor>
+    DH_CALLABLE float density(const glm::vec3& p, const TReadAccessor& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
+    DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
     D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
-
-    DH_CALLABLE const nanovdb::NanoGrid<float>* grid() const;
 
     DH_CALLABLE const SAABB& worldBB() const;
 
@@ -64,8 +63,11 @@ namespace rt {
     char* m_path;
     bool m_isHostObject;
     nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* m_handle;
-    const nanovdb::NanoGrid<float>* m_grid;
-    const nanovdb::DefaultReadAccessor<float>* m_readAccessor;
+    union {
+      const nanovdb::NanoGrid<float>* m_grid;
+      const nanovdb::NanoGrid<nanovdb::Vec4d>* m_vec4grid;
+    };
+    nanovdb::GridType m_gridType;
     SAABB m_worldBB;
     CUdeviceptr m_deviceAabb;
     glm::ivec3 m_size;
@@ -88,10 +90,18 @@ namespace rt {
 
     H_CALLABLE static glm::ivec3 getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize);
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<float>* grid);
+    H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<nanovdb::Vec4d>* grid);
     H_CALLABLE static glm::mat4 getIndexToModelTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
     
-    D_CALLABLE glm::vec3 normal(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
+    template <typename TReadAccessor>
+    D_CALLABLE glm::vec3 normal(const glm::vec3& p, const TReadAccessor& accessor) const;
+
+    template <typename TReadAccessor>
+    D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, const TReadAccessor& accessor) const;
+
+    template <typename TReadAccessor>
+    D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, const TReadAccessor& accessor) const;
   };
 
   

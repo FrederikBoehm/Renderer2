@@ -16,6 +16,7 @@ namespace rt {
     DH_CALLABLE float G(const glm::vec3& wo, const glm::vec3& wi) const;
     DH_CALLABLE glm::vec3 sampleH(const glm::vec3& wo, const glm::vec2& u) const;
     DH_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3 wh) const;
+    DH_CALLABLE float alpha() const;
   private:
     float m_alphaX;
     float m_alphaY;
@@ -30,6 +31,10 @@ namespace rt {
     m_alphaX(alphaX),
     m_alphaY(alphaY) {
 
+  }
+
+  inline float CMicrofacetDistribution::alpha() const {
+    return m_alphaX;
   }
 
   inline float CMicrofacetDistribution::D(const glm::vec3& h) const {

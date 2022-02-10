@@ -26,6 +26,7 @@ namespace rt {
     D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
     D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
     D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
+    DH_CALLABLE float roughness() const;
 
   private:
     CMicrofacetDistribution m_distribution;
@@ -42,6 +43,10 @@ namespace rt {
     m_distribution(alphaX, alphaY),
     m_fresnel(etaI, etaT) {
 
+  }
+
+  inline float CMicrofacetBRDF::roughness() const {
+    return m_distribution.alpha();
   }
 
   DH_CALLABLE inline glm::vec3 faceforward(const glm::vec3& v, const glm::vec3& v2) {

@@ -9,6 +9,7 @@ struct SConfig;
 namespace filter {
   class COpenvdbBackend;
   struct SFilterLaunchParams;
+  struct SFilteredData;
   class CFilter {
   public:
     CFilter(const SConfig& config);
@@ -21,7 +22,7 @@ namespace filter {
     SFilterLaunchParams* m_deviceLaunchParams;
     rt::CSampler* m_deviceSampler;
     rt::CDeviceScene* m_deviceScene;
-    float* m_deviceFilterData;
+    SFilteredData* m_deviceFilterData;
     uint32_t m_samplesPerVoxel;
     
     void initOptix(const SConfig& config);

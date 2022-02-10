@@ -255,6 +255,6 @@ extern "C" __global__ void __raygen__filtering() {
   size_t id = launchIdx.x + launchIdx.y * launchDim.x + launchIdx.z * launchDim.x * launchDim.y;
   CSampler& sampler = paramsFiltering.samplers[id];
   CMeshFilter filter(reinterpret_cast<glm::ivec3&>(optixGetLaunchIndex()), paramsFiltering.indexToModel, paramsFiltering.modelToIndex, paramsFiltering.modelToWorld, paramsFiltering.worldToModel, paramsFiltering.numVoxels, paramsFiltering.worldBB, sampler);
-  float density = filter.run(*paramsFiltering.scene, paramsFiltering.samplesPerVoxel);
-  paramsFiltering.filteredData[id] = density;
+  SFilteredData filteredData = filter.run(*paramsFiltering.scene, paramsFiltering.samplesPerVoxel);
+  paramsFiltering.filteredData[id] = filteredData;
 }

@@ -5,6 +5,7 @@
 #include <nanovdb/util/OpenToNanoVDB.h>
 #include <nanovdb/util/IO.h>
 #include <filesystem>
+#include "filtering/filtered_data.hpp"
 
 namespace filter {
   COpenvdbBackend* COpenvdbBackend::s_instance = nullptr;
@@ -19,10 +20,11 @@ namespace filter {
   }
 
   void COpenvdbBackend::init(const SOpenvdbBackendConfig& config) {
+    static_assert(sizeof(SFilteredData) <= sizeof(openvdb::Vec4d), "SFilteredData is too large for openvdb::Vec4d");
     if (!m_data) {
       openvdb::initialize();
-      openvdb::FloatGrid::Ptr grid = openvdb::FloatGrid::create();
-      openvdb::FloatGrid::Accessor accessor = grid->getAccessor();
+      Vec4DGrid::Ptr grid = Vec4DGrid::create();
+      Vec4DGrid::Accessor accessor = grid->getAccessor();
       m_data = new SOpenvdbData{ grid, accessor, config.numVoxels };
     }
 
@@ -61,7 +63,7 @@ namespace filter {
     m_launchParams.worldToModel = glm::inverse(modelToWorld);
   }
 
-  void COpenvdbBackend::setValues(const std::vector<float>& filteredData) {
+  void COpenvdbBackend::setValues(const std::vector<SFilteredData>& filteredData) {
     if (!m_data) {
       throw new std::exception("Called COpenvdbBackend::setValues without initializing COpenvdbBackend backend.");
     }
@@ -70,7 +72,7 @@ namespace filter {
       for (int y = 0; y < m_data->numVoxels.y; ++y) {
         for (int z = 0; z < m_data->numVoxels.z; ++z) {
           size_t id = x + y * m_data->numVoxels.x + z * m_data->numVoxels.x * m_data->numVoxels.y;
-          m_data->accessor.setValue(openvdb::Coord(x, y, z), filteredData[id]);
+          m_data->accessor.setValue(openvdb::Coord(x, y, z), filteredData[id].density > 0.f ? reinterpret_cast<const openvdb::Vec4d&>(filteredData[id]) : openvdb::Vec4d(0, 0, 0, 0));
         }
       }
     }
@@ -83,14 +85,14 @@ namespace filter {
     }
 
     auto handle = nanovdb::openToNanoVDB(m_data->grid);
-    auto* dstGrid = handle.grid<float>();
+    auto* dstGrid = handle.grid<nanovdb::Vec4d>();
     if (!dstGrid)
       throw std::runtime_error("GridHandle does not contain a grid with value type float");
     return handle;
   }
 
   void COpenvdbBackend::writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const {
-    auto* dstGrid = gridHandle.grid<float>();
+    auto* dstGrid = gridHandle.grid<nanovdb::Vec4d>();
     auto iBB = dstGrid->indexBBox();
     auto worldBB = dstGrid->worldBBox();
     std::filesystem::path p(directory);
