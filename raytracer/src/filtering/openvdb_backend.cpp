@@ -23,7 +23,8 @@ namespace filter {
     static_assert(sizeof(SFilteredData) <= sizeof(openvdb::Vec4d), "SFilteredData is too large for openvdb::Vec4d");
     if (!m_data) {
       openvdb::initialize();
-      Vec4DGrid::Ptr grid = Vec4DGrid::create();
+      SFilteredData backgroundValue = { 0.f, 0.f, glm::u16vec3(0), glm::u16vec3(0), glm::vec3(0.f) };
+      Vec4DGrid::Ptr grid = Vec4DGrid::create(reinterpret_cast<openvdb::Vec4d&>(backgroundValue));
       Vec4DGrid::Accessor accessor = grid->getAccessor();
       m_data = new SOpenvdbData{ grid, accessor, config.numVoxels };
     }
@@ -72,7 +73,9 @@ namespace filter {
       for (int y = 0; y < m_data->numVoxels.y; ++y) {
         for (int z = 0; z < m_data->numVoxels.z; ++z) {
           size_t id = x + y * m_data->numVoxels.x + z * m_data->numVoxels.x * m_data->numVoxels.y;
-          m_data->accessor.setValue(openvdb::Coord(x, y, z), filteredData[id].density > 0.f ? reinterpret_cast<const openvdb::Vec4d&>(filteredData[id]) : openvdb::Vec4d(0, 0, 0, 0));
+          if (filteredData[id].density > 0.f) {
+            m_data->accessor.setValue(openvdb::Coord(x, y, z), reinterpret_cast<const openvdb::Vec4d&>(filteredData[id]));
+          }
         }
       }
     }
