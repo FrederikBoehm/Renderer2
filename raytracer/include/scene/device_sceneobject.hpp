@@ -31,6 +31,8 @@ namespace rt {
     D_CALLABLE ESceneobjectFlag flag() const;
     D_CALLABLE CMaterial* material() const;
     D_CALLABLE CMediumInstance* medium() const;
+    D_CALLABLE const glm::mat4x3& modelToWorld() const;
+    D_CALLABLE const glm::mat4x3& worldToModel() const;
 
   private:
     CShape* m_shape;
@@ -96,6 +98,14 @@ namespace rt {
 
   inline CMesh* CDeviceSceneobject::mesh() const {
     return m_mesh;
+  }
+
+  inline const glm::mat4x3& CDeviceSceneobject::modelToWorld() const {
+    return m_modelToWorld;
+  }
+
+  inline const glm::mat4x3& CDeviceSceneobject::worldToModel() const {
+    return m_worldToModel;
   }
 }
 #endif
