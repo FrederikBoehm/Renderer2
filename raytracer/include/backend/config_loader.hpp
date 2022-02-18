@@ -7,7 +7,7 @@
 
 struct SFilteringConfig {
   bool filter;
-  glm::ivec3 numVoxels;
+  glm::vec3 voxelSize;
   uint32_t samplesPerVoxel;
 };
 

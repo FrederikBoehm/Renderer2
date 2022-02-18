@@ -26,10 +26,8 @@ namespace filter {
       SFilteredData backgroundValue = { 0.f, 0.f, glm::u16vec3(0), glm::u16vec3(0), glm::vec3(0.f) };
       Vec4DGrid::Ptr grid = Vec4DGrid::create(reinterpret_cast<openvdb::Vec4d&>(backgroundValue));
       Vec4DGrid::Accessor accessor = grid->getAccessor();
-      m_data = new SOpenvdbData{ grid, accessor, config.numVoxels };
+      m_data = new SOpenvdbData{ grid, accessor };
     }
-
-    m_launchParams.numVoxels = config.numVoxels;
 
     glm::vec3 minModel(FLT_MAX);
     glm::vec3 maxModel(-FLT_MAX);
@@ -38,7 +36,19 @@ namespace filter {
       maxModel = glm::max(bb.m_max, maxModel);
     }
 
-    glm::mat4 indexToModel = glm::translate(minModel) * glm::scale(maxModel - minModel) * glm::scale(1.f / glm::vec3(config.numVoxels)); // Index space from [0, numVoxels - 1]
+    glm::vec3 minWorld(FLT_MAX);
+    glm::vec3 maxWorld(-FLT_MAX);
+    for (const auto& bb : config.worldSpaceBoundingBoxes) {
+      minWorld = glm::min(bb.m_min, minWorld);
+      maxWorld = glm::max(bb.m_max, maxWorld);
+    }
+
+    glm::vec3 fNumVoxels = (maxWorld - minWorld) / config.voxelSize;
+    glm::ivec3 numVoxels = glm::ceil(fNumVoxels);
+    m_data->numVoxels = numVoxels;
+    m_launchParams.numVoxels = numVoxels;
+
+    glm::mat4 indexToModel = glm::translate(minModel) * glm::scale(maxModel - minModel) * glm::scale(1.f / fNumVoxels); // Index space from [0, numVoxels - 1]
     m_launchParams.indexToModel = indexToModel;
     m_launchParams.modelToIndex = glm::inverse(indexToModel);
 
@@ -50,14 +60,7 @@ namespace filter {
 
     m_data->grid->setTransform(openvdb::math::Transform::createLinearTransform(transformMatrix));
 
-    glm::vec3 minWorld(FLT_MAX);
-    glm::vec3 maxWorld(-FLT_MAX);
-    for (const auto& bb : config.worldSpaceBoundingBoxes) {
-      minWorld = glm::min(bb.m_min, minWorld);
-      maxWorld = glm::max(bb.m_max, maxWorld);
-    }
-
-    m_launchParams.worldBB = { minWorld, maxWorld };
+    m_launchParams.worldBB = { minWorld, minWorld + glm::vec3(numVoxels) * config.voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
 
     glm::mat4 modelToWorld = glm::translate(minWorld) * glm::scale(maxWorld - minWorld) * glm::scale(1.f / (maxModel - minModel)) * glm::translate(-minModel);
     m_launchParams.modelToWorld = modelToWorld;

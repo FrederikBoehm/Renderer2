@@ -24,7 +24,7 @@ namespace filter {
     auto[modelSpaceBBs, worldSpaceBBs] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
     openvdbConfig.worldSpaceBoundingBoxes = worldSpaceBBs;
-    openvdbConfig.numVoxels = config.filteringConfig.numVoxels;
+    openvdbConfig.voxelSize = config.filteringConfig.voxelSize;
     if (openvdbConfig.modelSpaceBoundingBoxes.size() > 0) {
       m_backend = filter::COpenvdbBackend::instance();
       m_backend->init(openvdbConfig);

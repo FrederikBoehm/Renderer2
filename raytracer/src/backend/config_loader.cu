@@ -62,11 +62,11 @@
   H_CALLABLE bool fillFilteringInfo(const nlohmann::json& filtering, SConfig* config) {
     auto filter = filtering["Active"];
     auto samplesPerVoxel = filtering["SamplesPerVoxel"];
-    glm::ivec3 numVoxels;
-    bool valid = !filtering.empty() && parseVec3(filtering["NumVoxels"], &numVoxels) && !filter.empty() && !samplesPerVoxel.empty();
+    glm::vec3 voxelSize;
+    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty();
     if (valid) {
       config->filteringConfig.filter = filter.get<bool>();
-      config->filteringConfig.numVoxels = numVoxels;
+      config->filteringConfig.voxelSize = voxelSize;
       config->filteringConfig.samplesPerVoxel = samplesPerVoxel.get<uint32_t>();
     }
     return valid;

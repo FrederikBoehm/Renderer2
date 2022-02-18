@@ -109,7 +109,6 @@ namespace rt {
       "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
 
     const CRay ray = rayWorld.transform(m_modelToIndex);
-    const CRay rayWorldCopy = rayWorld;
     float t = 0.f;
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
