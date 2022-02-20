@@ -43,7 +43,11 @@ namespace filter {
       maxWorld = glm::max(bb.m_max, maxWorld);
     }
 
-    glm::vec3 fNumVoxels = (maxWorld - minWorld) / config.voxelSize;
+    glm::vec3 scaling = 1.f / (maxModel - minModel);
+
+    glm::vec3 voxelSize = config.debug ? maxWorld - minWorld : config.voxelSize;
+
+    glm::vec3 fNumVoxels = (maxWorld - minWorld) / voxelSize;
     glm::ivec3 numVoxels = glm::ceil(fNumVoxels);
     m_data->numVoxels = numVoxels;
     m_launchParams.numVoxels = numVoxels;
@@ -60,7 +64,7 @@ namespace filter {
 
     m_data->grid->setTransform(openvdb::math::Transform::createLinearTransform(transformMatrix));
 
-    m_launchParams.worldBB = { minWorld, minWorld + glm::vec3(numVoxels) * config.voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
+    m_launchParams.worldBB = { minWorld, minWorld + glm::vec3(numVoxels) * voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
 
     glm::mat4 modelToWorld = glm::translate(minWorld) * glm::scale(maxWorld - minWorld) * glm::scale(1.f / (maxModel - minModel)) * glm::translate(-minModel);
     m_launchParams.modelToWorld = modelToWorld;

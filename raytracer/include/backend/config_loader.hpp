@@ -9,6 +9,10 @@ struct SFilteringConfig {
   bool filter;
   glm::vec3 voxelSize;
   uint32_t samplesPerVoxel;
+  bool debug;
+  uint32_t debugSamples;
+  float sigmaT;
+  uint32_t estimationIterations;
 };
 
 struct SConfig {

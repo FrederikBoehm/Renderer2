@@ -29,7 +29,7 @@ namespace rt {
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CHenyeyGreensteinPhaseFunction(g)),
-    m_sigma_t(sigma_a.z + sigma_s.z),
+    m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
     m_deviceResource(nullptr) {
     nanovdb::CoordBBox box;
     switch (m_gridType) {
@@ -79,7 +79,7 @@ namespace rt {
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CSGGXPhaseFunction(sggxDiffuse, sggxSpecular)),
-    m_sigma_t(sigma_a.z + sigma_s.z),
+    m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
     m_deviceResource(nullptr) {
     nanovdb::CoordBBox box;
     switch (m_gridType) {
@@ -131,7 +131,7 @@ namespace rt {
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
     m_phase(new CSGGXPhaseFunction(diffuseRoughness, specularRoughness)),
-    m_sigma_t(sigma_a.z + sigma_s.z),
+    m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
     m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
 

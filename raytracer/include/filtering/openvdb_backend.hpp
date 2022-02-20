@@ -11,6 +11,7 @@ namespace filter {
     std::vector<rt::SAABB> modelSpaceBoundingBoxes;
     std::vector<rt::SAABB> worldSpaceBoundingBoxes;
     glm::vec3 voxelSize;
+    bool debug;
   };
 
 

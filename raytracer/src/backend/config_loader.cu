@@ -63,11 +63,19 @@
     auto filter = filtering["Active"];
     auto samplesPerVoxel = filtering["SamplesPerVoxel"];
     glm::vec3 voxelSize;
-    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty();
+    auto debug = filtering["Debug"];
+    auto debugSamples = filtering["DebugSamples"];
+    auto sigmaT = filtering["SigmaT"];
+    auto estimationIterations = filtering["EstimationIterations"];
+    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty() && !debug.empty() && !debugSamples.empty() && !sigmaT.empty() && !estimationIterations.empty();
     if (valid) {
       config->filteringConfig.filter = filter.get<bool>();
       config->filteringConfig.voxelSize = voxelSize;
       config->filteringConfig.samplesPerVoxel = samplesPerVoxel.get<uint32_t>();
+      config->filteringConfig.debug = debug.get<bool>();
+      config->filteringConfig.debugSamples = debugSamples.get<uint32_t>();
+      config->filteringConfig.sigmaT = sigmaT.get<float>();
+      config->filteringConfig.estimationIterations = estimationIterations.get<uint32_t>();
     }
     return valid;
   }
