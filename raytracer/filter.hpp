@@ -24,6 +24,10 @@ namespace filter {
     rt::CDeviceScene* m_deviceScene;
     SFilteredData* m_deviceFilterData;
     uint32_t m_samplesPerVoxel;
+    bool m_debug;
+    uint32_t m_debugSamples;
+    float m_sigma_t;
+    uint32_t m_estimationIterations;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();

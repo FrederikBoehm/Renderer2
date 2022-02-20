@@ -22,6 +22,10 @@ namespace filter {
     rt::CDeviceScene* scene;
     uint32_t samplesPerVoxel;
     SFilteredData* filteredData;
+    bool debug;
+    uint32_t debugSamples;
+    float sigma_t;
+    uint32_t estimationIterations;
   };
 }
 
