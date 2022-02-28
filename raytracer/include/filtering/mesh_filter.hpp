@@ -16,7 +16,17 @@ namespace filter {
 
   class CMeshFilter {
   public:
-    DH_CALLABLE CMeshFilter(const glm::ivec3& currentVoxel, const glm::mat4x3& indexToModel, const glm::mat4x3& modelToIndex, const glm::mat4x3& modelToWorld, const glm::mat4x3& worldToModel, const glm::ivec3& numVoxels, const rt::SAABB& worldBB, rt::CSampler& sampler, float sigma_t, uint32_t estimationIterations):
+    DH_CALLABLE CMeshFilter(const glm::ivec3& currentVoxel,
+                            const glm::mat4x3& indexToModel,
+                            const glm::mat4x3& modelToIndex,
+                            const glm::mat4x3& modelToWorld,
+                            const glm::mat4x3& worldToModel,
+                            const glm::ivec3& numVoxels,
+                            const rt::SAABB& worldBB,
+                            rt::CSampler& sampler,
+                            float sigma_t,
+                            uint32_t estimationIterations,
+                            float alpha):
       m_currentVoxel(currentVoxel),
       m_indexToModel(indexToModel),
       m_modelToIndex(modelToIndex),
@@ -26,7 +36,8 @@ namespace filter {
       m_worldBB(worldBB),
       m_sampler(sampler),
       m_sigma_t(sigma_t),
-      m_estimationIterations(estimationIterations) {
+      m_estimationIterations(estimationIterations),
+      m_alpha(alpha) {
       m_voxelCenter = modelToWorld * glm::vec4(indexToModel * glm::vec4(glm::vec3(currentVoxel) + 0.5f, 1.f), 1.f); // +0.5 to get voxel center in world space
       m_voxelSize = (worldBB.m_max - worldBB.m_min) / glm::vec3(numVoxels);
     }
@@ -132,24 +143,79 @@ namespace filter {
     rt::CSampler& m_sampler;
     float m_sigma_t;
     uint32_t m_estimationIterations;
+    float m_alpha;
 
     D_CALLABLE float estimateDensity(float averageDistance, uint32_t hits, uint32_t numSamples, float tMax) const {
       
       float volumeCorrection = m_voxelSize.x; // Correction term (CurrentVolume/UnitVolume) because density is defined on unit cube
       const float P_hit_mesh = hits / (float)numSamples;
       float density = (P_hit_mesh * volumeCorrection) / (averageDistance * m_sigma_t);
-      float delta = 0.1f;
 
+      //for (float d = -1.f; d < 1.f; d += 0.001f) {
+      //  float pHit = estimatePhitVolume(d, tMax, 100);
+      //  float loss = glm::abs(pHit - P_hit_mesh);
+      //  printf("density: %f, P_hit_volume: %f, loss: %f\n", d, pHit, loss);
+      //}
+      float delta = 0.001f; // For loss derivative
+      printf("P_hit_mesh: %f, initial density: %f\n", P_hit_mesh, density);
+
+      printf("iteration, P_hit_volume, P_hit_volume_gt, density\n");
       for (size_t iteration = 0; iteration < m_estimationIterations; ++iteration) {
+        float alpha = m_alpha * glm::pow(0.1f, (float)iteration / 100.f);
         uint32_t volumeHits = 0;
-        float invMaxDensity = 1.f / density;
-        for (size_t sample = 0; sample < numSamples; ++sample) {
-          volumeHits += deltaTrack(invMaxDensity, tMax);
-        }
-        float P_hit_volume = (float)volumeHits / numSamples;
-        density += (P_hit_mesh - P_hit_volume) * delta;
+        float P_hit_volume = estimatePhitVolume(density, tMax, numSamples);
+        float P_hit_volume_gt = estimatePhitVolumeGT(density, tMax);
+        //density += (P_hit_mesh - P_hit_volume) * alpha;
+        float dLoss = estimateLoss(density, tMax, P_hit_mesh, numSamples);
+        float dLossGT = estimateLossGT(density, tMax, P_hit_mesh);
+        //density = density - alpha * dLossGT;
+        //printf("iteration %i, P_hit_volume: %f, P_hit_volume_gt: %f, dLoss: %f, dLossGT: %f, density: %f, alpha: %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, dLoss, dLossGT, density, alpha);
+        density = density - m_alpha * glm::sign(P_hit_volume - P_hit_mesh);
+        //density = density - m_alpha * (P_hit_volume - P_hit_mesh);
+        printf("%i, %f, %f, %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, density);
+        //float invMaxDensity = 1.f / density;
+        //for (size_t sample = 0; sample < numSamples; ++sample) {
+        //  volumeHits += deltaTrack(invMaxDensity, tMax);
+        //}
+        //float P_hit_volume = (float)volumeHits / numSamples;
+        //density += (P_hit_mesh - P_hit_volume) * delta;
+        //printf("iteration %i, P_hit_volume: %f, density: %f\n", (int)iteration, P_hit_volume, density);
       }
       return density;
+    }
+
+    D_CALLABLE float estimatePhitVolume(float density, float tMax, uint32_t numSamples) const {
+      float invMaxDensity = 1.f / glm::max(density, FLT_EPSILON);
+      uint32_t volumeHits = 0;
+      for (size_t sample = 0; sample < numSamples; ++sample) {
+        volumeHits += deltaTrack(invMaxDensity, tMax);
+      }
+      return (float)volumeHits / numSamples;
+
+    }
+
+    DH_CALLABLE float estimatePhitVolumeGT(float density, float tMax) const {
+      return 1.f - glm::exp(-density * m_sigma_t * tMax);
+    }
+
+    DH_CALLABLE float estimateLoss(float density, float tMax, float P_hit_mesh, uint32_t numSamples) const {
+      float delta = 0.001f; // For loss derivative
+      return (glm::abs(estimatePhitVolumeGT(density + delta, tMax) - P_hit_mesh) - glm::abs(estimatePhitVolumeGT(density - delta, tMax) - P_hit_mesh)) / (2.f * delta);
+    }
+
+    DH_CALLABLE float estimateLossGT(float density, float tMax, float P_hit_mesh) const {
+      float zero = -glm::log(1.f - P_hit_mesh) / (m_sigma_t*tMax);
+      if (density > zero) {
+        float v = tMax * m_sigma_t;
+        return v * glm::exp(-v * density);
+      }
+      else if (zero == 0.f) {
+        return 0.f;
+      }
+      else {
+        float v = tMax * m_sigma_t;
+        return -v * glm::exp(-v * density);
+      }
     }
 
     D_CALLABLE uint8_t deltaTrack(float invMaxDensity, float tMax) const {
