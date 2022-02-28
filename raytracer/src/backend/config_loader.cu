@@ -67,7 +67,8 @@
     auto debugSamples = filtering["DebugSamples"];
     auto sigmaT = filtering["SigmaT"];
     auto estimationIterations = filtering["EstimationIterations"];
-    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty() && !debug.empty() && !debugSamples.empty() && !sigmaT.empty() && !estimationIterations.empty();
+    auto alpha = filtering["Alpha"];
+    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty() && !debug.empty() && !debugSamples.empty() && !sigmaT.empty() && !estimationIterations.empty() && !alpha.empty();
     if (valid) {
       config->filteringConfig.filter = filter.get<bool>();
       config->filteringConfig.voxelSize = voxelSize;
@@ -76,6 +77,7 @@
       config->filteringConfig.debugSamples = debugSamples.get<uint32_t>();
       config->filteringConfig.sigmaT = sigmaT.get<float>();
       config->filteringConfig.estimationIterations = estimationIterations.get<uint32_t>();
+      config->filteringConfig.alpha = alpha.get<float>();
     }
     return valid;
   }

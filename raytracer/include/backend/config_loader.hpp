@@ -13,6 +13,7 @@ struct SFilteringConfig {
   uint32_t debugSamples;
   float sigmaT;
   uint32_t estimationIterations;
+  float alpha;
 };
 
 struct SConfig {

@@ -28,6 +28,7 @@ namespace filter {
     uint32_t m_debugSamples;
     float m_sigma_t;
     uint32_t m_estimationIterations;
+    float m_alpha;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();
