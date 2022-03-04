@@ -11,7 +11,7 @@ namespace rt {
   public:
     H_CALLABLE Sphere();
     H_CALLABLE Sphere(float radius);
-    H_CALLABLE Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
+    DH_CALLABLE Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal);
 
     DH_CALLABLE SHitInformation intersect(const CRay& ray) const;
 
@@ -23,6 +23,12 @@ namespace rt {
     float m_radius;
 
   };
+
+  inline Sphere::Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
+    CShape(EShape::SPHERE, worldPos, normal),
+    m_radius(radius) {
+
+  }
 
   inline SHitInformation Sphere::intersect(const CRay& ray) const {
     CRay rayModelSpace = ray.transform(m_worldToModel);

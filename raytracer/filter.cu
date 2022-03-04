@@ -24,7 +24,8 @@ namespace filter {
     m_debugSamples(config.filteringConfig.debugSamples),
     m_sigma_t(config.filteringConfig.sigmaT),
     m_estimationIterations(config.filteringConfig.estimationIterations),
-    m_alpha(config.filteringConfig.alpha) {
+    m_alpha(config.filteringConfig.alpha),
+    m_clipRays(config.filteringConfig.clipRays) {
     SOpenvdbBackendConfig openvdbConfig;
     auto[modelSpaceBBs, worldSpaceBBs] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
@@ -124,6 +125,7 @@ namespace filter {
     launchParams.sigma_t = m_sigma_t;
     launchParams.estimationIterations = m_estimationIterations;
     launchParams.alpha = m_alpha;
+    launchParams.clipRays = m_clipRays;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SFilterLaunchParams), cudaMemcpyHostToDevice));
   }
 

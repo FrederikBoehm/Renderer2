@@ -14,6 +14,7 @@ struct SFilteringConfig {
   float sigmaT;
   uint32_t estimationIterations;
   float alpha;
+  bool clipRays;
 };
 
 struct SConfig {
