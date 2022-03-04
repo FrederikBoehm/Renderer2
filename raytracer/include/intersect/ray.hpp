@@ -13,6 +13,7 @@ namespace rt {
     inline static constexpr float OFFSET = 1e-4f;
     inline static constexpr float DEFAULT_TMAX = 1e+12;
     DH_CALLABLE CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max = DEFAULT_TMAX, const CMediumInstance* medium = nullptr);
+    DH_CALLABLE CRay();
     glm::vec3 m_origin;
     glm::vec3 m_direction;
     mutable float m_t_max;
@@ -23,6 +24,11 @@ namespace rt {
     DH_CALLABLE CRay robustTransform(const glm::mat4x3& worldToModel, const glm::vec3& offsetDir) const;
     DH_CALLABLE static CRay spawnRay(const glm::vec3& start, const glm::vec3& end, const CMediumInstance* originMedium = nullptr);
   };
+
+  inline CRay::CRay() :
+    m_origin(0.f), m_direction(0.f), m_t_max(0.f), m_medium(nullptr) {
+
+  }
 
   inline CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max, const CMediumInstance* medium) :
     m_origin(origin), m_direction(glm::normalize(direction)), m_t_max(t_max), m_medium(medium) {

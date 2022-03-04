@@ -14,12 +14,6 @@ namespace rt {
   Sphere::Sphere(float radius) : CShape(EShape::SPHERE), m_radius(radius) {
   }
 
-  Sphere::Sphere(const glm::vec3& worldPos, float radius, const glm::vec3& normal) :
-    CShape(EShape::SPHERE, worldPos, normal),
-    m_radius(radius) {
-
-  }
-
   OptixAabb Sphere::getAABB() const {
     glm::vec3 min(m_worldPos.x - m_radius, m_worldPos.y - m_radius, m_worldPos.z - m_radius);
     glm::vec3 max(m_worldPos.x + m_radius, m_worldPos.y + m_radius, m_worldPos.z + m_radius);

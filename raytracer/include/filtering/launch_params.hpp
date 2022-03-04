@@ -27,6 +27,7 @@ namespace filter {
     float sigma_t;
     uint32_t estimationIterations;
     float alpha;
+    bool clipRays;
   };
 }
 

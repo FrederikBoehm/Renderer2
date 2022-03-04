@@ -29,6 +29,7 @@ namespace filter {
     float m_sigma_t;
     uint32_t m_estimationIterations;
     float m_alpha;
+    bool m_clipRays;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();
