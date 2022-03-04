@@ -11,6 +11,7 @@
 
 #include "scene/types.hpp"
 #include "intersect/aabb.hpp"
+#include "filtering/filtered_data.hpp"
 namespace rt {
   class CRay;
   class CSampler;
@@ -42,8 +43,12 @@ namespace rt {
 
     template <typename TReadAccessor>
     DH_CALLABLE float density(const glm::vec3& p, const TReadAccessor& accessor) const;
+    template <typename TReadAccessor>
+    DH_CALLABLE filter::SFilteredData filteredData(const glm::vec3& p, const TReadAccessor& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
+    DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
+    DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
     D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;

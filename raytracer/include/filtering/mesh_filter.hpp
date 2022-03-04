@@ -149,7 +149,9 @@ namespace filter {
       
       float volumeCorrection = m_voxelSize.x; // Correction term (CurrentVolume/UnitVolume) because density is defined on unit cube
       const float P_hit_mesh = hits / (float)numSamples;
-      float density = (P_hit_mesh * volumeCorrection) / (averageDistance * m_sigma_t);
+      //float density = (P_hit_mesh * volumeCorrection) / (tMax * m_sigma_t);
+      float density = -glm::log(1.f - P_hit_mesh) / (tMax * m_sigma_t);
+      float normalizedAlpha = m_alpha / m_sigma_t;
 
       //for (float d = -1.f; d < 1.f; d += 0.001f) {
       //  float pHit = estimatePhitVolume(d, tMax, 100);
@@ -161,7 +163,7 @@ namespace filter {
 
       printf("iteration, P_hit_volume, P_hit_volume_gt, density\n");
       for (size_t iteration = 0; iteration < m_estimationIterations; ++iteration) {
-        float alpha = m_alpha * glm::pow(0.1f, (float)iteration / 100.f);
+        //float alpha = normalizedAlpha * glm::pow(0.5f, (float)iteration / 2.f);
         uint32_t volumeHits = 0;
         float P_hit_volume = estimatePhitVolume(density, tMax, numSamples);
         float P_hit_volume_gt = estimatePhitVolumeGT(density, tMax);
@@ -170,8 +172,8 @@ namespace filter {
         float dLossGT = estimateLossGT(density, tMax, P_hit_mesh);
         //density = density - alpha * dLossGT;
         //printf("iteration %i, P_hit_volume: %f, P_hit_volume_gt: %f, dLoss: %f, dLossGT: %f, density: %f, alpha: %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, dLoss, dLossGT, density, alpha);
-        density = density - m_alpha * glm::sign(P_hit_volume - P_hit_mesh);
-        //density = density - m_alpha * (P_hit_volume - P_hit_mesh);
+        //density = density - normalizedAlpha * glm::sign(P_hit_volume - P_hit_mesh);
+        density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh);
         printf("%i, %f, %f, %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, density);
         //float invMaxDensity = 1.f / density;
         //for (size_t sample = 0; sample < numSamples; ++sample) {

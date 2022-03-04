@@ -4,6 +4,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "qualifiers.hpp"
+#include "filtering/filtered_data.hpp"
 
 namespace rt {
    template <typename Predicate> DH_CALLABLE int findInterval(int size, const Predicate& pred) {
@@ -59,6 +60,10 @@ namespace rt {
    }
 
    DH_CALLABLE inline float interpolate(float t, float v1, float v2) {
+     return (1.f - t) * v1 + t * v2;
+   }
+
+   DH_CALLABLE inline filter::SFilteredData interpolate(float t, const filter::SFilteredData& v1, const filter::SFilteredData& v2) {
      return (1.f - t) * v1 + t * v2;
    }
 
