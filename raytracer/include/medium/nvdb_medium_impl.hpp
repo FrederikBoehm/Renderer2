@@ -40,6 +40,28 @@ namespace rt {
     return interpolate(d.z, d0, d1);
   }
 
+  template <typename TReadAccessor>
+  inline filter::SFilteredData CNVDBMedium::filteredData(const glm::vec3& p, const TReadAccessor& accessor) const {
+    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
+      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
+    glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
+    glm::ivec3 pi = glm::floor(pSamples);
+    glm::vec3 d = pSamples - (glm::vec3)pi;
+    int x = pi.x;
+    int y = pi.y;
+    int z = pi.z;
+
+    filter::SFilteredData d00 = interpolate(d.x, getValue(pi, accessor), getValue(pi + glm::ivec3(1, 0, 0), accessor));
+    filter::SFilteredData d10 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 0), accessor), getValue(pi + glm::ivec3(1, 1, 0), accessor));
+    filter::SFilteredData d01 = interpolate(d.x, getValue(pi + glm::ivec3(0, 0, 1), accessor), getValue(pi + glm::ivec3(1, 0, 1), accessor));
+    filter::SFilteredData d11 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 1), accessor), getValue(pi + glm::ivec3(1, 1, 1), accessor));
+
+    filter::SFilteredData d0 = interpolate(d.y, d00, d10);
+    filter::SFilteredData d1 = interpolate(d.y, d01, d11);
+
+    return interpolate(d.z, d0, d1);
+  }
+
   inline float CNVDBMedium::D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
     glm::vec3 pCopy = p;
     nanovdb::Coord coord(p.x, p.y, p.z);
@@ -51,6 +73,21 @@ namespace rt {
     nanovdb::Coord coord(p.x, p.y, p.z);
     nanovdb::Vec4d value = accessor.getValue(coord);
     return reinterpret_cast<filter::SFilteredData&>(value).density;
+  }
+
+  inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+    glm::vec3 pCopy = p;
+    nanovdb::Coord coord(p.x, p.y, p.z);
+    nanovdb::Vec4d value = accessor.getValue(coord);
+    return reinterpret_cast<filter::SFilteredData&>(value);
+  }
+
+  inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
+    //glm::vec3 pCopy = p;
+    //nanovdb::Coord coord(p.x, p.y, p.z);
+    //nanovdb::Vec4d value = accessor.getValue(coord);
+    filter::SFilteredData temp;
+    return temp;
   }
 
   template <typename TReadAccessor>
@@ -116,6 +153,7 @@ namespace rt {
         break;
       }
       float d = density(ray.m_origin + t * ray.m_direction, accessor);
+      //filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor);
       if (d * m_invMaxDensity > sampler.uniformSample01()) {
         ray.m_t_max = t;
         CRay rayWorldNew = ray.transform(m_indexToModel);
@@ -125,6 +163,9 @@ namespace rt {
         SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
         *mi = { hitInfo, nullptr, nullptr, nullptr };
         return m_sigma_s / m_sigma_t;
+        //const uint16_t MAX_U16 = -1;
+        //const float fMAX_U16 = MAX_U16;
+        //return glm::vec3(fD.diffuseColor) / fMAX_U16;
       }
     }
     return glm::vec3(1.f);
