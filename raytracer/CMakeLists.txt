@@ -166,7 +166,7 @@ source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES} ${OP
 
 #message("[DEBUG] Setting target compile options for raytracer")
 target_compile_options(raytracer PRIVATE "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-G>")
-target_compile_options(raytracer PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_52,code=[sm_52,lto_52]>")
+target_compile_options(raytracer PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=[sm_86,lto_86]>")
 target_compile_features(raytracer PRIVATE cxx_std_17)
 target_compile_definitions(raytracer PRIVATE NANOVDB_USE_INTRINSICS=1 BOOST_PP_VARIADICS=0 _ENABLE_EXTENDED_ALIGNED_STORAGE)
 target_compile_definitions(raytracer PRIVATE "$<$<CONFIG:DEBUG>:DEBUG>" "$<$<CONFIG:RELEASE>:RELEASE>")
