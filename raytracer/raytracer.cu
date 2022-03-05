@@ -27,6 +27,7 @@
 #include <optix/optix_stubs.h>
 #include "backend/config_loader.hpp"
 #include "backend/asset_manager.hpp"
+#include <chrono>
 
 namespace rt {
   // Initializes cuRAND random number generators
@@ -236,6 +237,7 @@ namespace rt {
     rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
     bool abortRendering = false;
+    auto start = std::chrono::steady_clock::now();
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
       OPTIX_ASSERT(optixLaunch(
@@ -254,6 +256,8 @@ namespace rt {
         return retrieveFrame();
       }
     }
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);

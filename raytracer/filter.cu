@@ -12,6 +12,7 @@
 #include <device_functions.h>
 #include <cuda_runtime_api.h>
 #include "filtering/launch_params.hpp"
+#include <chrono>
 
 namespace filter {
   CFilter::CFilter(const SConfig& config):
@@ -67,6 +68,7 @@ namespace filter {
       return;
     }
     const glm::ivec3& numVoxels = m_backend->launchParams().numVoxels;
+    auto start = std::chrono::steady_clock::now();
     OPTIX_ASSERT(optixLaunch(
       rt::CRTBackend::instance()->pipeline(),
       0,             // stream
@@ -78,6 +80,8 @@ namespace filter {
       numVoxels.z       // launch depth
     ));
     CUDA_ASSERT(cudaDeviceSynchronize());
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     if (!m_debug) {
       size_t voxelCount = numVoxels.x * numVoxels.y * numVoxels.z;
