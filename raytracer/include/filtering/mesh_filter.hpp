@@ -9,6 +9,7 @@
 #include "filtered_data.hpp"
 #include "material/material.hpp"
 #include "shapes/sphere.hpp"
+#include "medium/sggx_phase_function.hpp"
 
 // Includes for debug below
 #include "scene/device_sceneobject.hpp"
@@ -45,7 +46,7 @@ namespace filter {
       m_voxelSize = (worldBB.m_max - worldBB.m_min) / glm::vec3(numVoxels);
     }
 
-    D_CALLABLE SFilteredData run(rt::CDeviceScene& scene, uint32_t numSamples) {
+    D_CALLABLE SFilteredDataCompact run(rt::CDeviceScene& scene, uint32_t numSamples) {
       glm::vec3 currentVoxel(m_currentVoxel);
       glm::mat4x3 indexToWorld = glm::mat4(m_modelToWorld) * glm::mat4(m_indexToModel);
       float diagonal = glm::length(m_voxelSize);
@@ -53,7 +54,7 @@ namespace filter {
       float volume = (m_worldBB.m_max.x - m_worldBB.m_min.x) * (m_worldBB.m_max.y - m_worldBB.m_min.y) * (m_worldBB.m_max.z - m_worldBB.m_min.z);
 
       uint32_t hits = 0;
-      glm::vec3 filteredNormal(0.f);
+      glm::mat3 filteredS(0.f);
       glm::vec3 filteredDiffuseClr(0.f);
       glm::vec3 filteredSpecularClr(0.f);
       float specularRoughness = 0.f;
@@ -77,7 +78,7 @@ namespace filter {
         if (interaction.hitInformation.hit) {
           rayTs[hits] = ray.m_t_max;
           ++hits;
-          filteredNormal += interaction.hitInformation.normal;
+          filteredS += rt::CSGGXMicroflakeDistribution::buildS(interaction.hitInformation.normal, interaction.material->specularRoughness());
           filteredDiffuseClr += interaction.material->diffuse(interaction.hitInformation.tc);
           filteredSpecularClr += interaction.material->glossy(interaction.hitInformation.tc);
           specularRoughness += interaction.material->specularRoughness();
@@ -89,19 +90,17 @@ namespace filter {
       if (hits > 0) {
         filteredData.density = estimateDensity(averageDistance, hits, numSamples, tMax, rayTs);
         float invHits = 1.f / hits;
-        filteredData.normal = glm::normalize((m_worldToModel * glm::vec4(filteredNormal, 0.f)) * invHits);
         const uint16_t MAX_U16 = -1;
         const float fMAX_U16 = MAX_U16;
-        filteredData.diffuseColor = glm::clamp(fMAX_U16 * filteredDiffuseClr * invHits, 0.f, fMAX_U16);
-        filteredData.specularColor = glm::clamp(fMAX_U16 * filteredSpecularClr * invHits, 0.f, fMAX_U16);
-        filteredData.specularRoughness = specularRoughness * invHits;
+        filteredData.diffuseColor = filteredDiffuseClr * invHits;
+        filteredData.specularColor = filteredSpecularClr * invHits;
+        filteredData.S = filteredS * invHits;
       }
       else {
         filteredData.density = 0.f;
-        filteredData.normal = glm::vec3(0.f);
-        filteredData.diffuseColor = glm::u16vec3(0);
-        filteredData.specularColor = glm::u16vec3(0);
-        filteredData.specularRoughness = 0.f;
+        filteredData.diffuseColor = glm::vec3(0.f);
+        filteredData.specularColor = glm::vec3(0.f);
+        filteredData.S = glm::mat3(0.f);
       }
       return filteredData;
 
@@ -164,17 +163,25 @@ namespace filter {
     bool m_clipRays;
 
     D_CALLABLE float estimateDensity(float averageDistance, uint32_t hits, uint32_t numSamples, float tMax, float* rayTs) const {
-      
+      //uint3 launchIdx = optixGetLaunchIndex();
+      //uint3 launchDim = optixGetLaunchDimensions();
+
       float volumeCorrection = m_voxelSize.x; // Correction term (CurrentVolume/UnitVolume) because density is defined on unit cube
       const float P_hit_mesh = hits / (float)numSamples;
       //float density = (P_hit_mesh * volumeCorrection) / (tMax * m_sigma_t);
       float density = -glm::log(1.f - P_hit_mesh) / (averageDistance * m_sigma_t); // For clipping this is just initialisation
       float normalizedAlpha = m_alpha / m_sigma_t;
+      //if (launchIdx.x == int(launchDim.x / 2) && launchIdx.y == int(launchDim.y / 2) && launchIdx.z == int(launchDim.z / 2)) {
+      //  printf("P_hit_mesh: %f, initial density: %f\n", P_hit_mesh, density);
+      //}
 
       //for (float d = -1.f; d < 1.f; d += 0.001f) {
       //  float pHit = estimatePhitVolume(d, tMax, 100);
       //  float loss = glm::abs(pHit - P_hit_mesh);
       //  printf("density: %f, P_hit_volume: %f, loss: %f\n", d, pHit, loss);
+      //}
+      //if (launchIdx.x == launchDim.x / 2 && launchIdx.y == launchDim.y / 2 && launchIdx.z == launchDim.z / 2) {
+      //  printf("iteration, P_hit_volume_gt, density\n");
       //}
       float delta = 0.001f; // For loss derivative
       for (size_t iteration = 0; iteration < m_estimationIterations; ++iteration) {
@@ -194,6 +201,9 @@ namespace filter {
         //density = density - alpha * dLossGT;
         //printf("iteration %i, P_hit_volume: %f, P_hit_volume_gt: %f, dLoss: %f, dLossGT: %f, density: %f, alpha: %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, dLoss, dLossGT, density, alpha);
         density = density - normalizedAlpha * glm::sign(P_hit_volume_gt - P_hit_mesh);
+        //if (launchIdx.x == launchDim.x / 2 && launchIdx.y == launchDim.y / 2 && launchIdx.z == launchDim.z / 2) {
+        //  printf("%i, %f, %f\n", (int)iteration, P_hit_volume_gt, density);
+        //}
         //density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh);
         //float invMaxDensity = 1.f / density;
         //for (size_t sample = 0; sample < numSamples; ++sample) {

@@ -81,8 +81,8 @@ namespace filter {
 
     if (!m_debug) {
       size_t voxelCount = numVoxels.x * numVoxels.y * numVoxels.z;
-      std::vector<SFilteredData> filteredData(voxelCount);
-      CUDA_ASSERT(cudaMemcpy(filteredData.data(), m_deviceFilterData, sizeof(SFilteredData) * voxelCount, cudaMemcpyDeviceToHost));
+      std::vector<SFilteredDataCompact> filteredData(voxelCount);
+      CUDA_ASSERT(cudaMemcpy(filteredData.data(), m_deviceFilterData, sizeof(SFilteredDataCompact) * voxelCount, cudaMemcpyDeviceToHost));
       m_backend->setValues(filteredData);
       nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = m_backend->getNanoGridHandle();
       m_backend->writeToFile(gridHandle, "./filtering", "filtered_mesh.nvdb");
@@ -111,7 +111,7 @@ namespace filter {
     const glm::ivec3& numVoxels = m_backend->launchParams().numVoxels;
     size_t totalVoxels = numVoxels.x * numVoxels.y * numVoxels.z;
     CUDA_ASSERT(cudaMalloc(&m_deviceSampler, sizeof(rt::CSampler) * totalVoxels));
-    CUDA_ASSERT(cudaMalloc(&m_deviceFilterData, sizeof(SFilteredData) * totalVoxels))
+    CUDA_ASSERT(cudaMalloc(&m_deviceFilterData, sizeof(SFilteredDataCompact) * totalVoxels))
   }
 
   void CFilter::copyToDevice() {

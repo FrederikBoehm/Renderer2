@@ -9,7 +9,7 @@ struct SConfig;
 namespace filter {
   class COpenvdbBackend;
   struct SFilterLaunchParams;
-  struct SFilteredData;
+  struct SFilteredDataCompact;
   class CFilter {
   public:
     CFilter(const SConfig& config);
@@ -22,7 +22,7 @@ namespace filter {
     SFilterLaunchParams* m_deviceLaunchParams;
     rt::CSampler* m_deviceSampler;
     rt::CDeviceScene* m_deviceScene;
-    SFilteredData* m_deviceFilterData;
+    SFilteredDataCompact* m_deviceFilterData;
     uint32_t m_samplesPerVoxel;
     bool m_debug;
     uint32_t m_debugSamples;

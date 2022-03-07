@@ -33,6 +33,7 @@ namespace rt {
     DH_CALLABLE glm::vec3 sampleVNDF(const glm::vec3& w_i, const glm::vec2& U, const glm::mat3& S) const;
   
     DH_CALLABLE glm::mat3 buildS(const glm::vec3& n) const;
+    DH_CALLABLE static glm::mat3 buildS(const glm::vec3& n, float sigma);
 
   private:
     const glm::mat3 m_S;
@@ -92,6 +93,10 @@ namespace rt {
   }
 
   inline glm::mat3 CSGGXMicroflakeDistribution::buildS(const glm::vec3& n) const {
+    return buildS(n, m_sigma);
+  }
+
+  inline glm::mat3 CSGGXMicroflakeDistribution::buildS(const glm::vec3& n, float sigma) {
     float xx = n.x * n.x;
     float xy = n.x * n.y;
     float xz = n.x * n.z;
@@ -100,7 +105,7 @@ namespace rt {
     float zz = n.z * n.z;
     glm::mat3 m1(xx, xy, xz, xy, yy, yz, xz, yz, zz);
     glm::mat3 m2(yy + zz, -xy, -xz, -xy, xx + zz, -yz, -xz, -yz, xx + yy);
-    return m1 + m_sigma * m2;
+    return m1 + sigma * m2;
   }
 
   inline float CSGGXMicroflakeDistribution::D(const glm::vec3& w) const {

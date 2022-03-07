@@ -18,10 +18,7 @@ namespace rt {
     return m_worldBB;
   }
 
-  template <typename TReadAccessor>
-  inline float CNVDBMedium::density(const glm::vec3& p, const TReadAccessor& accessor) const {
-    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
-      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
+  inline float CNVDBMedium::density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
     glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);
     glm::vec3 d = pSamples - (glm::vec3)pi;
@@ -40,10 +37,7 @@ namespace rt {
     return interpolate(d.z, d0, d1);
   }
 
-  template <typename TReadAccessor>
-  inline filter::SFilteredData CNVDBMedium::filteredData(const glm::vec3& p, const TReadAccessor& accessor) const {
-    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
-      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
+  inline filter::SFilteredData CNVDBMedium::filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
     glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);
     glm::vec3 d = pSamples - (glm::vec3)pi;
@@ -68,26 +62,11 @@ namespace rt {
     return accessor.getValue(coord);
   }
 
-  inline float CNVDBMedium::D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
-    glm::vec3 pCopy = p;
-    nanovdb::Coord coord(p.x, p.y, p.z);
-    nanovdb::Vec4d value = accessor.getValue(coord);
-    return reinterpret_cast<filter::SFilteredData&>(value).density;
-  }
-
   inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
     glm::vec3 pCopy = p;
     nanovdb::Coord coord(p.x, p.y, p.z);
     nanovdb::Vec4d value = accessor.getValue(coord);
-    return reinterpret_cast<filter::SFilteredData&>(value);
-  }
-
-  inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const {
-    //glm::vec3 pCopy = p;
-    //nanovdb::Coord coord(p.x, p.y, p.z);
-    //nanovdb::Vec4d value = accessor.getValue(coord);
-    filter::SFilteredData temp;
-    return temp;
+    return filter::SFilteredData(reinterpret_cast<filter::SFilteredDataCompact&>(value));
   }
 
   template <typename TReadAccessor>
@@ -100,9 +79,19 @@ namespace rt {
     glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
     glm::ivec3 pi = glm::floor(pSamples);
 
-    float x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
-    float y = D(pi - glm::ivec3(0, 1, 0), accessor) - D(pi + glm::ivec3(0, 1, 0), accessor);
-    float z = D(pi - glm::ivec3(0, 0, 1), accessor) - D(pi + glm::ivec3(0, 0, 1), accessor);
+    float x;
+    float y;
+    float z;
+    if constexpr (std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value) {
+      x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
+      y = D(pi - glm::ivec3(0, 1, 0), accessor) - D(pi + glm::ivec3(0, 1, 0), accessor);
+      z = D(pi - glm::ivec3(0, 0, 1), accessor) - D(pi + glm::ivec3(0, 0, 1), accessor);
+    }
+    else {
+      x = getValue(pi - glm::ivec3(1, 0, 0), accessor).density - getValue(pi + glm::ivec3(1, 0, 0), accessor).density;
+      y = getValue(pi - glm::ivec3(0, 1, 0), accessor).density - getValue(pi + glm::ivec3(0, 1, 0), accessor).density;
+      z = getValue(pi - glm::ivec3(0, 0, 1), accessor).density - getValue(pi + glm::ivec3(0, 0, 1), accessor).density;
+    }
 
     glm::vec3 n = glm::normalize(glm::vec3(x, y, z));
     if (glm::any(glm::isnan(n)) || glm::any(glm::isinf(n))) { // this can happen if x, y, z is zero or really close to zero
@@ -152,21 +141,33 @@ namespace rt {
       if (t >= ray.m_t_max) {
         break;
       }
-      float d = density(ray.m_origin + t * ray.m_direction, accessor);
-      //filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor);
-      if (d * m_invMaxDensity > sampler.uniformSample01()) {
-        ray.m_t_max = t;
-        CRay rayWorldNew = ray.transform(m_indexToModel);
-        rayWorld.m_t_max = rayWorldNew.m_t_max;
-        glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-        glm::vec3 n = normal(worldPos, accessor);
-        SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
-        *mi = { hitInfo, nullptr, nullptr, nullptr };
-        return m_sigma_s / m_sigma_t;
-        //const uint16_t MAX_U16 = -1;
-        //const float fMAX_U16 = MAX_U16;
-        //return glm::vec3(fD.diffuseColor) / fMAX_U16;
+      if constexpr (std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value) {
+        float d = density(ray.m_origin + t * ray.m_direction, accessor);
+        if (d * m_invMaxDensity > sampler.uniformSample01()) {
+          ray.m_t_max = t;
+          CRay rayWorldNew = ray.transform(m_indexToModel);
+          rayWorld.m_t_max = rayWorldNew.m_t_max;
+          glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
+          glm::vec3 n = normal(worldPos, accessor);
+          SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
+          *mi = { hitInfo, nullptr, nullptr, nullptr };
+          return m_sigma_s / m_sigma_t;
+        }
       }
+      else {
+        filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor);
+        if (fD.density * m_invMaxDensity > sampler.uniformSample01()) {
+          ray.m_t_max = t;
+          CRay rayWorldNew = ray.transform(m_indexToModel);
+          rayWorld.m_t_max = rayWorldNew.m_t_max;
+          glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
+          glm::vec3 n = normal(worldPos, accessor);
+          SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
+          *mi = { hitInfo, nullptr, nullptr, nullptr };
+          return m_sigma_s / m_sigma_t;
+        }
+      }
+
     }
     return glm::vec3(1.f);
   }
@@ -195,7 +196,13 @@ namespace rt {
         break;
       }
 
-      float d = density(ray.m_origin + t * ray.m_direction, accessor);
+      float d;
+      if constexpr (std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value) {
+        d = density(ray.m_origin + t * ray.m_direction, accessor);
+      }
+      else {
+        d = getValue(ray.m_origin + t * ray.m_direction, accessor).density;
+      }
       tr *= 1.f - glm::max(0.f, d * m_invMaxDensity);
 
       if (tr < 1.f) {

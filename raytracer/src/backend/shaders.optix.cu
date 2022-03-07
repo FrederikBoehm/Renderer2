@@ -273,7 +273,7 @@ extern "C" __global__ void __raygen__filtering() {
     filter.debug(*paramsFiltering.scene, paramsFiltering.debugSamples);
   }
   else {
-      SFilteredData filteredData = filter.run(*paramsFiltering.scene, paramsFiltering.samplesPerVoxel);
+      SFilteredDataCompact filteredData = filter.run(*paramsFiltering.scene, paramsFiltering.samplesPerVoxel);
       paramsFiltering.filteredData[id] = filteredData;
   }
 }
