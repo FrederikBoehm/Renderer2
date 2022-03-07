@@ -9,7 +9,7 @@ namespace rt {
 }
 
 namespace filter {
-  struct SFilteredData;
+  struct SFilteredDataCompact;
 
   struct SFilterLaunchParams {
     glm::mat4x3 indexToModel;
@@ -21,7 +21,7 @@ namespace filter {
     rt::CSampler* samplers;
     rt::CDeviceScene* scene;
     uint32_t samplesPerVoxel;
-    SFilteredData* filteredData;
+    SFilteredDataCompact* filteredData;
     bool debug;
     uint32_t debugSamples;
     float sigma_t;

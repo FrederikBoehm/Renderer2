@@ -21,7 +21,7 @@ namespace filter {
     static COpenvdbBackend* instance();
 
     void init(const SOpenvdbBackendConfig& config);
-    void setValues(const std::vector<SFilteredData>& filteredData);
+    void setValues(const std::vector<SFilteredDataCompact>& filteredData);
     nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle() const;
     void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const;
 

@@ -20,10 +20,19 @@ namespace filter {
   }
 
   void COpenvdbBackend::init(const SOpenvdbBackendConfig& config) {
-    static_assert(sizeof(SFilteredData) <= sizeof(openvdb::Vec4d), "SFilteredData is too large for openvdb::Vec4d");
+    static_assert(sizeof(SFilteredDataCompact) <= sizeof(openvdb::Vec4d), "SFilteredDataCompact is too large for openvdb::Vec4d");
     if (!m_data) {
       openvdb::initialize();
-      SFilteredData backgroundValue = { 0.f, 0.f, glm::u16vec3(0), glm::u16vec3(0), glm::vec3(0.f) };
+      SFilteredDataCompact backgroundValue;
+      backgroundValue.density = 0.f;
+      backgroundValue.sigma_x = 0;
+      backgroundValue.sigma_y = 0;
+      backgroundValue.sigma_z = 0;
+      backgroundValue.r_xy = 0;
+      backgroundValue.r_xz = 0;
+      backgroundValue.r_yz = 0;
+      backgroundValue.diffuseColor = glm::uvec3(0);
+      backgroundValue.specularColor = glm::uvec3(0);
       Vec4DGrid::Ptr grid = Vec4DGrid::create(reinterpret_cast<openvdb::Vec4d&>(backgroundValue));
       Vec4DGrid::Accessor accessor = grid->getAccessor();
       m_data = new SOpenvdbData{ grid, accessor };
@@ -71,7 +80,7 @@ namespace filter {
     m_launchParams.worldToModel = glm::inverse(modelToWorld);
   }
 
-  void COpenvdbBackend::setValues(const std::vector<SFilteredData>& filteredData) {
+  void COpenvdbBackend::setValues(const std::vector<SFilteredDataCompact>& filteredData) {
     if (!m_data) {
       throw new std::exception("Called COpenvdbBackend::setValues without initializing COpenvdbBackend backend.");
     }
