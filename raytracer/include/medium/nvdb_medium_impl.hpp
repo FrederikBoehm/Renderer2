@@ -201,7 +201,7 @@ namespace rt {
         d = density(ray.m_origin + t * ray.m_direction, accessor);
       }
       else {
-        d = getValue(ray.m_origin + t * ray.m_direction, accessor).density;
+        d = filteredData(ray.m_origin + t * ray.m_direction, accessor).density;
       }
       tr *= 1.f - glm::max(0.f, d * m_invMaxDensity);
 

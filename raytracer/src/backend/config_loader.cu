@@ -213,9 +213,14 @@
     glm::vec3 sigmaS;
     valid = valid && parseVec3(sceneobject["SigmaS"], &sigmaS);
 
-    auto diffuseRoughness = sceneobject["DiffuseRoughness"];
-    auto specularRoughness = sceneobject["SpecularRoughness"];
-    valid = valid && !diffuseRoughness.empty() && !specularRoughness.empty();
+    auto diffuseRoughness = sceneobject.find("DiffuseRoughness");
+    auto specularRoughness = sceneobject.find("SpecularRoughness");
+    auto g = sceneobject.find("G");
+    bool sggx = diffuseRoughness != sceneobject.end() && specularRoughness != sceneobject.end();
+    if (sggx && g != sceneobject.end()) {
+      throw std::runtime_error("Medium can use either Henyey-Greenstein or SGGX phase, not both");
+    }
+    valid = valid && (sggx || g != sceneobject.end());
 
     glm::vec3 pos;
     valid = valid && parseVec3(sceneobject["Pos"], &pos);
@@ -233,12 +238,22 @@
         getMask(sceneobject["Mask"], &mask);
       }
 
-      rt::CNVDBMedium* medium = rt::CAssetManager::loadMedium(
-        path.get<std::string>(),
-        sigmaA,
-        sigmaS,
-        diffuseRoughness.get<float>(),
-        specularRoughness.get<float>());
+      rt::CNVDBMedium* medium = nullptr;
+      if (sggx) {
+        medium = rt::CAssetManager::loadMedium(
+          path.get<std::string>(),
+          sigmaA,
+          sigmaS,
+          diffuseRoughness.value().get<float>(),
+          specularRoughness.value().get<float>());
+      }
+      else {
+        medium = rt::CAssetManager::loadMedium(
+          path.get<std::string>(),
+          sigmaA,
+          sigmaS,
+          g.value().get<float>());
+      }
       scene->addSceneobject(rt::CHostSceneobject(
         medium,
         pos,

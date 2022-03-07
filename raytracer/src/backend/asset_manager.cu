@@ -123,6 +123,19 @@ namespace rt {
     return medium;
   }
 
+  CNVDBMedium* CAssetManager::loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g) {
+    CNVDBMedium* medium = nullptr;
+    auto mediumIter = s_hostMedia.find({ path });
+    if (mediumIter != s_hostMedia.end()) {
+      return mediumIter->second;
+    }
+    else {
+      medium = new CNVDBMedium(path, sigma_a, sigma_s, g);
+      s_hostMedia[{path}] = medium;
+    }
+    return medium;
+  }
+
   CTexture* CAssetManager::loadTexture(const std::string& path, ETextureType type) {
     auto texIter = s_hostTextures.find({ path, type });
     if (texIter != s_hostTextures.end()) {

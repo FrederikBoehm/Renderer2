@@ -25,7 +25,7 @@ namespace rt {
     };
 
   public:
-    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling);
+    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
     H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling);
     H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness);
     H_CALLABLE CNVDBMedium();
@@ -88,6 +88,8 @@ namespace rt {
     CUdeviceptr m_deviceGasBuffer;
 
     DeviceResource* m_deviceResource;
+
+    H_CALLABLE void init(const std::string& path);
 
     H_CALLABLE static glm::ivec3 getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize);
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<float>* grid);

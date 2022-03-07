@@ -110,6 +110,7 @@ namespace rt {
   public:
     H_CALLABLE static std::vector<std::tuple<CMesh*, CMaterial*>> loadMesh(const std::string& assetsBasePath, const std::string& meshFileName);
     H_CALLABLE static CNVDBMedium* loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness);
+    H_CALLABLE static CNVDBMedium* loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
     H_CALLABLE static CTexture* loadTexture(const std::string& path, ETextureType type);
     H_CALLABLE static CTexture* loadAlpha(const std::string& path);
     H_CALLABLE static void allocateDeviceMemory();
