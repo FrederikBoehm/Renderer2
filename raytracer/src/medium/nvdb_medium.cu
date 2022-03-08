@@ -331,7 +331,7 @@ namespace rt {
       for (int32_t y = minValues.y(); y <= maxValues.y(); ++y) {
         for (int32_t z = minValues.z(); z <= maxValues.z(); ++z) {
           nanovdb::Vec4d value = readAccessor.getValue(nanovdb::Coord(x, y, z));
-          maxDensity = fmaxf(reinterpret_cast<filter::SFilteredData&>(value).density, maxDensity);
+          maxDensity = fmaxf(reinterpret_cast<filter::SFilteredDataCompact&>(value).density, maxDensity);
         }
       }
     }
