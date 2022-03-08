@@ -31,6 +31,7 @@ namespace rt {
     DH_CALLABLE void updatePosition(const glm::vec3& pos);
     DH_CALLABLE void updateLookAt(const glm::vec3& lookAt);
     DH_CALLABLE const glm::vec3& position() const;
+    DH_CALLABLE const glm::vec3& lookAt() const;
     DH_CALLABLE const glm::mat4x3& worldToView() const;
     DH_CALLABLE const glm::mat4x3& viewToWorld() const;
     DH_CALLABLE const glm::vec3& up() const;
@@ -65,6 +66,10 @@ namespace rt {
 
   inline const glm::vec3& CCamera::position() const {
     return m_position;
+  }
+
+  inline const glm::vec3& CCamera::lookAt() const {
+    return m_lookAt;
   }
 
   inline const glm::mat4x3& CCamera::worldToView() const {

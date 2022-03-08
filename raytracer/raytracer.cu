@@ -360,7 +360,9 @@ namespace rt {
       m_hostCamera->updateLookAt(lookAtWorldSpace);
     }
 
-
+    const glm::vec3& camPos = m_hostCamera->position();
+    const glm::vec3& camLookAt = m_hostCamera->lookAt();
+    printf("Camera pos: (%f, %f, %f), lookAt: (%f, %f, %f)\n", camPos.x, camPos.y, camPos.z, camLookAt.x, camLookAt.y, camLookAt.z);
 
 
     CUDA_ASSERT(cudaMemcpy(m_deviceCamera, m_hostCamera.get(), sizeof(CCamera), cudaMemcpyHostToDevice));
