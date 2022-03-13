@@ -17,8 +17,8 @@ namespace rt {
 
   public:
     DH_CALLABLE virtual ~CPhaseFunction();
-    DH_CALLABLE float p(const glm::vec3& wo, const glm::vec3& wi, const glm::vec3& n, CSampler& sampler) const;
-    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const;
+    DH_CALLABLE float p(const glm::vec3& wo, const glm::vec3& wi, const glm::mat3& S, CSampler& sampler) const;
+    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::mat3& S, CSampler& sampler) const;
 
     DH_CALLABLE EPhaseFunction type() const;
 

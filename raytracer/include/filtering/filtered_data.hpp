@@ -52,13 +52,13 @@ namespace filter {
   inline SFilteredData::SFilteredData(const SFilteredDataCompact& data) {
     density = data.density;
     uint16_t MAX_U16 = -1;
-    float fMAX_U16 = MAX_U16;
-    float sigma_x = data.sigma_x / fMAX_U16;
-    float sigma_y = data.sigma_y / fMAX_U16;
-    float sigma_z = data.sigma_z / fMAX_U16;
-    float r_xy = 2.f * (data.r_xy / fMAX_U16) - 1.f;
-    float r_xz = 2.f * (data.r_xz / fMAX_U16) - 1.f;
-    float r_yz = 2.f * (data.r_yz / fMAX_U16) - 1.f;
+    float invfMAX_U16 = 1.f / (float)MAX_U16;
+    float sigma_x = data.sigma_x * invfMAX_U16;
+    float sigma_y = data.sigma_y * invfMAX_U16;
+    float sigma_z = data.sigma_z * invfMAX_U16;
+    float r_xy = 2.f * (data.r_xy * invfMAX_U16) - 1.f;
+    float r_xz = 2.f * (data.r_xz * invfMAX_U16) - 1.f;
+    float r_yz = 2.f * (data.r_yz * invfMAX_U16) - 1.f;
 
     float S_xx = sigma_x * sigma_x;
     float S_yy = sigma_y * sigma_y;
@@ -66,12 +66,11 @@ namespace filter {
     float S_xy = r_xy * sigma_x * sigma_y;
     float S_xz = r_xz * sigma_x * sigma_z;
     float S_yz = r_yz * sigma_y * sigma_z;
-    glm::mat3 tempS(S_xx, S_xy, S_xz,
-                    S_xy, S_yy, S_yz,
-                    S_xz, S_yz, S_zz);
-    S = tempS;
-    diffuseColor = glm::vec3(data.diffuseColor) / fMAX_U16;
-    specularColor = glm::vec3(data.specularColor) / fMAX_U16;
+    S = glm::mat3(S_xx, S_xy, S_xz,
+                  S_xy, S_yy, S_yz,
+                  S_xz, S_yz, S_zz);
+    diffuseColor = glm::vec3(data.diffuseColor) * invfMAX_U16;
+    specularColor = glm::vec3(data.specularColor) * invfMAX_U16;
   }
 
   inline SFilteredDataCompact::SFilteredDataCompact(const SFilteredData& data) {
@@ -99,10 +98,9 @@ namespace filter {
     float S_xy = v * filteredData.S[0][1];
     float S_xz = v * filteredData.S[0][2];
     float S_yz = v * filteredData.S[1][2];
-    glm::mat3 S(S_xx, S_xy, S_xz,
-                S_xy, S_yy, S_yz,
-                S_xz, S_yz, S_zz);
-    out.S = S;
+    out.S = glm::mat3(S_xx, S_xy, S_xz,
+                      S_xy, S_yy, S_yz,
+                      S_xz, S_yz, S_zz);
     out.diffuseColor = v * filteredData.diffuseColor;
     out.specularColor = v * filteredData.specularColor;
     return out;
@@ -117,10 +115,9 @@ namespace filter {
     float S_xy = v1.S[0][1] + v2.S[0][1];
     float S_xz = v1.S[0][2] + v2.S[0][2];
     float S_yz = v1.S[1][2] + v2.S[1][2];
-    glm::mat3 S(S_xx, S_xy, S_xz,
-                S_xy, S_yy, S_yz,
-                S_xz, S_yz, S_zz);
-    out.S = S;
+    out.S = glm::mat3(S_xx, S_xy, S_xz,
+                      S_xy, S_yy, S_yz,
+                      S_xz, S_yz, S_zz);
     out.diffuseColor = v1.diffuseColor + v2.diffuseColor;
     out.specularColor = v1.specularColor + v2.specularColor;
     return out;

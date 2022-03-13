@@ -49,6 +49,7 @@ namespace rt {
         si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
         si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
         si.normalG = si.normal;
+        si.sggxS = glm::mat3(0.f);
         si.tc = glm::vec2(0.f);
         si.t = t;
       }
@@ -68,6 +69,7 @@ namespace rt {
           si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
           si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
           si.normalG = si.normal;
+          si.sggxS = glm::mat3(0.f);
           si.tc = glm::vec2(0.f);
           si.t = minimum;
         }
@@ -77,6 +79,7 @@ namespace rt {
           si.pos = m_modelToWorld * glm::vec4(intersectionObjectSpace, 1.0f);
           si.normal = glm::normalize(m_modelToWorld * glm::vec4(intersectionObjectSpace, 0.0f));
           si.normalG = si.normal;
+          si.sggxS = glm::mat3(0.f);
           si.tc = glm::vec2(0.f);
           si.t = maximum;
         }

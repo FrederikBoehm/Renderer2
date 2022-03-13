@@ -49,6 +49,7 @@ namespace rt {
           si.pos = ray.m_origin + t * ray.m_direction;
           si.normal = m_normal;
           si.normalG = m_normal;
+          si.sggxS = glm::mat3(0.f);
           si.tc = glm::vec2(0.f);
           si.t = t;
         }

@@ -69,57 +69,6 @@ namespace rt {
     return filter::SFilteredData(reinterpret_cast<filter::SFilteredDataCompact&>(value));
   }
 
-  template <typename TReadAccessor>
-  inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, const TReadAccessor& accessor) const {
-    static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
-      "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
-    glm::vec3 pMedium = m_modelToIndex * glm::vec4(p.x, p.y, p.z, 1.f);
-
-
-    glm::vec3 pSamples(pMedium.x * m_size.x + m_ibbMin.x, pMedium.y * m_size.y + m_ibbMin.y, pMedium.z * m_size.z + m_ibbMin.z);
-    glm::ivec3 pi = glm::floor(pSamples);
-
-    float x;
-    float y;
-    float z;
-    if constexpr (std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value) {
-      x = D(pi - glm::ivec3(1, 0, 0), accessor) - D(pi + glm::ivec3(1, 0, 0), accessor);
-      y = D(pi - glm::ivec3(0, 1, 0), accessor) - D(pi + glm::ivec3(0, 1, 0), accessor);
-      z = D(pi - glm::ivec3(0, 0, 1), accessor) - D(pi + glm::ivec3(0, 0, 1), accessor);
-    }
-    else {
-      x = getValue(pi - glm::ivec3(1, 0, 0), accessor).density - getValue(pi + glm::ivec3(1, 0, 0), accessor).density;
-      y = getValue(pi - glm::ivec3(0, 1, 0), accessor).density - getValue(pi + glm::ivec3(0, 1, 0), accessor).density;
-      z = getValue(pi - glm::ivec3(0, 0, 1), accessor).density - getValue(pi + glm::ivec3(0, 0, 1), accessor).density;
-    }
-
-    glm::vec3 n = glm::normalize(glm::vec3(x, y, z));
-    if (glm::any(glm::isnan(n)) || glm::any(glm::isinf(n))) { // this can happen if x, y, z is zero or really close to zero
-      return glm::vec3(0.f);
-    }
-    else {
-      return glm::normalize(m_indexToModel * glm::vec4(n.x, n.y, n.z, 0.f));
-    }
-  }
-
-  inline glm::vec3 CNVDBMedium::normal(const glm::vec3& p, CSampler& sampler) const {
-    glm::vec3 n;
-    switch (m_gridType) {
-    case nanovdb::GridType::Float:
-      n = normal(p, m_grid->getAccessor());
-      break;
-    case nanovdb::GridType::Vec4d:
-      n = normal(p, m_vec4grid->getAccessor());
-      break;
-    }
-    if (n == glm::vec3(0.f)) {
-      return sampler.uniformSampleSphere(); // As a fallback sample sphere uniformly
-    }
-    else {
-      return n;
-    }
-  }
-
   inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
     switch (m_gridType) {
     case nanovdb::GridType::Float:
@@ -148,8 +97,7 @@ namespace rt {
           CRay rayWorldNew = ray.transform(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-          glm::vec3 n = normal(worldPos, accessor);
-          SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
+          SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), glm::mat3(0.f), glm::vec2(0.f), rayWorldNew.m_t_max };
           *mi = { hitInfo, nullptr, nullptr, nullptr };
           return m_sigma_s / m_sigma_t;
         }
@@ -161,10 +109,9 @@ namespace rt {
           CRay rayWorldNew = ray.transform(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-          glm::vec3 n = normal(worldPos, accessor);
-          SHitInformation hitInfo = { true, worldPos, n, n, glm::vec2(0.f), rayWorldNew.m_t_max };
+          SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), fD.S, glm::vec2(0.f), rayWorldNew.m_t_max };
           *mi = { hitInfo, nullptr, nullptr, nullptr };
-          return m_sigma_s / m_sigma_t;
+          return 0.5f * (fD.diffuseColor + fD.specularColor) * m_sigma_s / m_sigma_t;
         }
       }
 

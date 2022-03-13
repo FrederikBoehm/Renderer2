@@ -7,12 +7,14 @@
 
 namespace rt {
 
-  inline float CPhaseFunction::p(const glm::vec3& wo, const glm::vec3& wi, const glm::vec3& n, CSampler& sampler) const {
+  inline float CPhaseFunction::p(const glm::vec3& wo, const glm::vec3& wi, const glm::mat3& S, CSampler& sampler) const {
     switch (m_type) {
     case EPhaseFunction::HENYEY_GREENSTEIN:
       return ((CHenyeyGreensteinPhaseFunction*)this)->p(wo, wi);
-    case EPhaseFunction::SGGX:
-      return ((CSGGXPhaseFunction*)this)->p(wo, wi, n, sampler);
+    case EPhaseFunction::SGGX: {
+      CSGGXPhaseFunction phase(S);
+      return phase.p(wo, wi, sampler);
+    }
     default:
       fprintf(stderr, "CPhaseFunction::p: No valid phase function for type %i\n", m_type);
       return 0.f;
@@ -20,12 +22,14 @@ namespace rt {
     return 0.f;
   }
 
-  inline float CPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const {
+  inline float CPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::mat3& S, CSampler& sampler) const {
     switch (m_type) {
     case EPhaseFunction::HENYEY_GREENSTEIN:
       return ((CHenyeyGreensteinPhaseFunction*)this)->sampleP(wo, wi, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
-    case EPhaseFunction::SGGX:
-      return ((CSGGXPhaseFunction*)this)->sampleP(wo, wi, n, sampler);
+    case EPhaseFunction::SGGX: {
+      CSGGXPhaseFunction phase(S);
+      return phase.sampleP(wo, wi, sampler);
+    }
     default:
       fprintf(stderr, "CPhaseFunction::sampleP: No valid phase function for type %i\n", m_type);
       return 0.f;

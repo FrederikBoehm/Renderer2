@@ -110,14 +110,14 @@ namespace rt {
 
   }
 
-  CNVDBMedium* CAssetManager::loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) {
+  CNVDBMedium* CAssetManager::loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s) {
     CNVDBMedium* medium = nullptr;
     auto mediumIter = s_hostMedia.find({ path });
     if (mediumIter != s_hostMedia.end()) {
       return mediumIter->second;
     }
     else {
-      medium = new CNVDBMedium(path, sigma_a, sigma_s, diffuseRoughness, specularRoughness);
+      medium = new CNVDBMedium(path, sigma_a, sigma_s);
       s_hostMedia[{path}] = medium;
     }
     return medium;

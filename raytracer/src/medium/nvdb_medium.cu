@@ -38,57 +38,7 @@ namespace rt {
     init(path);
   }
 
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling) :
-    CMedium(EMediumType::NVDB_MEDIUM),
-    m_isHostObject(true),
-    m_handle(getHandle(path)),
-    m_gridType(m_handle->gridType()),
-    m_deviceAabb(NULL),
-    m_sigma_a(sigma_a),
-    m_sigma_s(sigma_s),
-    m_phase(new CSGGXPhaseFunction(sggxDiffuse, sggxSpecular)),
-    m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
-    m_deviceResource(nullptr) {
-    nanovdb::CoordBBox box;
-    switch (m_gridType) {
-    case nanovdb::GridType::Float:
-      m_grid = m_handle->grid<float>();
-      m_invMaxDensity = 1.f / getMaxValue(m_grid);
-      box = m_grid->indexBBox();
-      m_worldBB = m_grid->worldBBox();
-      m_size = getMediumSize(m_grid->worldBBox(), m_grid->voxelSize());
-      if (m_grid->activeVoxelCount() == 0) {
-        m_ibbMin = glm::ivec3(0);
-        m_ibbMax = glm::ivec3(0);
-      }
-      else {
-        m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
-        m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
-      }
-      m_indexToModel = getIndexToModelTransformation(m_grid->map(), m_ibbMin, m_size);
-      m_modelToIndex = glm::inverse(glm::mat4(m_indexToModel));
-      break;
-    case nanovdb::GridType::Vec4d:
-      m_vec4grid = m_handle->grid<nanovdb::Vec4d>();
-      m_invMaxDensity = 1.f / getMaxValue(m_vec4grid);
-      box = m_vec4grid->indexBBox();
-      m_worldBB = m_vec4grid->worldBBox();
-      m_size = getMediumSize(m_vec4grid->worldBBox(), m_vec4grid->voxelSize());
-      if (m_grid->activeVoxelCount() == 0) {
-        m_ibbMin = glm::ivec3(0);
-        m_ibbMax = glm::ivec3(0);
-      }
-      else {
-        m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
-        m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
-      }
-      m_indexToModel = getIndexToModelTransformation(m_vec4grid->map(), m_ibbMin, m_size);
-      m_modelToIndex = glm::inverse(glm::mat4(m_indexToModel));
-      break;
-    }
-  }
-
-  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness) :
+  CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s) :
     CMedium(EMediumType::NVDB_MEDIUM),
     m_pathLength(path.size()),
     m_path((char*)malloc(path.size())),
@@ -98,7 +48,7 @@ namespace rt {
     m_deviceAabb(NULL),
     m_sigma_a(sigma_a),
     m_sigma_s(sigma_s),
-    m_phase(new CSGGXPhaseFunction(diffuseRoughness, specularRoughness)),
+    m_phase(new CSGGXPhaseFunctionPlaceholder()),
     m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
     m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
@@ -227,7 +177,7 @@ namespace rt {
       CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CHenyeyGreensteinPhaseFunction)));
       break;
     case EPhaseFunction::SGGX:
-      CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunction)));
+      CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunctionPlaceholder)));
       break;
     }
   }
@@ -259,7 +209,7 @@ namespace rt {
         CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CHenyeyGreensteinPhaseFunction), cudaMemcpyHostToDevice));
         break;
       case EPhaseFunction::SGGX:
-        CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunction), cudaMemcpyHostToDevice));
+        CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunctionPlaceholder), cudaMemcpyHostToDevice));
         break;
       }
     }

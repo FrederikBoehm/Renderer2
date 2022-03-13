@@ -26,8 +26,7 @@ namespace rt {
 
   public:
     H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
-    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, const SSGGXDistributionParameters& sggxDiffuse, const SSGGXDistributionParameters& sggxSpecular, const glm::vec3& worldPos, const glm::vec3& n, const glm::vec3& scaling);
-    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float diffuseRoughness, float specularRoughness);
+    H_CALLABLE CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s);
     H_CALLABLE CNVDBMedium();
     H_CALLABLE CNVDBMedium(const CNVDBMedium& medium) = delete;
     H_CALLABLE CNVDBMedium(CNVDBMedium&& medium);
@@ -47,7 +46,6 @@ namespace rt {
     DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
     D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
-    D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
 
@@ -97,9 +95,6 @@ namespace rt {
     H_CALLABLE static glm::mat4 getIndexToModelTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
     
-    template <typename TReadAccessor>
-    D_CALLABLE glm::vec3 normal(const glm::vec3& p, const TReadAccessor& accessor) const;
-
     template <typename TReadAccessor>
     D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, const TReadAccessor& accessor) const;
 

@@ -22,78 +22,69 @@ namespace rt {
 
   class CSGGXMicroflakeDistribution {
   public:
-    H_CALLABLE CSGGXMicroflakeDistribution(const SSGGXDistributionParameters& parameters);
-    H_CALLABLE CSGGXMicroflakeDistribution(float sigma);
+    DH_CALLABLE CSGGXMicroflakeDistribution(const glm::mat3& S);
 
     DH_CALLABLE float D(const glm::vec3& w) const;
-    DH_CALLABLE float D(const glm::vec3& w, const glm::mat3& S) const;
     DH_CALLABLE float sigma(const glm::vec3& w) const;
-    DH_CALLABLE float sigma(const glm::vec3& w, const glm::mat3& S) const;
     DH_CALLABLE glm::vec3 sampleVNDF(const glm::vec3& w_i, const glm::vec2& U) const;
-    DH_CALLABLE glm::vec3 sampleVNDF(const glm::vec3& w_i, const glm::vec2& U, const glm::mat3& S) const;
   
-    DH_CALLABLE glm::mat3 buildS(const glm::vec3& n) const;
     DH_CALLABLE static glm::mat3 buildS(const glm::vec3& n, float sigma);
 
   private:
     const glm::mat3 m_S;
     const glm::mat3 m_invS;
-    const float m_sigma;
 
-    H_CALLABLE static glm::mat3 getS(const SSGGXDistributionParameters& parameters);
     DH_CALLABLE glm::mat3 projectS(const glm::mat3& S, const glm::vec3& w_k, const glm::vec3& w_j, const glm::vec3& w_i) const;
   };
 
   class CSGGXSpecularPhaseFunction {
   public:
-    H_CALLABLE CSGGXSpecularPhaseFunction(const SSGGXDistributionParameters& distributionsParameters);
-    H_CALLABLE CSGGXSpecularPhaseFunction(float sigma);
+    DH_CALLABLE CSGGXSpecularPhaseFunction(const CSGGXMicroflakeDistribution& distribution);
     
-    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& n) const;
-    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const;
+    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i) const;
+    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const;
   
   private:
-    const CSGGXMicroflakeDistribution m_distribution;
+    const CSGGXMicroflakeDistribution& m_distribution;
   };
 
   class CSGGXDiffusePhaseFunction {
   public:
-    H_CALLABLE CSGGXDiffusePhaseFunction(const SSGGXDistributionParameters& distributionsParameters);
-    H_CALLABLE CSGGXDiffusePhaseFunction(float sigma);
+    DH_CALLABLE CSGGXDiffusePhaseFunction(const CSGGXMicroflakeDistribution& distribution);
 
-    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& normal, CSampler& sampler) const;
-    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const;
+    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const;
+    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const;
 
   private:
-    const CSGGXMicroflakeDistribution m_distribution;
+    const CSGGXMicroflakeDistribution& m_distribution;
     
     DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& normal) const;
   };
 
-  class CSGGXPhaseFunction : public CPhaseFunction {
+  class CSGGXPhaseFunction {
   public:
-    H_CALLABLE CSGGXPhaseFunction(const SSGGXDistributionParameters& diffuseParameters, const SSGGXDistributionParameters& specularParameters);
-    H_CALLABLE CSGGXPhaseFunction(float diffuseSigma, float specularSigma);
+    DH_CALLABLE CSGGXPhaseFunction(const glm::mat3& S);
 
-    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& n, CSampler& sampler) const;
-    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const;
+    DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const;
+    D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const;
 
   private:
+    const CSGGXMicroflakeDistribution m_distribution;
     const CSGGXDiffusePhaseFunction m_diffuse;
     const CSGGXSpecularPhaseFunction m_specular;
   };
 
+  class CSGGXPhaseFunctionPlaceholder : public CPhaseFunction {
+  public:
+    H_CALLABLE CSGGXPhaseFunctionPlaceholder();
+  };
+
   // CSGGXMicroflakeDistribution
 
-  inline glm::mat3 CSGGXMicroflakeDistribution::getS(const SSGGXDistributionParameters& parameters) {
-    glm::mat3 S(parameters.m_Sxx, parameters.m_Sxy, parameters.m_Sxz,
-      parameters.m_Sxy, parameters.m_Syy, parameters.m_Syz,
-      parameters.m_Sxz, parameters.m_Syz, parameters.m_Szz);
-    return S;
-  }
+  inline CSGGXMicroflakeDistribution::CSGGXMicroflakeDistribution(const glm::mat3& S) :
+    m_S(S),
+    m_invS(glm::inverse(S)) {
 
-  inline glm::mat3 CSGGXMicroflakeDistribution::buildS(const glm::vec3& n) const {
-    return buildS(n, m_sigma);
   }
 
   inline glm::mat3 CSGGXMicroflakeDistribution::buildS(const glm::vec3& n, float sigma) {
@@ -113,18 +104,8 @@ namespace rt {
     return 1.f / (M_PI * glm::sqrt(glm::abs(glm::determinant(m_S))) * v * v);
   }
 
-  inline float CSGGXMicroflakeDistribution::D(const glm::vec3& w, const glm::mat3& S) const {
-    glm::mat3 invS = glm::inverse(S);
-    float v = glm::dot(w, invS * w);
-    return 1.f / (M_PI * glm::sqrt(glm::abs(glm::determinant(S))) * v * v);
-  }
-
   inline float CSGGXMicroflakeDistribution::sigma(const glm::vec3& w) const {
     return glm::sqrt(glm::max(glm::dot(w, m_S * w), 0.f));
-  }
-
-  inline float CSGGXMicroflakeDistribution::sigma(const glm::vec3& w, const glm::mat3& S) const {
-    return glm::sqrt(glm::max(glm::dot(w, S * w), 0.f));
   }
 
   inline glm::vec3 CSGGXMicroflakeDistribution::sampleVNDF(const glm::vec3& w_i, const glm::vec2& U) const {
@@ -133,37 +114,6 @@ namespace rt {
     const glm::vec3& w_j = frame.T();
 
     const glm::mat3 S_kji = projectS(m_S, w_k, w_j, w_i);
-
-    const float S_kk = S_kji[0][0];
-    const float S_kj = S_kji[0][1];
-    const float S_ki = S_kji[0][2];
-    const float S_jj = S_kji[1][1];
-    const float S_ji = S_kji[1][2];
-    const float S_ii = S_kji[2][2];
-
-    const float temp = glm::sqrt(S_jj*S_ii - S_ji * S_ji);
-
-    const glm::vec3 M_k(glm::sqrt(glm::abs(glm::determinant(S_kji))) / temp, 0.f, 0.f);
-    const float scaling = 1.f / glm::sqrt(S_ii);
-    const glm::vec3 M_j = glm::vec3(-(S_ki*S_ji - S_kj * S_ii) / temp, temp, 0.f) * scaling;
-    const glm::vec3 M_i = glm::vec3(S_kj, S_ji, S_ii) * scaling;
-
-    const float sqrt_Ux = glm::sqrt(U.x);
-    const float u = sqrt_Ux * glm::cos(2.f * M_PI * U.y);
-    const float v = sqrt_Ux * glm::sin(2.f * M_PI * U.y);
-    const float w = glm::sqrt(1.f - u * u - v * v);
-
-    glm::vec3 w_m = u * M_k + v * M_j + w * M_i;
-    w_m = glm::normalize(w_m);
-    return glm::normalize(glm::mat3(w_k, w_j, w_i) * w_m);
-  }
-
-  inline glm::vec3 CSGGXMicroflakeDistribution::sampleVNDF(const glm::vec3& w_i, const glm::vec2& U, const glm::mat3& S) const {
-    const CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_i);
-    const glm::vec3& w_k = frame.B();
-    const glm::vec3& w_j = frame.T();
-
-    const glm::mat3 S_kji = projectS(S, w_k, w_j, w_i);
 
     const float S_kk = S_kji[0][0];
     const float S_kj = S_kji[0][1];
@@ -205,22 +155,31 @@ namespace rt {
 
   // CSGGXSpecularPhaseFunction
 
-  inline float CSGGXSpecularPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& n) const {
-    const glm::vec3 w_h = glm::normalize(w_i + w_o);
-    const glm::mat3 S = m_distribution.buildS(n);
-    return m_distribution.D(w_h, S) / (4.f * m_distribution.sigma(w_o, S)); // w_o because of different convention for incoming and outgoing directions
+  inline CSGGXSpecularPhaseFunction::CSGGXSpecularPhaseFunction(const CSGGXMicroflakeDistribution& distribution):
+    m_distribution(distribution) {
+
   }
 
-  inline float CSGGXSpecularPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const {
-    glm::vec3 w_m = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()), m_distribution.buildS(n));
+  inline float CSGGXSpecularPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i) const {
+    const glm::vec3 w_h = glm::normalize(w_i + w_o);
+    return m_distribution.D(w_h) / (4.f * m_distribution.sigma(w_o)); // w_o because of different convention for incoming and outgoing directions
+  }
+
+  inline float CSGGXSpecularPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
+    glm::vec3 w_m = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
     *wi = glm::reflect(-wo, w_m);
-    return p(wo, *wi, n);
+    return p(wo, *wi);
   }
 
   // CSGGXDiffusePhaseFunction
 
-  inline float CSGGXDiffusePhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& normal, CSampler& sampler) const {
-    glm::vec3 w_m = m_distribution.sampleVNDF(w_o, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()), m_distribution.buildS(normal));
+  inline CSGGXDiffusePhaseFunction::CSGGXDiffusePhaseFunction(const CSGGXMicroflakeDistribution& distribution):
+    m_distribution(distribution) {
+
+  }
+
+  inline float CSGGXDiffusePhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const {
+    glm::vec3 w_m = m_distribution.sampleVNDF(w_o, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
     return glm::max(glm::dot(w_i, w_m), 0.f) / M_PI;
   }
 
@@ -228,8 +187,8 @@ namespace rt {
     return glm::max(glm::dot(w_i, normal), 0.f) / M_PI;
   }
 
-  inline float CSGGXDiffusePhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const {
-    glm::vec3 w_n = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()), m_distribution.buildS(n));
+  inline float CSGGXDiffusePhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
+    glm::vec3 w_n = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_n);
     glm::vec3 w_m = sampler.uniformSampleHemisphere();
     glm::vec3 w_m_world = frame.tangentToWorld() * glm::vec4(w_m, 0.f);
@@ -239,21 +198,27 @@ namespace rt {
 
   // CSGGXPhaseFunction
 
-  inline float CSGGXPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, const glm::vec3& n, CSampler& sampler) const {
+  inline CSGGXPhaseFunction::CSGGXPhaseFunction(const glm::mat3& S) :
+    m_distribution(S),
+    m_diffuse(m_distribution),
+    m_specular(m_distribution) {
+  }
+
+  inline float CSGGXPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const {
     if (sampler.uniformSample01() < 0.5f) {
-      return 2.f * m_diffuse.p(w_o, w_i, n, sampler);
+      return 2.f * m_diffuse.p(w_o, w_i, sampler);
     }
     else {
-      return 2.f * m_specular.p(w_o, w_i, n);
+      return 2.f * m_specular.p(w_o, w_i);
     }
   }
 
-  inline float CSGGXPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::vec3& n, CSampler& sampler) const {
+  inline float CSGGXPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
     if (sampler.uniformSample01() < 0.5f) {
-      return 2.f * m_diffuse.sampleP(wo, wi, n, sampler);
+      return 2.f * m_diffuse.sampleP(wo, wi, sampler);
     }
     else {
-      return 2.f * m_specular.sampleP(wo, wi, n, sampler);
+      return 2.f * m_specular.sampleP(wo, wi, sampler);
     }
   }
 }
