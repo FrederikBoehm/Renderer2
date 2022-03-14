@@ -55,6 +55,8 @@ namespace rt {
     const SAABB& worldAABB() const;
     SAABB modelAABB() const;
     ESceneobjectMask mask() const;
+    const glm::mat4x3& worldToModel() const;
+    const CMesh* mesh() const;
   private:
     std::shared_ptr<CShape> m_shape;
     CMesh* m_mesh;
@@ -108,6 +110,14 @@ namespace rt {
 
   inline ESceneobjectMask CHostSceneobject::mask() const {
     return m_mask;
+  }
+
+  inline const glm::mat4x3& CHostSceneobject::worldToModel() const {
+    return m_worldToModel;
+  }
+
+  inline const CMesh* CHostSceneobject::mesh() const {
+    return m_mesh;
   }
 
 }

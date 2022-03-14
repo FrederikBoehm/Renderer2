@@ -278,15 +278,27 @@ namespace rt {
 
   }
 
-  std::tuple<std::vector<SAABB>, std::vector<SAABB>> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
+  std::tuple<std::vector<SAABB>, std::vector<SAABB>, glm::mat4x3> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
+    std::string objectPath = "";
     std::vector<SAABB> modelBBs;
     std::vector<SAABB> worldBBs;
+    glm::mat4x3 worldToModel;
     for (const auto& sceneobject : m_sceneobjects) {
       if (sceneobject.mask() & mask) {
+        if (!sceneobject.mesh()) {
+          throw std::runtime_error("No mesh available");
+        }
+        if (objectPath == "") {
+          objectPath = sceneobject.mesh()->path();
+        }
+        if (objectPath != sceneobject.mesh()->path()) {
+          throw std::runtime_error("Filtering only available for single mesh");
+        }
         modelBBs.push_back(sceneobject.modelAABB());
         worldBBs.push_back(sceneobject.worldAABB());
+        worldToModel = sceneobject.worldToModel();
       }
     }
-    return { modelBBs, worldBBs };
+    return { modelBBs, worldBBs, worldToModel};
   }
 }

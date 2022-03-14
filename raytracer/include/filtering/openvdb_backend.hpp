@@ -10,6 +10,7 @@ namespace filter {
   struct SOpenvdbBackendConfig {
     std::vector<rt::SAABB> modelSpaceBoundingBoxes;
     std::vector<rt::SAABB> worldSpaceBoundingBoxes;
+    glm::mat4x3 worldToModel;
     glm::vec3 voxelSize;
     bool debug;
   };

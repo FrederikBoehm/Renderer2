@@ -61,7 +61,7 @@ namespace filter {
     m_data->numVoxels = numVoxels;
     m_launchParams.numVoxels = numVoxels;
 
-    glm::mat4 indexToModel = glm::translate(minModel) * glm::scale(maxModel - minModel) * glm::scale(1.f / fNumVoxels); // Index space from [0, numVoxels - 1]
+    glm::mat4 indexToModel = glm::mat4(config.worldToModel) * glm::translate(minWorld) * glm::scale(maxWorld - minWorld) * glm::scale(1.f / fNumVoxels);
     m_launchParams.indexToModel = indexToModel;
     m_launchParams.modelToIndex = glm::inverse(indexToModel);
 
@@ -75,9 +75,8 @@ namespace filter {
 
     m_launchParams.worldBB = { minWorld, minWorld + glm::vec3(numVoxels) * voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
 
-    glm::mat4 modelToWorld = glm::translate(minWorld) * glm::scale(maxWorld - minWorld) * glm::scale(1.f / (maxModel - minModel)) * glm::translate(-minModel);
-    m_launchParams.modelToWorld = modelToWorld;
-    m_launchParams.worldToModel = glm::inverse(modelToWorld);
+    m_launchParams.modelToWorld = glm::inverse(glm::mat4(config.worldToModel));
+    m_launchParams.worldToModel = config.worldToModel;
   }
 
   void COpenvdbBackend::setValues(const std::vector<SFilteredDataCompact>& filteredData) {

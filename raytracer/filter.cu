@@ -27,9 +27,10 @@ namespace filter {
     m_alpha(config.filteringConfig.alpha),
     m_clipRays(config.filteringConfig.clipRays) {
     SOpenvdbBackendConfig openvdbConfig;
-    auto[modelSpaceBBs, worldSpaceBBs] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
+    auto[modelSpaceBBs, worldSpaceBBs, worldToModel] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
     openvdbConfig.worldSpaceBoundingBoxes = worldSpaceBBs;
+    openvdbConfig.worldToModel = worldToModel;
     openvdbConfig.voxelSize = config.filteringConfig.voxelSize;
     openvdbConfig.debug = config.filteringConfig.debug;
     if (openvdbConfig.modelSpaceBoundingBoxes.size() > 0) {

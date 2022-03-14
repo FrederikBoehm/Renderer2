@@ -55,22 +55,36 @@ namespace rt {
     m_sbt.missRecordBase = NULL;
     m_sbt.hitgroupRecordBase = NULL;
 
-    OPTIX_ASSERT(optixPipelineDestroy(m_pipeline));
-    m_pipeline = nullptr;
+    if (m_pipeline) {
+      OPTIX_ASSERT(optixPipelineDestroy(m_pipeline));
+      m_pipeline = nullptr;
+    }
 
-    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_raygen));
-    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_miss));
-    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitSurface));
-    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitVolume));
-    OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitMesh));
-    m_programGroups.m_raygen = nullptr;
-    m_programGroups.m_miss = nullptr;
-    m_programGroups.m_hitSurface = nullptr;
-    m_programGroups.m_hitVolume = nullptr;
-    m_programGroups.m_hitMesh = nullptr;
+    if (m_programGroups.m_raygen) {
+      OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_raygen));
+      m_programGroups.m_raygen = nullptr;
+    }
+    if (m_programGroups.m_miss) {
+      OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_miss));
+      m_programGroups.m_miss = nullptr;
+    }
+    if (m_programGroups.m_hitSurface) {
+      OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitSurface));
+      m_programGroups.m_hitSurface = nullptr;
+    }
+    if (m_programGroups.m_hitVolume) {
+      OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitVolume));
+      m_programGroups.m_hitVolume = nullptr;
+    }
+    if (m_programGroups.m_hitMesh) {
+      OPTIX_ASSERT(optixProgramGroupDestroy(m_programGroups.m_hitMesh));
+      m_programGroups.m_hitMesh = nullptr;
+    }
 
-    OPTIX_ASSERT(optixModuleDestroy(m_module));
-    m_module = nullptr;
+    if (m_module) {
+      OPTIX_ASSERT(optixModuleDestroy(m_module));
+      m_module = nullptr;
+    }
   }
 
   CRTBackend* CRTBackend::instance() {
