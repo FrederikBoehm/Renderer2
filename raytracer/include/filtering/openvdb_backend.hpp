@@ -11,8 +11,7 @@ namespace filter {
     std::vector<rt::SAABB> modelSpaceBoundingBoxes;
     std::vector<rt::SAABB> worldSpaceBoundingBoxes;
     glm::mat4x3 worldToModel;
-    glm::vec3 voxelSize;
-    bool debug;
+    float voxelSize;
   };
 
 
@@ -22,16 +21,22 @@ namespace filter {
     static COpenvdbBackend* instance();
 
     void init(const SOpenvdbBackendConfig& config);
-    void setValues(const std::vector<SFilteredDataCompact>& filteredData);
+    void setValues(const std::vector<SFilteredDataCompact>& filteredData, const glm::ivec3& numVoxels);
     nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle() const;
     void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const;
+    SFilterLaunchParams setupGrid(const glm::vec3& voxelSize);
 
-    const SFilterLaunchParams& launchParams() const;
+    const glm::ivec3& numVoxelsMajorant() const;
   private:
     static COpenvdbBackend* s_instance;
 
     SOpenvdbData* m_data;
-    SFilterLaunchParams m_launchParams;
+    glm::vec3 m_minModel;
+    glm::vec3 m_maxModel;
+    glm::vec3 m_minWorld;
+    glm::vec3 m_maxWorld;
+    glm::mat4x3 m_worldToModel;
+    glm::ivec3 m_numVoxelsMajorant;
 
 
     COpenvdbBackend();
@@ -44,8 +49,8 @@ namespace filter {
 
   };
 
-  inline const SFilterLaunchParams& COpenvdbBackend::launchParams() const {
-    return m_launchParams;
+  inline const glm::ivec3& COpenvdbBackend::numVoxelsMajorant() const {
+    return m_numVoxelsMajorant;
   }
 }
 #endif

@@ -38,32 +38,44 @@ namespace filter {
       m_data = new SOpenvdbData{ grid, accessor };
     }
 
-    glm::vec3 minModel(FLT_MAX);
-    glm::vec3 maxModel(-FLT_MAX);
+    m_minModel = glm::vec3(FLT_MAX);
+    m_maxModel = glm::vec3(-FLT_MAX);
     for (const auto& bb : config.modelSpaceBoundingBoxes) {
-      minModel = glm::min(bb.m_min, minModel);
-      maxModel = glm::max(bb.m_max, maxModel);
+      m_minModel = glm::min(bb.m_min, m_minModel);
+      m_maxModel = glm::max(bb.m_max, m_maxModel);
     }
 
-    glm::vec3 minWorld(FLT_MAX);
-    glm::vec3 maxWorld(-FLT_MAX);
+    m_minWorld = glm::vec3(FLT_MAX);
+    m_maxWorld = glm::vec3(-FLT_MAX);
     for (const auto& bb : config.worldSpaceBoundingBoxes) {
-      minWorld = glm::min(bb.m_min, minWorld);
-      maxWorld = glm::max(bb.m_max, maxWorld);
+      m_minWorld = glm::min(bb.m_min, m_minWorld);
+      m_maxWorld = glm::max(bb.m_max, m_maxWorld);
     }
 
-    glm::vec3 scaling = 1.f / (maxModel - minModel);
+    m_worldToModel = config.worldToModel;
 
-    glm::vec3 voxelSize = config.debug ? maxWorld - minWorld : config.voxelSize;
+    glm::vec3 fNumVoxels = (m_maxWorld - m_minWorld) / config.voxelSize;
+    m_numVoxelsMajorant = glm::ceil(fNumVoxels);
+    
+  }
 
-    glm::vec3 fNumVoxels = (maxWorld - minWorld) / voxelSize;
+  SFilterLaunchParams COpenvdbBackend::setupGrid(const glm::vec3& voxelSize) {
+    if (!m_data) {
+      throw new std::exception("Called COpenvdbBackend::setupGrid without initializing COpenvdbBackend backend.");
+    }
+
+    m_data->grid->clear();
+
+    glm::vec3 scaling = 1.f / (m_maxModel - m_minModel);
+
+    glm::vec3 fNumVoxels = (m_maxWorld - m_minWorld) / voxelSize;
     glm::ivec3 numVoxels = glm::ceil(fNumVoxels);
-    m_data->numVoxels = numVoxels;
-    m_launchParams.numVoxels = numVoxels;
+    SFilterLaunchParams launchParams;
+    launchParams.numVoxels = numVoxels;
 
-    glm::mat4 indexToModel = glm::mat4(config.worldToModel) * glm::translate(minWorld) * glm::scale(maxWorld - minWorld) * glm::scale(1.f / fNumVoxels);
-    m_launchParams.indexToModel = indexToModel;
-    m_launchParams.modelToIndex = glm::inverse(indexToModel);
+    glm::mat4 indexToModel = glm::mat4(m_worldToModel) * glm::translate(m_minWorld) * glm::scale(m_maxWorld - m_minWorld) * glm::scale(1.f / fNumVoxels);
+    launchParams.indexToModel = indexToModel;
+    launchParams.modelToIndex = glm::inverse(indexToModel);
 
     openvdb::Mat4R transformMatrix(
       indexToModel[0][0], indexToModel[0][1], indexToModel[0][2], indexToModel[0][3],
@@ -73,21 +85,22 @@ namespace filter {
 
     m_data->grid->setTransform(openvdb::math::Transform::createLinearTransform(transformMatrix));
 
-    m_launchParams.worldBB = { minWorld, minWorld + glm::vec3(numVoxels) * voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
+    launchParams.worldBB = { m_minWorld, m_minWorld + glm::vec3(numVoxels) * voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
 
-    m_launchParams.modelToWorld = glm::inverse(glm::mat4(config.worldToModel));
-    m_launchParams.worldToModel = config.worldToModel;
+    launchParams.modelToWorld = glm::inverse(glm::mat4(m_worldToModel));
+    launchParams.worldToModel = m_worldToModel;
+    return launchParams;
   }
 
-  void COpenvdbBackend::setValues(const std::vector<SFilteredDataCompact>& filteredData) {
+  void COpenvdbBackend::setValues(const std::vector<SFilteredDataCompact>& filteredData, const glm::ivec3& numVoxels) {
     if (!m_data) {
       throw new std::exception("Called COpenvdbBackend::setValues without initializing COpenvdbBackend backend.");
     }
 
-    for (int x = 0; x < m_data->numVoxels.x; ++x) {
-      for (int y = 0; y < m_data->numVoxels.y; ++y) {
-        for (int z = 0; z < m_data->numVoxels.z; ++z) {
-          size_t id = x + y * m_data->numVoxels.x + z * m_data->numVoxels.x * m_data->numVoxels.y;
+    for (int x = 0; x < numVoxels.x; ++x) {
+      for (int y = 0; y < numVoxels.y; ++y) {
+        for (int z = 0; z < numVoxels.z; ++z) {
+          size_t id = x + y * numVoxels.x + z * numVoxels.x * numVoxels.y;
           if (filteredData[id].density > 0.f) {
             m_data->accessor.setValue(openvdb::Coord(x, y, z), reinterpret_cast<const openvdb::Vec4d&>(filteredData[id]));
           }

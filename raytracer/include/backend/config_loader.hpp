@@ -7,7 +7,8 @@
 
 struct SFilteringConfig {
   bool filter;
-  glm::vec3 voxelSize;
+  float voxelSize;
+  uint8_t lods;
   uint32_t samplesPerVoxel;
   bool debug;
   uint32_t debugSamples;

@@ -25,21 +25,22 @@ namespace filter {
     m_sigma_t(config.filteringConfig.sigmaT),
     m_estimationIterations(config.filteringConfig.estimationIterations),
     m_alpha(config.filteringConfig.alpha),
-    m_clipRays(config.filteringConfig.clipRays) {
+    m_clipRays(config.filteringConfig.clipRays),
+    m_voxelSize(config.filteringConfig.voxelSize),
+    m_lods(config.filteringConfig.lods) {
     SOpenvdbBackendConfig openvdbConfig;
-    auto[modelSpaceBBs, worldSpaceBBs, worldToModel] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
+    auto[modelSpaceBBs, worldSpaceBBs, worldToModel, filename] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
     openvdbConfig.worldSpaceBoundingBoxes = worldSpaceBBs;
     openvdbConfig.worldToModel = worldToModel;
     openvdbConfig.voxelSize = config.filteringConfig.voxelSize;
-    openvdbConfig.debug = config.filteringConfig.debug;
+    m_outDir = "./filtering/" + filename;
     if (openvdbConfig.modelSpaceBoundingBoxes.size() > 0) {
       m_backend = filter::COpenvdbBackend::instance();
       m_backend->init(openvdbConfig);
       
       allocateDeviceMemory();
       initOptix(config);
-      copyToDevice();
       initDeviceData();
     }
     else {
@@ -57,8 +58,8 @@ namespace filter {
   }
 
   void CFilter::initDeviceData() const {
-    const SFilterLaunchParams& launchParams = m_backend->launchParams();
-    dim3 grid(launchParams.numVoxels.x, launchParams.numVoxels.y, launchParams.numVoxels.z); // TODO: Find way to fully utilize blocks with variable numVoxels
+    const glm::ivec3& numVoxels = m_backend->numVoxelsMajorant();
+    dim3 grid(numVoxels.x, numVoxels.y, numVoxels.z); // TODO: Find way to fully utilize blocks with variable numVoxels
     init << <grid, 1 >> > (m_deviceSampler);
     CUDA_ASSERT(cudaDeviceSynchronize());
   }
@@ -67,26 +68,35 @@ namespace filter {
     if (!m_backend) {
       return;
     }
-    const glm::ivec3& numVoxels = m_backend->launchParams().numVoxels;
-    OPTIX_ASSERT(optixLaunch(
-      rt::CRTBackend::instance()->pipeline(),
-      0,             // stream
-      reinterpret_cast<CUdeviceptr>(m_deviceLaunchParams),
-      sizeof(filter::SFilterLaunchParams),
-      &rt::CRTBackend::instance()->sbt(),
-      numVoxels.x,  // launch width
-      numVoxels.y, // launch height
-      numVoxels.z       // launch depth
-    ));
-    CUDA_ASSERT(cudaDeviceSynchronize());
 
-    if (!m_debug) {
-      size_t voxelCount = numVoxels.x * numVoxels.y * numVoxels.z;
-      std::vector<SFilteredDataCompact> filteredData(voxelCount);
-      CUDA_ASSERT(cudaMemcpy(filteredData.data(), m_deviceFilterData, sizeof(SFilteredDataCompact) * voxelCount, cudaMemcpyDeviceToHost));
-      m_backend->setValues(filteredData);
-      nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = m_backend->getNanoGridHandle();
-      m_backend->writeToFile(gridHandle, "./filtering", "filtered_mesh.nvdb");
+    uint8_t lod;
+    float voxelSize;
+    for (lod = 0, voxelSize = m_voxelSize; lod < m_lods; ++lod, voxelSize *= 2.f) {
+      SFilterLaunchParams launchParams = m_backend->setupGrid(glm::vec3(voxelSize));
+      copyToDevice(launchParams);
+
+      const glm::ivec3& numVoxels = launchParams.numVoxels;
+      OPTIX_ASSERT(optixLaunch(
+        rt::CRTBackend::instance()->pipeline(),
+        0,             // stream
+        reinterpret_cast<CUdeviceptr>(m_deviceLaunchParams),
+        sizeof(filter::SFilterLaunchParams),
+        &rt::CRTBackend::instance()->sbt(),
+        numVoxels.x,  // launch width
+        numVoxels.y, // launch height
+        numVoxels.z       // launch depth
+      ));
+      CUDA_ASSERT(cudaDeviceSynchronize());
+
+      if (!m_debug) {
+        size_t voxelCount = numVoxels.x * numVoxels.y * numVoxels.z;
+        std::vector<SFilteredDataCompact> filteredData(voxelCount);
+        CUDA_ASSERT(cudaMemcpy(filteredData.data(), m_deviceFilterData, sizeof(SFilteredDataCompact) * voxelCount, cudaMemcpyDeviceToHost));
+        m_backend->setValues(filteredData, numVoxels);
+        nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = m_backend->getNanoGridHandle();
+        std::string filename = "filtered_mesh_" + std::to_string(voxelSize) + ".nvdb";
+        m_backend->writeToFile(gridHandle, m_outDir.c_str(), filename.c_str());
+      }
     }
   }
 
@@ -109,14 +119,13 @@ namespace filter {
 
   void CFilter::allocateDeviceMemory() {
     CUDA_ASSERT(cudaMalloc(&m_deviceLaunchParams, sizeof(SFilterLaunchParams)));
-    const glm::ivec3& numVoxels = m_backend->launchParams().numVoxels;
+    const glm::ivec3& numVoxels = m_backend->numVoxelsMajorant();
     size_t totalVoxels = numVoxels.x * numVoxels.y * numVoxels.z;
     CUDA_ASSERT(cudaMalloc(&m_deviceSampler, sizeof(rt::CSampler) * totalVoxels));
     CUDA_ASSERT(cudaMalloc(&m_deviceFilterData, sizeof(SFilteredDataCompact) * totalVoxels))
   }
 
-  void CFilter::copyToDevice() {
-    SFilterLaunchParams launchParams = m_backend->launchParams();
+  void CFilter::copyToDevice(SFilterLaunchParams& launchParams) const {
     launchParams.samplers = m_deviceSampler;
     launchParams.scene = m_deviceScene;
     launchParams.samplesPerVoxel = m_samplesPerVoxel;

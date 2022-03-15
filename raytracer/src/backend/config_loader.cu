@@ -62,17 +62,19 @@
   H_CALLABLE bool fillFilteringInfo(const nlohmann::json& filtering, SConfig* config) {
     auto filter = filtering["Active"];
     auto samplesPerVoxel = filtering["SamplesPerVoxel"];
-    glm::vec3 voxelSize;
+    auto voxelSize = filtering["MinVoxelSize"];
+    auto lods = filtering["LODs"];
     auto debug = filtering["Debug"];
     auto debugSamples = filtering["DebugSamples"];
     auto sigmaT = filtering["SigmaT"];
     auto estimationIterations = filtering["EstimationIterations"];
     auto alpha = filtering["Alpha"];
     auto clipRays = filtering["ClipRays"];
-    bool valid = !filtering.empty() && parseVec3(filtering["VoxelSize"], &voxelSize) && !filter.empty() && !samplesPerVoxel.empty() && !debug.empty() && !debugSamples.empty() && !sigmaT.empty() && !estimationIterations.empty() && !alpha.empty() && !clipRays.empty();
+    bool valid = !filtering.empty() && !voxelSize.empty() && !lods.empty() && !filter.empty() && !samplesPerVoxel.empty() && !debug.empty() && !debugSamples.empty() && !sigmaT.empty() && !estimationIterations.empty() && !alpha.empty() && !clipRays.empty();
     if (valid) {
       config->filteringConfig.filter = filter.get<bool>();
-      config->filteringConfig.voxelSize = voxelSize;
+      config->filteringConfig.voxelSize = voxelSize.get<float>();
+      config->filteringConfig.lods = lods.get<uint8_t>();
       config->filteringConfig.samplesPerVoxel = samplesPerVoxel.get<uint32_t>();
       config->filteringConfig.debug = debug.get<bool>();
       config->filteringConfig.debugSamples = debugSamples.get<uint32_t>();

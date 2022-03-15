@@ -278,7 +278,7 @@ namespace rt {
 
   }
 
-  std::tuple<std::vector<SAABB>, std::vector<SAABB>, glm::mat4x3> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
+  std::tuple<std::vector<SAABB>, std::vector<SAABB>, glm::mat4x3, std::string> CHostScene::getObjectBBs(ESceneobjectMask mask) const {
     std::string objectPath = "";
     std::vector<SAABB> modelBBs;
     std::vector<SAABB> worldBBs;
@@ -299,6 +299,9 @@ namespace rt {
         worldToModel = sceneobject.worldToModel();
       }
     }
-    return { modelBBs, worldBBs, worldToModel};
+    std::string baseFilename = objectPath.substr(objectPath.find_last_of("/") + 1);
+    std::string::size_type const p(baseFilename.find_last_of('.'));
+    std::string filename = baseFilename.substr(0, p);
+    return { modelBBs, worldBBs, worldToModel, filename};
   }
 }

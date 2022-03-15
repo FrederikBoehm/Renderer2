@@ -3,6 +3,7 @@
 
 #include "sampling/sampler.hpp"
 #include "scene/device_scene.hpp"
+#include <string>
 
 struct SConfig;
 
@@ -15,7 +16,6 @@ namespace filter {
     CFilter(const SConfig& config);
     ~CFilter();
     void runFiltering() const;
-    void initDeviceData() const;
 
   private:
     COpenvdbBackend* m_backend;
@@ -30,11 +30,15 @@ namespace filter {
     uint32_t m_estimationIterations;
     float m_alpha;
     bool m_clipRays;
+    float m_voxelSize;
+    uint8_t m_lods;
+    std::string m_outDir;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();
-    void copyToDevice();
+    void copyToDevice(SFilterLaunchParams& launchParams) const;
     void freeDeviceMemory();
+    void initDeviceData() const;
   };
 }
 #endif
