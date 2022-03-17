@@ -205,20 +205,17 @@ namespace rt {
   }
 
   inline float CSGGXPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const {
-    if (sampler.uniformSample01() < 0.5f) {
-      return 2.f * m_diffuse.p(w_o, w_i, sampler);
-    }
-    else {
-      return 2.f * m_specular.p(w_o, w_i);
-    }
+    float weight = 0.5f;
+    return m_diffuse.p(w_o, w_i, sampler) * (1.f - weight) + m_specular.p(w_o, w_i) * weight;
   }
 
   inline float CSGGXPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
-    if (sampler.uniformSample01() < 0.5f) {
-      return 2.f * m_diffuse.sampleP(wo, wi, sampler);
+    float p = 0.5f;
+    if (sampler.uniformSample01() < p) {
+      return m_specular.sampleP(wo, wi, sampler);
     }
     else {
-      return 2.f * m_specular.sampleP(wo, wi, sampler);
+      return m_diffuse.sampleP(wo, wi, sampler);
     }
   }
 }
