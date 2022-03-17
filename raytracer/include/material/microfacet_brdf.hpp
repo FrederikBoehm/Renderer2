@@ -23,10 +23,11 @@ namespace rt {
       etaT: Index of refraction for transmission medium
     */
     DH_CALLABLE CMicrofacetBRDF(float alphaX, float alphaY, float etaI, float etaT);
-    D_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
-    D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
+    D_CALLABLE float f(const glm::vec3& wo, const glm::vec3& wi) const;
+    D_CALLABLE float sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
     D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
     DH_CALLABLE float roughness() const;
+    DH_CALLABLE const CFresnel& fresnel() const;
 
   private:
     CMicrofacetDistribution m_distribution;
@@ -53,38 +54,38 @@ namespace rt {
     return (glm::dot(v, v2) < 0.f) ? -v : v;
   }
 
-  inline glm::vec3 CMicrofacetBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
+  inline float CMicrofacetBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
     float cosThetaO = absCosTheta(wo);
     float cosThetaI = absCosTheta(wi);
 
     glm::vec3 h = wi + wo;
 
     if (cosThetaI == 0.0f || cosThetaO == 0) {
-      return glm::vec3(0.0f);
+      return 0.f;
     }
 
     if (h.x == 0.0f && h.y == 0.0f && h.z == 0.0f) {
-      return glm::vec3(0.0f);
+      return 0.f;
     }
 
     h = glm::normalize(h);
-    glm::vec3 F = m_fresnel.evaluate(glm::dot(wi, faceforward(h, glm::vec3(0.f, 0.f, 1.f))));
+    float F = m_fresnel.evaluate(glm::dot(wi, faceforward(h, glm::vec3(0.f, 0.f, 1.f))));
     return m_distribution.D(h) * m_distribution.G(wo, wi) * F / (4.0f * cosThetaI * cosThetaO);
   }
 
-  inline glm::vec3 CMicrofacetBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+  inline float CMicrofacetBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
     if (wo.z == 0) {
-      return glm::vec3(0.f);
+      return 0.f;
     }
     glm::vec3 h = m_distribution.sampleH(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
 
     if (glm::dot(wo, h) < 0.f) {
-      return glm::vec3(0.f);
+      return 0.f;
     }
 
     *wi = glm::reflect(-wo, h);
     if (!sameHemisphere(wo, *wi)) {
-      return glm::vec3(0.f);
+      return 0.f;
     }
     *pdf = m_distribution.pdf(wo, h) / (4 * glm::dot(wo, h));
     return f(wo, *wi);
@@ -96,6 +97,10 @@ namespace rt {
     }
     glm::vec3 h = glm::normalize(wo + wi);
     return m_distribution.pdf(wo, h) / (4 * glm::dot(wo, h));
+  }
+
+  inline const CFresnel& CMicrofacetBRDF::fresnel() const {
+    return m_fresnel;
   }
 }
 #endif // !MICROFACET_BRDF

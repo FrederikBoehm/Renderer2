@@ -56,6 +56,9 @@ namespace filter {
 
     glm::vec3 fNumVoxels = (m_maxWorld - m_minWorld) / config.voxelSize;
     m_numVoxelsMajorant = glm::ceil(fNumVoxels);
+
+    glm::vec3 dimensions = glm::abs(glm::inverse(glm::mat4(m_worldToModel)) * glm::vec4(m_maxModel - m_minModel, 0.f));
+    printf("World space dimensions: (%f, %f, %f)\n", dimensions.x, dimensions.y, dimensions.z);
     
   }
 

@@ -42,7 +42,7 @@ namespace rt {
         glm::vec3 f(0.f);
         float scatteringPdf = 0.f;
         if (si.material) {
-          f = si.material->f(si.hitInformation.tc, woTangent, lightTangentSpaceDirection) * glm::max(glm::dot(si.hitInformation.normal, rayLight.m_direction), 0.0f);
+          f = si.material->f(si.hitInformation.tc, woTangent, lightTangentSpaceDirection) * glm::abs(glm::dot(si.hitInformation.normal, rayLight.m_direction));
           scatteringPdf = si.material->pdf(woTangent, lightTangentSpaceDirection);
         }
         else {
@@ -73,7 +73,7 @@ namespace rt {
         glm::vec3 wiTangent(0.f);
         f = si.material->sampleF(si.hitInformation.tc, woTangent, &wiTangent, sampler, &scatteringPdf);
         wi = glm::normalize(frame.tangentToWorld() * wiTangent);
-        f *= glm::max(glm::dot(si.hitInformation.normal, wi), 0.f);
+        f *= glm::abs(glm::dot(si.hitInformation.normal, wi));
       }
       else {
         float p = si.medium->phase().sampleP(wo, &wi, si.hitInformation.sggxS, sampler);
@@ -90,7 +90,6 @@ namespace rt {
         float lightPdf;
         glm::vec3 Le = scene.le(wi, &lightPdf);
 
-        float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
         float mis_weight = balanceHeuristic(1, scatteringPdf, 1, lightPdf);
         glm::vec3 tr;
         if (!siBrdf.hitInformation.hit) {
@@ -191,7 +190,7 @@ namespace rt {
           glm::vec3 brdfWorldSpaceDirection = glm::normalize(frame.tangentToWorld() * wi);
           CRay rayBrdf = CRay(si.hitInformation.pos, brdfWorldSpaceDirection, CRay::DEFAULT_TMAX, ray.m_medium);
           rayBrdf.offsetRayOrigin(si.hitInformation.normal);
-          float cosine = glm::max(glm::dot(si.hitInformation.normal, rayBrdf.m_direction), 0.0f);
+          float cosine = glm::abs(glm::dot(si.hitInformation.normal, rayBrdf.m_direction));
 
           throughput *= f * cosine / (brdfPdf);
 

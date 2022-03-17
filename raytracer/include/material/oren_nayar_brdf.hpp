@@ -8,6 +8,7 @@
 #include "intersect/hit_information.hpp"
 #include "brdf_functions.hpp"
 #include "sampling/sampler.hpp"
+#include "utility/functions.hpp"
 
 namespace rt {
   // Better approximation of rough surfaces than lambertian reflection
@@ -17,8 +18,8 @@ namespace rt {
     DH_CALLABLE COrenNayarBRDF(float roughness);
 
     // Expects incident and outgoing directions in tangent space
-    DH_CALLABLE glm::vec3 f(const glm::vec3& wo, const glm::vec3& wi) const;
-    D_CALLABLE glm::vec3 sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
+    DH_CALLABLE float f(const glm::vec3& wo, const glm::vec3& wi) const;
+    D_CALLABLE float sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const;
     D_CALLABLE float pdf(const glm::vec3& wo, const glm::vec3& wi) const;
 
   private:
@@ -38,7 +39,7 @@ namespace rt {
     m_B = 0.45f * sigma2 / (sigma2 + 0.09f);
   }
 
-  inline glm::vec3 COrenNayarBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
+  inline float COrenNayarBRDF::f(const glm::vec3& wo, const glm::vec3& wi) const {
     float sinThetaI = sinTheta(wi);
     float sinThetaO = sinTheta(wo);
 
@@ -63,17 +64,20 @@ namespace rt {
       tanBeta = sinThetaO / absCosTheta(wo);
     }
 
-    return glm::vec3(M_1_PI) * (m_A + m_B * maxCos * sinAlpha * tanBeta);
+    return M_1_PI * (m_A + m_B * maxCos * sinAlpha * tanBeta);
   }
 
-  inline glm::vec3 COrenNayarBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+  inline float COrenNayarBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* p) const {
     *wi = sampler.cosineSampleHemisphere();
-    *pdf = CSampler::cosineHemispherePdf(cosTheta(*wi));
+    if (wo.z < 0.f) {
+      wi->z *= -1.f;
+    }
+    *p = pdf(wo, *wi);
     return f(wo, *wi);
   }
 
   inline float COrenNayarBRDF::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
-    return CSampler::cosineHemispherePdf(cosTheta(wi));
+    return sameHemisphere(wo, wi) ? CSampler::cosineHemispherePdf(absCosTheta(wi)) : 0.f;
   }
 }
 #endif

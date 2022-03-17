@@ -11,7 +11,7 @@ namespace rt {
   public:
     DH_CALLABLE CFresnel(float etaI, float etaT);
 
-    DH_CALLABLE glm::vec3 evaluate(float cosThetaI) const;
+    DH_CALLABLE float evaluate(float cosThetaI) const;
 
   private:
     float m_etaI;
@@ -24,7 +24,7 @@ namespace rt {
 
   }
 
-  inline glm::vec3 CFresnel::evaluate(float cosThetaI) const {
+  inline float CFresnel::evaluate(float cosThetaI) const {
     cosThetaI = glm::clamp(cosThetaI, -1.0f, 1.0f);
 
     bool entering = cosThetaI > 0.f;
@@ -40,7 +40,7 @@ namespace rt {
     float sinThetaT = etaI / etaT * sinThetaI;
 
     if (sinThetaT >= 1.0f) {
-      return glm::vec3(1.0f);
+      return 1.0f;
     }
 
     float cosThetaT = glm::sqrt(glm::max(0.0f, 1.0f - sinThetaT * sinThetaT));
@@ -48,7 +48,7 @@ namespace rt {
     float rParallel = ((etaT * cosThetaI) - (etaI * cosThetaT)) / ((etaT * cosThetaI) + (etaI * cosThetaT));
     float rPerpendicular = ((etaI * cosThetaI) - (etaT * cosThetaT)) / ((etaI * cosThetaI) + (etaT * cosThetaT));
 
-    return glm::vec3((rParallel * rParallel + rPerpendicular * rPerpendicular) / 2.0f);
+    return (rParallel * rParallel + rPerpendicular * rPerpendicular) / 2.0f;
 
   }
 }

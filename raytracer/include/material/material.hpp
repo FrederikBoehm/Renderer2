@@ -64,9 +64,11 @@ namespace rt {
 
   // Evaluates material at a hitPoint. Gives the color of that point
   inline glm::vec3 CMaterial::f(const glm::vec2& tc, const glm::vec3& wo, const glm::vec3& wi) const {
-    glm::vec3 fDiffuse = m_orenNayarBRDF.f(wo, wi);
-    glm::vec3 fGlossy = m_microfacetBRDF.f(wo, wi);
-    return 0.5f * (diffuse(tc) * fDiffuse + glossy(tc) * fGlossy);
+    float fDiffuse = m_orenNayarBRDF.f(wo, wi);
+    float fGlossy = m_microfacetBRDF.f(wo, wi);
+    //float weight = 0.5f;
+    float weight = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
+    return diffuse(tc) * fDiffuse * (1.f - weight) + glossy(tc) * fGlossy * weight;
   }
 
   inline CMaterial& CMaterial::operator=(const CMaterial& material) {
@@ -80,18 +82,22 @@ namespace rt {
   }
 
   inline glm::vec3 CMaterial::sampleF(const glm::vec2& tc, const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
-    if (sampler.uniformSample01() < 0.5f) {
-      // Sample diffuse
-      return diffuse(tc) * m_orenNayarBRDF.sampleF(wo, wi, sampler, pdf);
-    }
-    else {
+    float p = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
+    //float p = 0.5f;
+    if (sampler.uniformSample01() < p) {
       // Sample specular
       return glossy(tc) * m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
+    }
+    else {
+      // Sample diffuse
+      return diffuse(tc) * m_orenNayarBRDF.sampleF(wo, wi, sampler, pdf);
     }
   }
 
   inline float CMaterial::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
-    return 0.5f * (m_orenNayarBRDF.pdf(wo, wi) + m_microfacetBRDF.pdf(wo, wi));
+    float weight = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
+    //float weight = 0.5f;
+    return m_orenNayarBRDF.pdf(wo, wi) * (1.f - weight) + m_microfacetBRDF.pdf(wo, wi) * weight;
   }
 
 
