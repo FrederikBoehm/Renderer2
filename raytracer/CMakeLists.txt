@@ -161,6 +161,7 @@ target_link_libraries(raytracer PRIVATE debug lib_openvdb_external_dbg optimized
 #target_link_libraries(raytracer PRIVATE lib_openvdb_external_rel)
 #target_link_libraries(raytracer PRIVATE openvdb)
 target_link_libraries(raytracer PRIVATE TBB::tbb) # Required from openvdb
+target_link_libraries(raytracer PRIVATE tiff)
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES} ${HEADER_FILES} ${OPTIX_SOURCE_FILES})
 
@@ -219,3 +220,8 @@ add_custom_command(TARGET raytracer POST_BUILD
 		$<$<CONFIG:RELEASE>:${TBB_BIN_RELEASE}>
         $<TARGET_FILE_DIR:raytracer>)
 
+
+add_custom_command(TARGET raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:tiff>
+        $<TARGET_FILE_DIR:raytracer>)

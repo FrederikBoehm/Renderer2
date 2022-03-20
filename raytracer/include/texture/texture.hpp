@@ -47,6 +47,8 @@ namespace rt {
     char* m_path;
 
     STexture_DeviceResource* m_deviceResource;
+
+    H_CALLABLE static bool isTiff(const std::string& path);
   };
 
   inline glm::vec3 CTexture::operator()(float x, float y) const {

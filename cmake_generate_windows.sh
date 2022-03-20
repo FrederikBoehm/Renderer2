@@ -29,6 +29,9 @@ mv "$LOCAL_TEMP/openvdb/openvdb-9.0.0" "3rdparty/openvdb"
 (cd $LOCAL_TEMP && curl -o vcpkg.zip -L --url https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.zip && unzip -o "vcpkg.zip" -d "vcpkg")
 mv "$LOCAL_TEMP/vcpkg/vcpkg-2021.05.12" "3rdparty/vcpkg"
 
+(cd $LOCAL_TEMP && curl -o libtiff.zip -L --url https://download.osgeo.org/libtiff/tiff-4.3.0.zip -k && unzip -o "libtiff.zip" -d "libtiff")
+mv "$LOCAL_TEMP/libtiff/tiff-4.3.0" "3rdparty/libtiff"
+
 (cd "3rdparty" && if [ ! -d "json" ]; then mkdir json; fi && cd json && curl -o json.hpp -L --url https://github.com/nlohmann/json/releases/download/v3.10.5/json.hpp)
 
 (cd "3rdparty/vcpkg" && ./bootstrap-vcpkg.sh && \ 

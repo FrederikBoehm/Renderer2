@@ -8,6 +8,10 @@
 #include <iostream>
 #include "utility/debugging.hpp"
 
+extern "C" {
+#include <libtiff/libtiff/tiffio.h>
+}
+
 namespace rt {
   CTexture::CTexture() : m_hasAlpha(false), m_width(0), m_height(0), m_channels(0), m_pathLength(0), m_path(nullptr), m_data(nullptr), m_deviceData(nullptr), m_deviceResource(nullptr) {
 
@@ -26,29 +30,72 @@ namespace rt {
     m_pathLength = path.size();
     m_path = new char[m_pathLength];
     memcpy(m_path, path.data(), m_pathLength);
-    int numChannels;
-    bool hdr = stbi_is_hdr(path.c_str());
-    if (hdr) {
-      float* data = stbi_loadf(path.c_str(), &m_width, &m_height, &numChannels, 3);
-      m_data = static_cast<float*>(malloc(sizeof(float) * m_width * m_height * 4));
-      for (size_t i = 0; i < m_width * m_height; ++i) {
-        m_data[4 * i + 0] = data[3 * i + 0];
-        m_data[4 * i + 1] = data[3 * i + 1];
-        m_data[4 * i + 2] = data[3 * i + 2];
-        m_data[4 * i + 3] = 1.f;
+    if (CTexture::isTiff(path)) {
+      TIFF* tif = TIFFOpen(path.c_str(), "r");
+      if (!tif) {
+        delete m_path;
+        throw std::runtime_error("Failed to load texture from " + path);
       }
+      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &m_width);
+      TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &m_height);
+      size_t numPixels = m_width * m_height;
+      uint32_t* data = (uint32_t*)_TIFFmalloc(numPixels * sizeof(uint32_t));
+      m_data = static_cast<float*>(malloc(sizeof(float) * numPixels * 4));
+      if (data != NULL) {
+        if (TIFFReadRGBAImageOriented(tif, m_width, m_height, data, ORIENTATION_TOPLEFT, 0)) {
+          for (size_t i = 0; i < numPixels; ++i) {
+            uint8_t* red = reinterpret_cast<uint8_t*>(data + i);
+            uint8_t* green = red + 1;
+            uint8_t* blue = green + 1;
+            uint8_t* alpha = blue + 1;
+            m_data[4 * i + 0] = *red / 255.f;
+            m_data[4 * i + 1] = *green / 255.f;
+            m_data[4 * i + 2] = *blue / 255.f;
+            m_data[4 * i + 3] = 1.f;
+            m_hasAlpha = std::round(*alpha / 255.f) == 0.f; // We don't support fractional alphas
+          }
+        }
+        _TIFFfree(data);
+      }
+      TIFFClose(tif);
     }
     else {
-      uint8_t* data = static_cast<uint8_t*>(stbi_load(path.c_str(), &m_width, &m_height, &numChannels, 3));
-      m_data = static_cast<float*>(malloc(sizeof(float) * m_width * m_height * 4));
-      for (size_t i = 0; i < m_width * m_height; ++i) {
-        m_data[4 * i + 0] = data[3 * i + 0] / 255.f;
-        m_data[4 * i + 1] = data[3 * i + 1] / 255.f;
-        m_data[4 * i + 2] = data[3 * i + 2] / 255.f;
-        m_data[4 * i + 3] = 1.f;
+      int numChannels;
+      bool hdr = stbi_is_hdr(path.c_str());
+      if (hdr) {
+        float* data = stbi_loadf(path.c_str(), &m_width, &m_height, &numChannels, 3);
+        if (!data) {
+          delete m_path;
+          throw std::runtime_error("Failed to load texture from " + path);
+        }
+        size_t numPixels = m_width * m_height;
+        m_data = static_cast<float*>(malloc(sizeof(float) * numPixels * 4));
+        for (size_t i = 0; i < numPixels; ++i) {
+          m_data[4 * i + 0] = data[3 * i + 0];
+          m_data[4 * i + 1] = data[3 * i + 1];
+          m_data[4 * i + 2] = data[3 * i + 2];
+          m_data[4 * i + 3] = 1.f;
+        }
+        stbi_image_free(data);
       }
+      else {
+        uint8_t* data = static_cast<uint8_t*>(stbi_load(path.c_str(), &m_width, &m_height, &numChannels, 3));
+        if (!data) {
+          delete m_path;
+          throw std::runtime_error("Failed to load texture from " + path);
+        }
+        size_t numPixels = m_width * m_height;
+        m_data = static_cast<float*>(malloc(sizeof(float) * numPixels * 4));
+        for (size_t i = 0; i < numPixels; ++i) {
+          m_data[4 * i + 0] = data[3 * i + 0] / 255.f;
+          m_data[4 * i + 1] = data[3 * i + 1] / 255.f;
+          m_data[4 * i + 2] = data[3 * i + 2] / 255.f;
+          m_data[4 * i + 3] = 1.f;
+        }
+        stbi_image_free(data);
+      }
+      m_hasAlpha = numChannels == 4;
     }
-    m_hasAlpha = numChannels == 4;
     if (!m_data) {
       std::cerr << "Failed to load texture from " << path << std::endl;
     }
@@ -92,6 +139,13 @@ namespace rt {
     return *this;
   }
 
+  bool CTexture::isTiff(const std::string& path) {
+    std::string tif = ".tif";
+    std::string tiff = ".tiff";
+    std::string tifSubstring = path.substr(path.size() - tif.size());
+    std::string tiffSubstring = path.substr(path.size() - tiff.size());
+    return tifSubstring == tif || tiffSubstring == tiff;
+  }
   
 
   void CTexture::allocateDeviceMemory() {
@@ -147,25 +201,60 @@ namespace rt {
   }
 
   void CTexture::loadAlpha(const std::string& path) {
-    int numChannels;
-    int forcedChannels = 4;
-    float* imgData = stbi_loadf(path.c_str(), &m_width, &m_height, &numChannels, forcedChannels);
-    if (!imgData) {
-      std::cerr << "Failed to load texture from " << path << std::endl;
+    if (CTexture::isTiff(path)) {
+      TIFF* tif = TIFFOpen(path.c_str(), "r");
+      if (!tif) {
+        throw std::runtime_error("Failed to load texture from " + path);
+      }
+      m_channels = 4;
+      m_pathLength = path.size();
+      m_path = new char[m_pathLength];
+      memcpy(m_path, path.data(), m_pathLength);
+      m_type = ALPHA;
+
+      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &m_width);
+      TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &m_height);
+      size_t numPixels = m_width * m_height;
+      uint32_t* data = (uint32_t*)_TIFFmalloc(numPixels * sizeof(uint32_t));
+      m_data = static_cast<float*>(malloc(sizeof(float) * numPixels * 4));
+      if (data != NULL) {
+        if (TIFFReadRGBAImageOriented(tif, m_width, m_height, data, ORIENTATION_TOPLEFT, 0)) {
+          for (size_t i = 0; i < numPixels; ++i) {
+            uint8_t* alpha = reinterpret_cast<uint8_t*>(data + i) + 3;
+            float alphaF = std::round(*alpha / 255.f);
+            m_data[4 * i + 0] = alphaF;
+            m_data[4 * i + 1] = alphaF;
+            m_data[4 * i + 2] = alphaF;
+            m_data[4 * i + 3] = 1.f;
+          }
+        }
+        _TIFFfree(data);
+      }
+      TIFFClose(tif);
     }
-    m_channels = 4;
-    m_pathLength = path.size();
-    m_path = new char[m_pathLength];
-    memcpy(m_path, path.data(), m_pathLength);
-    m_type = ALPHA;
-    m_data = static_cast<float*>(malloc(4 * m_width * m_height * sizeof(float)));
-    for (size_t i = 0; i < m_width * m_height; ++i) {
-      float alpha = imgData[i * forcedChannels + (forcedChannels - 1)];
-      m_data[4 * i + 0] = alpha;
-      m_data[4 * i + 1] = alpha;
-      m_data[4 * i + 2] = alpha;
-      m_data[4 * i + 3] = 1.f;
+    else {
+      int numChannels;
+      int forcedChannels = 4;
+      float* imgData = stbi_loadf(path.c_str(), &m_width, &m_height, &numChannels, forcedChannels);
+      if (!imgData) {
+        throw std::runtime_error("Failed to load texture from " + path);
+      }
+      m_channels = 4;
+      m_pathLength = path.size();
+      m_path = new char[m_pathLength];
+      memcpy(m_path, path.data(), m_pathLength);
+      m_type = ALPHA;
+      size_t numPixels = m_width * m_height;
+      m_data = static_cast<float*>(malloc(4 * numPixels * sizeof(float)));
+      for (size_t i = 0; i < numPixels; ++i) {
+        float alpha = imgData[i * forcedChannels + (forcedChannels - 1)];
+        m_data[4 * i + 0] = alpha;
+        m_data[4 * i + 1] = alpha;
+        m_data[4 * i + 2] = alpha;
+        m_data[4 * i + 3] = 1.f;
+      }
+      stbi_image_free(imgData);
     }
-    stbi_image_free(imgData);
+
   }
 }

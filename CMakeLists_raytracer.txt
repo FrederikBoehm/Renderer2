@@ -138,6 +138,7 @@ set_target_properties(lib_openvdb_external_rel PROPERTIES INCLUDE_DIRECTORIES ${
 add_subdirectory(visualisation)
 add_subdirectory(3rdparty/glm)
 add_subdirectory(3rdparty/assimp)
+add_subdirectory(3rdparty/libtiff)
 
 if (GUI)
 add_subdirectory(3rdparty/glfw)
