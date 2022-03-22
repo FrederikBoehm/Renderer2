@@ -17,7 +17,7 @@ namespace rt {
     m_normalTexture(nullptr),
     m_alphaTexture(nullptr),
     m_pathLength(0),
-    m_assetsBasePath(nullptr),
+    m_meshPath(nullptr),
     m_submeshId(0) {
   }
 
@@ -33,7 +33,7 @@ namespace rt {
     m_normalTexture(nullptr),
     m_alphaTexture(nullptr),
     m_pathLength(0),
-    m_assetsBasePath(nullptr),
+    m_meshPath(nullptr),
     m_submeshId(0) {
 
   }
@@ -50,7 +50,7 @@ namespace rt {
     m_normalTexture(nullptr),
     m_alphaTexture(nullptr),
     m_pathLength(0),
-    m_assetsBasePath(nullptr),
+    m_meshPath(nullptr),
     m_submeshId(0) {
 
   }
@@ -67,27 +67,27 @@ namespace rt {
     m_normalTexture(std::exchange(material.m_normalTexture, nullptr)),
     m_alphaTexture(std::exchange(material.m_alphaTexture, nullptr)),
     m_pathLength(std::move(material.m_pathLength)),
-    m_assetsBasePath(std::exchange(material.m_assetsBasePath, nullptr)),
+    m_meshPath(std::exchange(material.m_meshPath, nullptr)),
     m_submeshId(std::move(material.m_submeshId)) {
   }
 
   CMaterial::~CMaterial() {
     if (!m_deviceObject) {
-      delete m_assetsBasePath;
+      delete m_meshPath;
     }
   }
 
-  CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath, size_t submeshId):
+  CMaterial::CMaterial(const aiMaterial* material, const std::string& assetsBasepath, const std::string& fullPath, size_t submeshId):
     m_deviceObject(false),
     m_Le(0.f),
     m_albedoTexture(nullptr),
     m_glossyTexture(nullptr),
     m_normalTexture(nullptr),
     m_alphaTexture(nullptr),
-    m_pathLength(assetsBasepath.size()),
-    m_assetsBasePath((char*)malloc(assetsBasepath.size())),
+    m_pathLength(fullPath.size()),
+    m_meshPath((char*)malloc(fullPath.size())),
     m_submeshId(submeshId) {
-    memcpy(m_assetsBasePath, assetsBasepath.data(), m_pathLength);
+    memcpy(m_meshPath, fullPath.data(), m_pathLength);
 
     aiColor3D diffuse;
     material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);

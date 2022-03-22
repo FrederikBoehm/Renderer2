@@ -67,10 +67,10 @@ namespace rt {
       }
 
       CMesh* mesh = new CMesh(meshPath, i, vbo, ibo, normals, tcs, reinterpret_cast<const SAABB&>(meshAi->mAABB));
-      CMaterial* material = new CMaterial(materialAi, assetsBasePath, i);
+      CMaterial* material = new CMaterial(materialAi, assetsBasePath, meshPath, i);
 
       s_hostMeshes[{meshPath, i}] = mesh;
-      s_hostMaterials[{assetsBasePath, i}] = material;
+      s_hostMaterials[{meshPath, i}] = material;
 
 
       meshes.emplace_back(mesh, material);
@@ -89,7 +89,7 @@ namespace rt {
     if (submeshIter != s_submeshes.end()) {
       for (unsigned int i = 0; i < submeshIter->second; ++i) {
         auto meshIter = s_hostMeshes.find({ meshPath, i });
-        auto materialIter = s_hostMaterials.find({ assetsBasePath, i });
+        auto materialIter = s_hostMaterials.find({ meshPath, i });
         if (meshIter != s_hostMeshes.end() && materialIter != s_hostMaterials.end()) {
           meshes.emplace_back(meshIter->second, materialIter->second);
         }
