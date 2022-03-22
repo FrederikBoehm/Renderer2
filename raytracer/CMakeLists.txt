@@ -121,6 +121,7 @@ set(HEADER_FILES
 	#include/texture/texture_manager.hpp
 	include/backend/config_loader.hpp
 	config.json
+	scenedescription.json
 	include/backend/asset_manager.hpp
 	include/backend/build_optix_accel.hpp
 	include/intersect/aabb.hpp

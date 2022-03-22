@@ -302,23 +302,32 @@
       config->scene->setEnvironmentMap(rt::CEnvironmentMap(envmap.get<std::string>()));
     }
 
-    auto sceneobjects = scene["Sceneobjects"];
-    for (auto sceneobject : sceneobjects) {
-      auto type = sceneobject["Type"];
-      valid = valid && !type.empty();
-      if (valid) {
-        std::string typeStr = type.get<std::string>();
-        if (typeStr == "Circle") {
-          valid = valid && addCircle(sceneobject, config->scene.get());
-        }
-        else if (typeStr == "Sphere") {
-          valid = valid && addSphere(sceneobject, config->scene.get());
-        }
-        else if (typeStr == "Medium") {
-          valid = valid && addMedium(sceneobject, config->scene.get());
-        }
-        else if (typeStr == "Mesh") {
-          valid = valid && addMesh(sceneobject, config->scene.get());
+    auto scenedescription = scene["Scenedescription"];
+    valid = valid && !scenedescription.empty();
+    if (valid) {
+      std::ifstream inputStream(scenedescription.get<std::string>());
+      std::stringstream buffer;
+      buffer << inputStream.rdbuf();
+      std::string jsonString = buffer.str();
+      nlohmann::json sceneobjects = nlohmann::json::parse(jsonString, nullptr, true, true);
+      
+      for (auto sceneobject : sceneobjects) {
+        auto type = sceneobject["Type"];
+        valid = valid && !type.empty();
+        if (valid) {
+          std::string typeStr = type.get<std::string>();
+          if (typeStr == "Circle") {
+            valid = valid && addCircle(sceneobject, config->scene.get());
+          }
+          else if (typeStr == "Sphere") {
+            valid = valid && addSphere(sceneobject, config->scene.get());
+          }
+          else if (typeStr == "Medium") {
+            valid = valid && addMedium(sceneobject, config->scene.get());
+          }
+          else if (typeStr == "Mesh") {
+            valid = valid && addMesh(sceneobject, config->scene.get());
+          }
         }
       }
     }
