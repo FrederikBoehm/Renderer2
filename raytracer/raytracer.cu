@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
+#include <chrono>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -236,8 +237,10 @@ namespace rt {
     rt::clearBuffer << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
     bool abortRendering = false;
+    float total = 0.f;
     for (uint16_t sample = 0; sample < m_numSamples; ++sample) {
       std::cout << "Sample " << sample + 1 << "/" << m_numSamples << std::endl;
+      auto start = std::chrono::steady_clock::now();
       OPTIX_ASSERT(optixLaunch(
         CRTBackend::instance()->pipeline(),
         0,             // stream
@@ -249,11 +252,16 @@ namespace rt {
         1       // launch depth
       ));
       CUDA_ASSERT(cudaDeviceSynchronize());
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<float> diff = end - start;
+      std::cout << "Sample " << sample + 1 << " took " << diff.count() << " s" << std::endl;
+      total += diff.count();
       abortRendering = keyCallback();
       if (abortRendering) {
         return retrieveFrame();
       }
     }
+    std::cout << "Total duration: " << total << "s for " << m_numSamples << " samples (" << total / m_numSamples << " s/Sample)" << std::endl;
 
     dim3 reductionGrid(m_frameWidth / m_blockSize, 1);
     rt::computeGlobalTonemapping1 << <reductionGrid, m_blockSize >> > (m_deviceFrame, m_deviceAverage);
