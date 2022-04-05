@@ -11,8 +11,8 @@ namespace rt {
     rayWorld.m_t_max = rayWorldNew.m_t_max;
     mi->hitInformation.t = rayWorldNew.m_t_max;
     mi->hitInformation.pos = *m_modelToWorld * glm::vec4(mi->hitInformation.pos, 1.f);
-    mi->hitInformation.normal = *m_modelToWorld * glm::vec4(mi->hitInformation.normal, 0.f);
-    mi->hitInformation.normalG = *m_modelToWorld * glm::vec4(mi->hitInformation.normalG, 0.f);
+    mi->hitInformation.normal = glm::normalize(*m_modelToWorld * glm::vec4(mi->hitInformation.normal, 0.f));
+    mi->hitInformation.normalG = glm::normalize(*m_modelToWorld * glm::vec4(mi->hitInformation.normalG, 0.f));
     mi->medium = mi->hitInformation.hit ? this : nullptr;
     return albedo;
   }

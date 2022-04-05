@@ -43,6 +43,7 @@ namespace rt {
     D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
     D_CALLABLE glm::vec3 glossy(const glm::vec2& tc) const;
     DH_CALLABLE float specularRoughness() const;
+    DH_CALLABLE float ior() const;
   private:
     bool m_deviceObject;
     glm::vec3 m_Le; // Emissive light if light source
@@ -67,8 +68,20 @@ namespace rt {
     float fDiffuse = m_orenNayarBRDF.f(wo, wi);
     float fGlossy = m_microfacetBRDF.f(wo, wi);
     //float weight = 0.5f;
+    //float weight = m_glossyColor.r > 0.01f || m_glossyColor.g > 0.01f || m_glossyColor.b > 0.01f ? m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo)) : 0.f;
     float weight = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
     return diffuse(tc) * fDiffuse * (1.f - weight) + glossy(tc) * fGlossy * weight;
+    //return glossy(tc) * fGlossy * weight;
+    //return glm::vec3(weight);
+    //glm::vec3 g = glossy(tc);
+    //if (g.r == 0.f || g.g == 0.f || g.b == 0.f) {
+    //  printf("CMaterial::f glossy (%f, %f, %f)\n", g.r, g.g, g.b);
+    //}
+    //if (fGlossy <= 0.f) {
+    //  printf("CMaterial::f fGlossy %f\n", fGlossy);
+    //}
+    //return g * fGlossy;
+    //return glossy(tc) * fGlossy;
   }
 
   inline CMaterial& CMaterial::operator=(const CMaterial& material) {
@@ -82,8 +95,11 @@ namespace rt {
   }
 
   inline glm::vec3 CMaterial::sampleF(const glm::vec2& tc, const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+    //float p = m_glossyColor.r > 0.01f || m_glossyColor.g > 0.01f || m_glossyColor.b > 0.01f ?  m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo)) : 0.f;
     float p = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
     //float p = 0.5f;
+    //m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
+    //return glm::vec3(p);
     if (sampler.uniformSample01() < p) {
       // Sample specular
       return glossy(tc) * m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
@@ -92,12 +108,30 @@ namespace rt {
       // Sample diffuse
       return diffuse(tc) * m_orenNayarBRDF.sampleF(wo, wi, sampler, pdf);
     }
+    //float fGlossy = m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
+    //glm::vec3 g = glossy(tc);
+    //return glossy(tc) * m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
+    //if (g.r == 0.f || g.g == 0.f || g.b == 0.f) {
+    //  printf("CMaterial::sampleF glossy (%f, %f, %f)\n", g.r, g.g, g.b);
+    //}
+    //if (fGlossy <= 0.f) {
+    //  printf("CMaterial::sampleF fGlossy %f\n", fGlossy);
+    //}
+    //return g * fGlossy;
   }
 
   inline float CMaterial::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
+    //float weight = m_glossyColor.r > 0.01f || m_glossyColor.g > 0.01f || m_glossyColor.b > 0.01f ? m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo)) : 0.f;
     float weight = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
     //float weight = 0.5f;
     return m_orenNayarBRDF.pdf(wo, wi) * (1.f - weight) + m_microfacetBRDF.pdf(wo, wi) * weight;
+    //float pdf = m_microfacetBRDF.pdf(wo, wi);
+    //if (pdf <= 0.f) {
+    //  printf("CMaterial::pdf pdf %f\n", pdf);
+    //}
+    //return m_microfacetBRDF.pdf(wo, wi);
+    //return pdf;
+    //return 1.f;
   }
 
 
@@ -166,6 +200,10 @@ namespace rt {
 
   inline size_t CMaterial::submeshId() const {
     return m_submeshId;
+  }
+
+  inline float CMaterial::ior() const {
+    return m_microfacetBRDF.fresnel().m_etaT;
   }
 
 }

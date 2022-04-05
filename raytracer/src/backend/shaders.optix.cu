@@ -105,6 +105,7 @@ extern "C" __global__ void __closesthit__ch() {
 
     normal = sceneobject->modelToWorld() * glm::vec4(normal, 0.f);
     geometryNormal = glm::normalize(sceneobject->modelToWorld() * glm::vec4(geometryNormal, 0.f));
+
   }
   else {
     geometryNormal = glm::normalize(glm::vec3(uint_as_float(optixGetAttribute_3()), uint_as_float(optixGetAttribute_4()), uint_as_float(optixGetAttribute_5())));
@@ -112,6 +113,10 @@ extern "C" __global__ void __closesthit__ch() {
   }
   //geometryNormal = glm::normalize(geometryNormal);
   normal = glm::normalize(normal);
+  
+  if (sceneobject->material()) {
+    si->hitInformation.ior = sceneobject->material()->ior();
+  }
 
   si->hitInformation.hit = true;
   si->hitInformation.pos = glm::vec3(hitPos.x, hitPos.y, hitPos.z);

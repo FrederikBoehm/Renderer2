@@ -113,6 +113,7 @@ namespace rt {
     H_CALLABLE static CNVDBMedium* loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
     H_CALLABLE static CTexture* loadTexture(const std::string& path, ETextureType type);
     H_CALLABLE static CTexture* loadAlpha(const std::string& path);
+    H_CALLABLE static CTexture* specularFromDiffuse(const CTexture* diffuseTexture);
     H_CALLABLE static void allocateDeviceMemory();
     H_CALLABLE static void copyToDevice();
     H_CALLABLE static void freeDeviceMemory();

@@ -102,8 +102,16 @@ namespace rt {
 
     float ior;
     material->Get(AI_MATKEY_REFRACTI, ior);
+    ior = ior == 1.f ? 1.5f : ior; // Set to default value: Since trees are made of water and carbon -> set to value in between
+    //ior = 1.f;
+
+    //if (specular.r <= 0.02f || specular.g <= 0.02f || specular.b <= 0.02f) {
+    //  m_glossyColor = glm::vec3(1.f);
+    //}
+    //else {
+    //}
     m_glossyColor = glm::vec3(specular.r, specular.g, specular.b);
-    m_microfacetBRDF = CMicrofacetBRDF(roughness, roughness, 1.00029f, ior);
+    m_microfacetBRDF = CMicrofacetBRDF(roughness, roughness, 1.f, ior);
 
     std::string diffuseTexPath = "";
     if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
@@ -113,11 +121,18 @@ namespace rt {
       m_albedoTexture = CAssetManager::loadTexture(diffuseTexPath, DIFFUSE);
     }
 
+    //if (specular.r <= 0.02f || specular.g <= 0.02f || specular.b <= 0.02f) {
+    //  m_glossyTexture = CAssetManager::specularFromDiffuse(m_albedoTexture);
+    //  //m_glossyTexture = m_albedoTexture;
+    //}
+    //else {
+    //}
     if (material->GetTextureCount(aiTextureType_SPECULAR) > 0) {
       aiString pathAi;
       material->GetTexture(aiTextureType_SPECULAR, 0, &pathAi);
       m_glossyTexture = CAssetManager::loadTexture(assetsBasepath + "/" + pathAi.C_Str(), SPECULAR);
     }
+
 
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0) {
       aiString pathAi;
@@ -152,7 +167,7 @@ namespace rt {
     material.m_orenNayarBRDF = m_orenNayarBRDF;
     material.m_microfacetBRDF = m_microfacetBRDF;
     material.m_albedoTexture = m_albedoTexture ? CAssetManager::deviceTexture(m_albedoTexture->path(), DIFFUSE) : nullptr;
-    material.m_glossyTexture = m_glossyTexture ? CAssetManager::deviceTexture(m_glossyTexture->path(), SPECULAR) : nullptr;
+    material.m_glossyTexture = m_glossyTexture ? CAssetManager::deviceTexture(m_glossyTexture->path(), m_glossyTexture->type()) : nullptr;
     material.m_normalTexture = m_normalTexture ? CAssetManager::deviceTexture(m_normalTexture->path(), NORMAL) : nullptr;
     material.m_alphaTexture = m_alphaTexture ? CAssetManager::deviceTexture(m_alphaTexture->path(), ALPHA) : nullptr;
     return material;

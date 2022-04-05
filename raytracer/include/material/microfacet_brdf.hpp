@@ -74,6 +74,28 @@ namespace rt {
   }
 
   inline float CMicrofacetBRDF::sampleF(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
+    //if (wo.z == 0) {
+    //  printf("CMicrofacetBRDF::sampleF wo.z 0\n");
+    //  return 0.f;
+    //}
+    //glm::vec3 h = m_distribution.sampleH(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+
+    ////if (glm::dot(wo, h) < 0.f) {
+    ////  printf("CMicrofacetBRDF::sampleF wo dot h < 0\n");
+    ////  return 0.f;
+    ////}
+
+    //*wi = glm::reflect(-wo, h);
+    //if (!sameHemisphere(wo, *wi)) {
+    //  printf("CMicrofacetBRDF::sampleF wo, wi not on same hemisphere\n");
+    //  return 0.f;
+    //}
+    //*pdf = m_distribution.pdf(wo, h) / (4 * glm::dot(wo, h));
+    //float result = f(wo, *wi);
+    //if (result <= 0.f) {
+    //  printf("CMicrofacetBRDF::sampleF result %f\n", result);
+    //}
+    //return result;
     if (wo.z == 0) {
       return 0.f;
     }

@@ -6,6 +6,8 @@
 #include "intersect/ray.hpp"
 #include "scene/interaction.hpp"
 #include "filtering/filtered_data.hpp"
+#include "sggx_phase_function.hpp"
+#include "material/fresnel.hpp"
 
 namespace rt {
 
@@ -97,7 +99,7 @@ namespace rt {
           CRay rayWorldNew = ray.transform(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-          SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), glm::mat3(0.f), glm::vec2(0.f), rayWorldNew.m_t_max };
+          SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), glm::mat3(0.f), glm::vec2(0.f), 1.f, rayWorldNew.m_t_max };
           *mi = { hitInfo, nullptr, nullptr, nullptr };
           return m_sigma_s / m_sigma_t;
         }
@@ -109,9 +111,20 @@ namespace rt {
           CRay rayWorldNew = ray.transform(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
-          SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), fD.S, glm::vec2(0.f), rayWorldNew.m_t_max };
+          const glm::vec3 normal = fD.n();
+          SHitInformation hitInfo = { true, worldPos, normal, normal, fD.S, glm::vec2(0.f), fD.ior, rayWorldNew.m_t_max };
           *mi = { hitInfo, nullptr, nullptr, nullptr };
-          return 0.5f * (fD.diffuseColor + fD.specularColor) * m_sigma_s / m_sigma_t;
+          //printf("ior: %f\n", fD.ior);
+          //CSGGXMicroflakeDistribution vndf(fD.S);
+          //glm::vec3 normalProxy = vndf.sampleVNDF(-rayWorldNew.m_direction, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+          CFresnel fresnel(1.f, fD.ior);
+          float weight = fresnel.evaluate(glm::abs(glm::dot(-rayWorldNew.m_direction, normal)));
+          //float weight = 0.5f;
+          //float weight = 0.5f;
+          return (fD.diffuseColor * (1.f - weight) + fD.specularColor * weight) * m_sigma_s / m_sigma_t;
+          //return glm::vec3(weight);
+          //return  (glm::vec3(1.f) * weight) * m_sigma_s / m_sigma_t;
+          //return 0.5f * (fD.diffuseColor + fD.specularColor) * m_sigma_s / m_sigma_t;
         }
       }
 

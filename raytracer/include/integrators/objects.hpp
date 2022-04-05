@@ -2,6 +2,7 @@
 #define INTEGRATOR_OBJECTS_HPP
 #include <glm/glm.hpp>
 #include "utility/qualifiers.hpp"
+#include <stdio.h>
 namespace rt {
   class CCoordinateFrame {
   public:
@@ -34,6 +35,25 @@ namespace rt {
         glm::vec3(0.f, N.z, -N.y) / glm::sqrt(N.y * N.y + N.z * N.z);
       frame.m_B = glm::normalize(glm::cross(N, frame.m_T));
       frame.m_tangentToWorld = glm::mat3(frame.m_T, frame.m_B, N);
+      frame.m_worldToTangent = glm::inverse(frame.m_tangentToWorld);
+      return frame;
+    }
+
+    // Frisvad's basis construction
+    DH_CALLABLE static CCoordinateFrame fromNormal2(const glm::vec3& N) {
+      CCoordinateFrame frame;
+      frame.m_N = N;
+      if (N.z < -0.9999999f) {
+        frame.m_T = glm::vec3(0.f, -1.f, 0.f);
+        frame.m_B = glm::vec3(-1.f, 0.f, 0.f);
+      }
+      else {
+        const float a = 1.f / (1.f + N.z);
+        const float b = -N.x * N.y*a;
+        frame.m_T = glm::normalize(glm::vec3(1.f - N.x * N.x * a, b, -N.x));
+        frame.m_B = glm::normalize(glm::vec3(b, 1.f - N.y * N.y * a, -N.y));
+      }
+      frame.m_tangentToWorld = glm::mat3(frame.m_T, frame.m_B, frame.m_N);
       frame.m_worldToTangent = glm::inverse(frame.m_tangentToWorld);
       return frame;
     }

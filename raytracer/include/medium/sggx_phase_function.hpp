@@ -6,6 +6,7 @@
 #include "medium/phase_function.hpp"
 #include "integrators/objects.hpp"
 #include "sampling/sampler.hpp"
+#include "material/fresnel.hpp"
 
 namespace rt {
   struct SSGGXDistributionParameters {
@@ -63,15 +64,18 @@ namespace rt {
 
   class CSGGXPhaseFunction {
   public:
-    DH_CALLABLE CSGGXPhaseFunction(const glm::mat3& S);
+    DH_CALLABLE CSGGXPhaseFunction(const glm::mat3& S, const glm::vec3& normal, float ior);
 
     DH_CALLABLE float p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const;
     D_CALLABLE float sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const;
+    DH_CALLABLE glm::vec3 sampleVNDF(const glm::vec3& w_i, const glm::vec2& U) const;
 
   private:
     const CSGGXMicroflakeDistribution m_distribution;
     const CSGGXDiffusePhaseFunction m_diffuse;
     const CSGGXSpecularPhaseFunction m_specular;
+    const glm::vec3 m_normal;
+    const float m_ior;
   };
 
   class CSGGXPhaseFunctionPlaceholder : public CPhaseFunction {
@@ -109,7 +113,8 @@ namespace rt {
   }
 
   inline glm::vec3 CSGGXMicroflakeDistribution::sampleVNDF(const glm::vec3& w_i, const glm::vec2& U) const {
-    const CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_i);
+    //const CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_i);
+    const CCoordinateFrame frame = CCoordinateFrame::fromNormal2(w_i);
     const glm::vec3& w_k = frame.B();
     const glm::vec3& w_j = frame.T();
 
@@ -198,25 +203,39 @@ namespace rt {
 
   // CSGGXPhaseFunction
 
-  inline CSGGXPhaseFunction::CSGGXPhaseFunction(const glm::mat3& S) :
+  inline CSGGXPhaseFunction::CSGGXPhaseFunction(const glm::mat3& S, const glm::vec3& normal, float ior) :
     m_distribution(S),
     m_diffuse(m_distribution),
-    m_specular(m_distribution) {
+    m_specular(m_distribution),
+    m_normal(normal),
+    m_ior(ior) {
   }
 
   inline float CSGGXPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const {
-    float weight = 0.5f;
+    //float weight = 0.5f;
+    CFresnel fresnel(1.f, m_ior);
+    //glm::vec3 normalProxy = m_distribution.sampleVNDF(w_o, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+    float weight = fresnel.evaluate(glm::abs(glm::dot(w_o, m_normal)));
+    //float weight = 0.5f;
     return m_diffuse.p(w_o, w_i, sampler) * (1.f - weight) + m_specular.p(w_o, w_i) * weight;
   }
 
   inline float CSGGXPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
-    float p = 0.5f;
+    //float p = 0.5f;
+    CFresnel fresnel(1.f, m_ior);
+    //glm::vec3 normalProxy = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+    float p = fresnel.evaluate(glm::abs(glm::dot(wo, m_normal)));
+    //float p = 0.5f;
     if (sampler.uniformSample01() < p) {
       return m_specular.sampleP(wo, wi, sampler);
     }
     else {
       return m_diffuse.sampleP(wo, wi, sampler);
     }
+  }
+
+  inline glm::vec3 CSGGXPhaseFunction::sampleVNDF(const glm::vec3& w_i, const glm::vec2& U) const {
+    return m_distribution.sampleVNDF(w_i, U);
   }
 }
 

@@ -129,6 +129,16 @@ namespace rt {
   }
 
   inline glm::vec3 CMicrofacetDistribution::sampleH(const glm::vec3& wo, const glm::vec2& u) const {
+    //bool flip = wo.z < 0;
+    ////glm::vec3 h = sample(flip ? -wo : wo, m_alphaX, m_alphaY, u.x, u.y);
+    ////return h;
+    //float theta = atanf(m_alphaX * sqrtf(u.x) / sqrtf(1.f - u.x));
+    //float phi = 2.f * M_PI * u.y;
+    //float sinTheta = sin(theta);
+    //glm::vec3 h = glm::vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cos(theta));
+    //if (flip)
+    //  h = -h;
+    //return h;
     bool flip = wo.z < 0;
     glm::vec3 h = sample(flip ? -wo : wo, m_alphaX, m_alphaY, u.x, u.y);
     if (flip)

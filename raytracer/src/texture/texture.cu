@@ -101,6 +101,21 @@ namespace rt {
     }
   }
 
+  CTexture::CTexture(const CTexture& texture):
+    m_hasAlpha(texture.m_hasAlpha),
+    m_width(texture.m_width),
+    m_height(texture.m_height),
+    m_channels(texture.m_channels),
+    m_pathLength(texture.m_pathLength),
+    m_path((char*)malloc(texture.m_pathLength)),
+    m_data((float*)malloc(sizeof(float) * m_width * m_height * 4)),
+    m_deviceData(nullptr),
+    m_deviceResource(nullptr),
+    m_deviceTextureObj(NULL) {
+    memcpy(m_path, texture.m_path, m_pathLength);
+    memcpy(m_data, texture.m_data, sizeof(float) * m_width * m_height * 4);
+  }
+
   CTexture::CTexture(CTexture&& texture) :
     m_hasAlpha(std::move(texture.m_hasAlpha)),
     m_width(std::move(texture.m_width)),

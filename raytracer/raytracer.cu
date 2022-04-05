@@ -270,11 +270,11 @@ namespace rt {
     rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
     CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
-    CUDA_ASSERT(cudaDeviceSynchronize());
+    //rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
+    //CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
-    CUDA_ASSERT(cudaDeviceSynchronize());
+    //rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
+    //CUDA_ASSERT(cudaDeviceSynchronize());
 
     rt::fillByteFrame << <grid, m_blockSize >> > (m_deviceFrame);
     CUDA_ASSERT(cudaDeviceSynchronize());
@@ -308,11 +308,11 @@ namespace rt {
     rt::computeGlobalTonemapping2 << <1, 1 >> > (m_deviceFrame, m_deviceAverage, m_deviceTonemappingValue);
     CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
-    CUDA_ASSERT(cudaDeviceSynchronize());
+    //rt::applyTonemapping << <grid, m_blockSize >> > (m_deviceFrame, m_deviceTonemappingValue);
+    //CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
-    CUDA_ASSERT(cudaDeviceSynchronize());
+    //rt::correctGamma << <grid, m_blockSize >> > (m_deviceFrame, m_gamma);
+    //CUDA_ASSERT(cudaDeviceSynchronize());
 
     SFrame frame = retrieveFrame();
     return frame;
