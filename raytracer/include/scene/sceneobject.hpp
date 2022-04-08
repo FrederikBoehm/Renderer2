@@ -57,6 +57,7 @@ namespace rt {
     ESceneobjectMask mask() const;
     const glm::mat4x3& worldToModel() const;
     const CMesh* mesh() const;
+    const glm::vec3& orientation() const;
   private:
     std::shared_ptr<CShape> m_shape;
     CMesh* m_mesh;
@@ -68,6 +69,7 @@ namespace rt {
     glm::mat4x3 m_worldToModel;
     SAABB m_aabb;
     ESceneobjectMask m_mask;
+    glm::vec3 m_orientation;
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
@@ -118,6 +120,10 @@ namespace rt {
 
   inline const CMesh* CHostSceneobject::mesh() const {
     return m_mesh;
+  }
+
+  inline const glm::vec3& CHostSceneobject::orientation() const {
+    return m_orientation;
   }
 
 }

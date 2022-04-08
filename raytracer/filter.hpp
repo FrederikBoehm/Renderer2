@@ -33,6 +33,8 @@ namespace filter {
     float m_voxelSize;
     uint8_t m_lods;
     std::string m_outDir;
+    std::string m_filename;
+    glm::vec3 m_orientation;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();

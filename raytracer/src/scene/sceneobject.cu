@@ -34,7 +34,8 @@ namespace rt {
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_mask(mask),
     m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
+    m_hostDeviceConnection(this),
+    m_orientation(0.f, 1.f, 0.f) {
     m_material = new CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT));
     switch (shape->shape()) {
     case CIRCLE:
@@ -56,7 +57,8 @@ namespace rt {
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_mask(mask),
     m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
+    m_hostDeviceConnection(this),
+    m_orientation(orientation) {
     m_aabb = m_medium->worldBB();
   }
 
@@ -72,7 +74,8 @@ namespace rt {
     m_mask(std::move(sceneobject.m_mask)),
     m_traversableHandle(std::exchange(sceneobject.m_traversableHandle, NULL)),
     m_deviceGasBuffer(std::exchange(sceneobject.m_deviceGasBuffer, NULL)),
-    m_hostDeviceConnection(this) {
+    m_hostDeviceConnection(this),
+    m_orientation(std::move(sceneobject.m_orientation)) {
   }
 
   CHostSceneobject::CHostSceneobject(CMesh* mesh, CMaterial* material, const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling, ESceneobjectMask mask) :
@@ -85,7 +88,8 @@ namespace rt {
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_mask(mask),
     m_deviceGasBuffer(NULL),
-    m_hostDeviceConnection(this) {
+    m_hostDeviceConnection(this),
+    m_orientation(orientation) {
     m_aabb = m_mesh->aabb().transform(m_modelToWorld);
   }
 
