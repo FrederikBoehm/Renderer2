@@ -144,7 +144,8 @@ namespace rt {
         //L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         //L = direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         CSGGXPhaseFunction phase(mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior);
-        glm::vec3 normalProxy = phase.sampleVNDF(-ray.m_direction, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        //glm::vec3 normalProxy = phase.sampleVNDF(-ray.m_direction, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        glm::vec3 normalProxy = phase.sampleVNDF(mi.hitInformation.normal, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
         L += (normalProxy + 1.f) * 0.5f;
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
