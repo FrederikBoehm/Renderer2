@@ -184,11 +184,11 @@ namespace filter {
       //  printf("iteration, P_hit_volume_gt, density\n");
       //}
       float delta = 0.001f; // For loss derivative
+      float P_hit_volume_gt;
       for (size_t iteration = 0; iteration < m_estimationIterations; ++iteration) {
         //float alpha = normalizedAlpha * glm::pow(0.5f, (float)iteration / 2.f);
         uint32_t volumeHits = 0;
         float P_hit_volume = estimatePhitVolume(density, tMax, numSamples);
-        float P_hit_volume_gt;
         if (m_clipRays) {
           P_hit_volume_gt = estimatePhitVolumeGT2(density, rayTs, hits);
         }
@@ -200,7 +200,7 @@ namespace filter {
         float dLossGT = estimateLossGT(density, tMax, P_hit_mesh);
         //density = density - alpha * dLossGT;
         //printf("iteration %i, P_hit_volume: %f, P_hit_volume_gt: %f, dLoss: %f, dLossGT: %f, density: %f, alpha: %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, dLoss, dLossGT, density, alpha);
-        density = density - normalizedAlpha * glm::sign(P_hit_volume_gt - P_hit_mesh);
+        density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh);
         //if (launchIdx.x == launchDim.x / 2 && launchIdx.y == launchDim.y / 2 && launchIdx.z == launchDim.z / 2) {
         //  printf("%i, %f, %f\n", (int)iteration, P_hit_volume_gt, density);
         //}
@@ -212,6 +212,10 @@ namespace filter {
         //float P_hit_volume = (float)volumeHits / numSamples;
         //density += (P_hit_mesh - P_hit_volume) * delta;
         //printf("iteration %i, P_hit_volume: %f, density: %f\n", (int)iteration, P_hit_volume, density);
+      }
+      float diff = P_hit_volume_gt - P_hit_mesh;
+      if (diff > 0.01f) {
+        printf("[WARNING] Diff between P_hit_volume and P_hit_mesh: %f\n", diff);
       }
       return density;
     }
