@@ -1,5 +1,12 @@
 {
   "Large": [
+    {
+      "Name": "AL05a",
+      "Path": "XfrogPlants/AL05_Aesculus_hippocastanum_Horse_Chestnut_OBJ/Models",
+      "Dimensions": [258.110992, 359.405212, 261.904022],
+      "ExpectedHeight": 34.5,
+      "Orientation": [ 0.0, 0.0, 1.0 ]
+    }
   ],
   "Medium": [
     {

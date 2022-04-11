@@ -2,37 +2,21 @@ import json
 import numpy as np
 import math
 from scipy.spatial import ConvexHull
+import argparse
+from common_functions import getMaxBounds, getCamera, toFile
 
 RADIUS = 1000
 ACCEL_CLASSES = 10
 
-def lookAt(eye, center, up):
-    eye = np.array(eye)
-    center = np.array(center)
-    up = np.array(up)
-
-    g = center - eye
-    w = - g / np.linalg.norm(g)
-    u = np.cross(up, w)
-    u /= np.linalg.norm(u)
-    v = np.cross(w, u)
-
-    M1 = np.array([[u[0], u[1], u[2], 0],
-                   [v[0], v[1], v[2], 0],
-                   [w[0], w[1], w[2], 0],
-                   [0, 0, 0, 1]]) # numpy is row major
-    M2 = np.array([[1, 0, 0, -eye[0]],
-                   [0, 1, 0, -eye[1]],
-                   [0, 0, 1, -eye[2]],
-                   [0, 0, 0, 1]])
-    return np.matmul(M1, M2)
+def vec4(vec, v):
+    return np.array([vec[0], vec[1], vec[2], v])
 
 def uniformSampleCircle(radius):
     r = math.sqrt(np.random.uniform()) * radius
     theta = 2 * math.pi * np.random.uniform()
     return np.array([r * math.cos(theta), 0, r * math.sin(theta)])
 
-def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_bounds, camera):
+def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_bounds, camera, generate_gt):
     model = relevant_models[index]
     model_name = model["Name"]
     model_space_height = model["Dimensions"][1]
@@ -50,7 +34,7 @@ def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_b
     bounding_radius = math.sqrt((model_dimensions[0] / 2) ** 2 + (model_dimensions[2] / 2) ** 2)
 
 
-    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model["Name"]])
+    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model["Name"]], generate_gt)
     if lod == "0":
     # if True:
         # dimensions = np.array(model["Dimensions"]) * scaling
@@ -79,8 +63,7 @@ def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_b
         }
         return description
         
-def vec4(vec, v):
-    return np.array([vec[0], vec[1], vec[2], v])
+
 
 def project(p, camera):
     d = camera["NearPlaneDistance"]
@@ -121,7 +104,93 @@ def approximateNumVoxels(lod, lod_pos, camera):
     num_voxels = lod["NumVoxels"]
     return math.ceil(math.pow(num_voxels[0] * num_voxels[1] * num_voxels[2], 2/3))
 
-def selectLOD(camera, tree_pos, scaling, lods):
+def countCloseVoxels(lod_size, lod, lod_pos, scaling, camera):
+    start_pos = lod_pos + scaling * np.array(lod["BBMin"])
+    num_voxels = lod["NumVoxels"]
+    lod_size = float(lod_size)
+    end_pos = lod_pos + scaling * np.array(lod["BBMax"])
+    model_dimension = end_pos - start_pos
+    voxel_size2 = model_dimension / np.array(num_voxels)
+    voxel_size = np.array([lod_size, lod_size, lod_size])
+    plane_origin = (start_pos + end_pos) * 0.5
+    plane_normal = camera["Pos"] - plane_origin
+    plane_normal /= np.linalg.norm(plane_normal)
+    p = -np.dot(plane_origin, plane_normal)
+    indices = [np.indices((num_voxels[0],))[0], np.indices((num_voxels[1],))[0], np.indices((num_voxels[2],))[0]]
+    joined = np.vstack(np.meshgrid(indices[0], indices[1], indices[2])).reshape(3, -1).T
+    positions = start_pos + joined * voxel_size2 + 0.5 * voxel_size2
+    distances = np.abs(np.dot(positions, plane_normal) + p)
+    num_intersected_voxels = np.sum((distances < voxel_size2[0] * 0.5).astype(int))
+    # num_intersected_voxels = 0
+    # for x in range(num_voxels[0]):
+    #     for y in range(num_voxels[1]):
+    #         for z in range(num_voxels[2]):
+    #             current_pos = start_pos + np.array([x, y, z]) * voxel_size2 + 0.5 * voxel_size2 # +0.5 to get to center of voxel
+    #             distance_to_plane = math.fabs(np.dot(plane_normal, current_pos) + p)
+    #             if distance_to_plane < lod_size * 0.5:
+    #                 num_intersected_voxels += 1
+
+    return num_intersected_voxels
+
+def gamma(n):
+    return (n * np.finfo(np.float32).eps) / (1 - n * np.finfo(np.float32).eps)
+
+def intersectBB(ray_origin, ray_dir, bb_min, bb_max):
+    # t0 = 0
+    t1 = np.finfo(np.float32).max
+    g = gamma(3)
+    for i in range(3):
+        inv_ray_dir = 1 / ray_dir[i]
+        t_near = (bb_min[i] - ray_origin[i]) * inv_ray_dir
+        t_far = (bb_max[i] - ray_origin[i]) * inv_ray_dir
+
+        if t_near > t_far:
+            temp = t_near
+            t_near = t_far
+            t_far = temp
+
+        t_far *= 1 + 2 * g
+        # t0 = t_near if t_near > t0 else t0
+        t1 = t_far if t_far < t1 else t1
+
+    return ray_origin + t1 * ray_dir
+
+def approximateNumVoxels2(lod, lod_pos, scaling, camera):
+    bb_min = np.array(lod["BBMin"])
+    bb_max = np.array(lod["BBMax"])
+    start_pos = lod_pos + scaling * bb_min
+    end_pos = lod_pos + scaling * bb_max
+    plane_origin = (start_pos + end_pos) * 0.5
+    plane_normal = camera["Pos"] - plane_origin
+    plane_normal /= np.linalg.norm(plane_normal)
+
+    xz_dir = np.cross(plane_normal, np.array((0.0, 1.0, 0.0)))
+    xz_dir /= np.linalg.norm(xz_dir)
+    bb_intersection1 = intersectBB(plane_origin, xz_dir, start_pos, end_pos)
+
+    perpendicular = np.cross(xz_dir, plane_normal)
+    perpendicular /= np.linalg.norm(perpendicular)
+    bb_intersection2 = intersectBB(plane_origin, perpendicular, start_pos, end_pos)
+
+    model_dimension = end_pos - start_pos
+    voxel_size = model_dimension / np.array(lod["NumVoxels"])
+
+    num_voxels1 = 2 * (plane_origin - bb_intersection1) / voxel_size
+    num_voxels2 = 2 * (plane_origin - bb_intersection2) / voxel_size
+    # length1 = np.linalg.norm(plane_origin - bb_intersection1)
+    # length2 = np.linalg.norm(plane_origin - bb_intersection2)
+    #
+    #
+    # num_voxels1 = np.linalg.norm(length1 / voxel_size[0])
+    # num_voxels2 = np.linalg.norm(length2 / voxel_size)
+
+    return math.ceil(np.linalg.norm(num_voxels1) * np.linalg.norm(num_voxels2))
+
+
+def selectLOD(camera, tree_pos, scaling, lods, generate_gt):
+    if generate_gt:
+        return "0"
+
     # use coarsest volume if outside frustum
     max_lod_size = "0"
     for lod_size in lods:
@@ -155,7 +224,10 @@ def selectLOD(camera, tree_pos, scaling, lods):
 
     best_match = "0"
     for lod_size in sorted(lods):
-        if approximateNumVoxels(lods[lod_size], None, camera) > num_covered_pixels:
+        # close_voxels = countCloseVoxels(lod_size, lods[lod_size], tree_pos, scaling, camera)
+        # approximated1 = approximateNumVoxels(lods[lod_size], None, camera)
+        approximated2 = approximateNumVoxels2(lods[lod_size], tree_pos, scaling, camera)
+        if approximated2 > num_covered_pixels:
             best_match = lod_size
         else:
             return best_match
@@ -203,47 +275,7 @@ def checkCollision(object1, object2):
     # return distance < object1["BoundingRadius"] or distance < object2["BoundingRadius"]
     return distance <= object1["BoundingRadius"] + object2["BoundingRadius"]
 
-def toFile(scene, outPath):
-    converted = []
-    for sceneobject in scene:
-        if sceneobject[0] == "Mesh":
-            converted.append({
-                "Type": "Mesh",
-                "Directory": sceneobject[1],
-                "Filename": sceneobject[2],
-                "Pos": sceneobject[3],
-                "Orientation": sceneobject[4],
-                "Scaling": sceneobject[5],
-                "Mask": ["FILTER", "RENDER"]
-            })
-        else:
-            converted.append({
-                "Type": "Medium",
-                "Path": sceneobject[1] + "/" + sceneobject[2],
-                "SigmaA": [0.0, 0.0, 0.0],
-                "SigmaS": [10.0, 10.0, 10.0],
-                "Pos": sceneobject[3],
-                "Orientation": sceneobject[4],
-                "Scaling": sceneobject[5],
-                "Mask": ["FILTER", "RENDER"]
-            })
 
-    converted.append({
-        "Type": "Circle",
-        "Pos": [0.0, 0.0, 0.0],
-        "Radius": 3.402823466e+38,
-        "Normal": [0.0, 1.0, 0.0],
-        "DiffuseReflection": [0.07, 0.07, 0.01],
-        "DiffuseRoughness": 0.999,
-        "SpecularReflection": [0.9, 0.9, 0.9],
-        "AlphaX": 0.99,
-        "AlphaY": 0.99,
-        "EtaI": 1.00029,
-        "EtaT": 1.2
-    })
-
-    with open(outPath, 'w') as out:
-        json.dump(converted, out, indent=True)
 
 def getRelevantAccelerationClasses(description):
     pos = description["BoundingCirclePos"]
@@ -258,55 +290,9 @@ def getRelevantAccelerationClasses(description):
     max_class = int(ACCEL_CLASSES * upper_limit ** 2 / squared_radius)
     return list(range(min_class, min(max_class + 1, ACCEL_CLASSES)))
 
-def getMaxBounds(volume_descriptions):
-    max_bounds = {}
-    for model_name, values in volume_descriptions.items():
-        bbmin = values[list(values.keys())[0]]["BBMin"]
-        bbmax = values[list(values.keys())[0]]["BBMax"]
-        for voxel_size, lod_data in values.items():
-            bbmin = [min(bbmin[0], lod_data["BBMin"][0]), min(bbmin[1], lod_data["BBMin"][1]), min(bbmin[2], lod_data["BBMin"][2])]
-            bbmax = [max(bbmax[0], lod_data["BBMax"][0]), max(bbmax[1], lod_data["BBMax"][1]), max(bbmax[2], lod_data["BBMax"][2])]
 
-        max_bounds[model_name] = {}
-        max_bounds[model_name]["BBMin"] = bbmin
-        max_bounds[model_name]["BBMax"] = bbmax
 
-    return max_bounds
-
-def getCamera(pos, lookat, up, sensor_width, sensor_height, fov):
-    worldToView = lookAt(pos, lookat, up)
-    viewToWorld = np.linalg.inv(worldToView)
-
-    u = np.dot(viewToWorld, [1, 0, 0, 0])
-    u /= np.linalg.norm(u)
-    v = np.dot(viewToWorld, [0, 1, 0, 0])
-    v /= np.linalg.norm(v)
-    w = np.dot(viewToWorld, [0, 0, 1, 0])
-    w /= np.linalg.norm(w)
-
-    pixel_size = 1.e-5
-    sensor_width_in_meters = sensor_width * pixel_size
-    near_plane_distance = (sensor_width * pixel_size) / (2.0 * math.tan(math.radians(fov) / 2.0))
-
-    pixel_size_x_view = np.dot(worldToView, vec4(pos, 1.0) + pixel_size * u)
-    pixel_size_y_view = np.dot(worldToView, vec4(pos, 1.0) + pixel_size * v)
-    near_plane_distance_view = np.dot(worldToView, vec4(pos, 1.0) - near_plane_distance * w)
-
-    camera = {
-        "Pos": np.array(pos),
-        "LookAt": np.array(lookat),
-        "Up": np.array(up),
-        "WorldToView": worldToView,
-        "ViewToWorld": viewToWorld,
-        "SensorWidth": sensor_width,
-        "SensorHeight": sensor_height,
-        "Fov": fov,
-        "NearPlaneDistance": near_plane_distance,
-        "PixelSize": pixel_size
-    }
-    return camera
-
-def generateRandomForest():
+def generateRandomForest(generate_gt):
     # tree_cdf = [0.9, 0.98, 1.0] # large, medium, small
     tree_cdf = [0.0, 1.0, 1.0]
     np.random.seed(0)
@@ -319,6 +305,7 @@ def generateRandomForest():
 
     volume_max_bounds = getMaxBounds(volume_description_dict)
     camera = getCamera([ -680.0, 25.1, 680.0 ], [ -675.0, 25.0, 675.0 ], [ 0.0, 1.0, 0.0 ], 1920, 1080, 90)
+    # camera = getCamera([ 1.0,  8.114, -1.38300563], [1.71138167,  8.11342003, -1.38300563], [0.0, 1.0, 0.0], 1920, 1080, 90)
 
     acceleration = []
     for c in range(ACCEL_CLASSES):
@@ -336,7 +323,7 @@ def generateRandomForest():
             relevant_models = relevant_models_dict["Small"]
 
         index = int(np.random.uniform() * len(relevant_models))
-        description = getTreeDescription(relevant_models, index, volume_description_dict, volume_max_bounds, camera)
+        description = getTreeDescription(relevant_models, index, volume_description_dict, volume_max_bounds, camera, generate_gt)
         acceleration_classes = getRelevantAccelerationClasses(description)
 
         collide = False
@@ -364,10 +351,13 @@ def generateRandomForest():
             ))
 
     print(f"Scene has {len(scene)} items")
-    toFile(scene, "scenedescription.json")
+    toFile(scene, "scenedescription_random_forest.json")
 
 
 
 if __name__ == "__main__":
-    generateRandomForest()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-gt', dest="groundtruth", action="store_true")
+    args = parser.parse_args()
+    generateRandomForest(args.groundtruth)
 
