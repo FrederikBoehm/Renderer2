@@ -141,15 +141,15 @@ namespace rt {
       
 
       if (mi.medium) {
-        //L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
+        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         //L = direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
-        CSGGXPhaseFunction phase(mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior);
-        //glm::vec3 normalProxy = phase.sampleVNDF(-ray.m_direction, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
-        glm::vec3 normalProxy = phase.sampleVNDF(mi.hitInformation.normal, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
-        L += (normalProxy + 1.f) * 0.5f;
+        //CSGGXPhaseFunction phase(mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior);
+        ////glm::vec3 normalProxy = phase.sampleVNDF(-ray.m_direction, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        //glm::vec3 normalProxy = phase.sampleVNDF(mi.hitInformation.normal, glm::vec2(m_sampler->uniformSample01(), m_sampler->uniformSample01()));
+        //L += (normalProxy + 1.f) * 0.5f;
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
-        break;
+        //break;
         mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior, *m_sampler);
         ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
@@ -158,7 +158,7 @@ namespace rt {
         if (bounces == 0) {
           if (!si.hitInformation.hit) {
             float p;
-            //L += m_scene->le(ray.m_direction, &p) * throughput;
+            L += m_scene->le(ray.m_direction, &p) * throughput;
 
           }
         }
@@ -175,9 +175,9 @@ namespace rt {
 
 
         //direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler);
-        //L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
-        L = (si.hitInformation.normal + 1.f) * 0.5f;
-        break;
+        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
+        //L = (si.hitInformation.normal + 1.f) * 0.5f;
+        //break;
 
         CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
         CRay rayTangent = ray.transform(frame.worldToTangent());
