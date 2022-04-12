@@ -53,7 +53,7 @@ namespace rt {
 
     H_CALLABLE void buildOptixAccel();
     H_CALLABLE std::vector<SRecord<const CDeviceSceneobject*>> getSBTHitRecords() const;
-    H_CALLABLE std::tuple<std::vector<SAABB>, std::vector<SAABB>, glm::mat4x3, std::string, glm::vec3> getObjectBBs(ESceneobjectMask mask = ESceneobjectMask::ALL) const; // returns modelBB and worldBB of first object with mask
+    H_CALLABLE std::tuple<std::vector<SAABB>, std::vector<SAABB>, glm::mat4x3, std::string, glm::vec3, glm::vec3> getObjectBBs(ESceneobjectMask mask = ESceneobjectMask::ALL) const; // returns modelBB and worldBB of first object with mask
   private:
     std::vector<CHostSceneobject> m_sceneobjects;
     std::vector<CHostSceneobject> m_lights;

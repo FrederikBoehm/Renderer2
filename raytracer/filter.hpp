@@ -35,6 +35,7 @@ namespace filter {
     std::string m_outDir;
     std::string m_filename;
     glm::vec3 m_orientation;
+    glm::vec3 m_scaling;
     
     void initOptix(const SConfig& config);
     void allocateDeviceMemory();

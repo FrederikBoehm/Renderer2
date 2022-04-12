@@ -277,14 +277,19 @@ namespace rt {
     const nanovdb::Coord& maxValues = iBB.max();
     nanovdb::DefaultReadAccessor<nanovdb::Vec4d> readAccessor = grid->getAccessor();
     float maxDensity = 0.f;
+    float mean = 0.f;
+    size_t count = 0;
     for (int32_t x = minValues.x(); x <= maxValues.x(); ++x) {
       for (int32_t y = minValues.y(); y <= maxValues.y(); ++y) {
         for (int32_t z = minValues.z(); z <= maxValues.z(); ++z) {
           nanovdb::Vec4d value = readAccessor.getValue(nanovdb::Coord(x, y, z));
           maxDensity = fmaxf(reinterpret_cast<filter::SFilteredDataCompact&>(value).density, maxDensity);
+          mean += reinterpret_cast<filter::SFilteredDataCompact&>(value).density;
+          ++count;
         }
       }
     }
+    mean /= (float)count;
     return maxDensity;
   }
 

@@ -29,9 +29,9 @@ namespace filter {
     m_alpha(config.filteringConfig.alpha),
     m_clipRays(config.filteringConfig.clipRays),
     m_voxelSize(config.filteringConfig.voxelSize),
-    m_lods(config.filteringConfig.lods) {
+    m_lods(config.filteringConfig.lods){
     SOpenvdbBackendConfig openvdbConfig;
-    auto[modelSpaceBBs, worldSpaceBBs, worldToModel, filename, orientation] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
+    auto[modelSpaceBBs, worldSpaceBBs, worldToModel, filename, orientation, scaling] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
     openvdbConfig.worldSpaceBoundingBoxes = worldSpaceBBs;
     openvdbConfig.worldToModel = worldToModel;
@@ -39,6 +39,7 @@ namespace filter {
     m_outDir = "./filtering/" + filename;
     m_filename = filename;
     m_orientation = orientation;
+    m_scaling = scaling;
     if (openvdbConfig.modelSpaceBoundingBoxes.size() > 0) {
       m_backend = filter::COpenvdbBackend::instance();
       m_backend->init(openvdbConfig);
@@ -154,6 +155,7 @@ namespace filter {
     launchParams.estimationIterations = m_estimationIterations;
     launchParams.alpha = m_alpha;
     launchParams.clipRays = m_clipRays;
+    launchParams.scaling = m_scaling.x;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SFilterLaunchParams), cudaMemcpyHostToDevice));
   }
 
