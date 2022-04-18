@@ -43,6 +43,7 @@ namespace rt {
     D_CALLABLE glm::vec3 diffuse(const glm::vec2& tc) const;
     D_CALLABLE glm::vec3 glossy(const glm::vec2& tc) const;
     DH_CALLABLE float specularRoughness() const;
+    DH_CALLABLE float ior() const;
   private:
     bool m_deviceObject;
     glm::vec3 m_Le; // Emissive light if light source
@@ -83,7 +84,6 @@ namespace rt {
 
   inline glm::vec3 CMaterial::sampleF(const glm::vec2& tc, const glm::vec3& wo, glm::vec3* wi, CSampler& sampler, float* pdf) const {
     float p = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
-    //float p = 0.5f;
     if (sampler.uniformSample01() < p) {
       // Sample specular
       return glossy(tc) * m_microfacetBRDF.sampleF(wo, wi, sampler, pdf);
@@ -96,7 +96,6 @@ namespace rt {
 
   inline float CMaterial::pdf(const glm::vec3& wo, const glm::vec3& wi) const {
     float weight = m_microfacetBRDF.fresnel().evaluate(absCosTheta(wo));
-    //float weight = 0.5f;
     return m_orenNayarBRDF.pdf(wo, wi) * (1.f - weight) + m_microfacetBRDF.pdf(wo, wi) * weight;
   }
 
@@ -166,6 +165,10 @@ namespace rt {
 
   inline size_t CMaterial::submeshId() const {
     return m_submeshId;
+  }
+
+  inline float CMaterial::ior() const {
+    return m_microfacetBRDF.fresnel().m_etaT;
   }
 
 }

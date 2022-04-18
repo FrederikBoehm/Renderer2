@@ -161,6 +161,27 @@ namespace rt {
     }
   }
 
+  CTexture* CAssetManager::specularFromDiffuse(const CTexture* diffuseTexture) {
+    if (diffuseTexture->type() != DIFFUSE) {
+      throw std::runtime_error("CAssetManager::specularFromDiffuse requires diffuse texture");
+    }
+    CTexture* tex = new CTexture(*diffuseTexture);
+    tex->m_type = SPECULAR;
+    size_t pixel = 4 * tex->m_width * tex->m_height;
+    for (size_t i = 0; i < pixel; i+=4) {
+      float* r = tex->m_data + i;
+      float* g = tex->m_data + i + 1;
+      float* b = tex->m_data + i + 2;
+      float grey = 0.2126f * *r + 0.7152f * *g + 0.0722f * *b;
+      *r = grey;
+      *g = grey;
+      *b = grey;
+    }
+
+    s_hostTextures[{tex->path(), SPECULAR}] = tex;
+    return tex;
+  }
+
   void CAssetManager::allocateDeviceMemory() {
     for (auto tex : s_hostTextures) {
       CUDA_ASSERT(cudaMalloc(&s_deviceTextures[tex.first], sizeof(CTexture)));

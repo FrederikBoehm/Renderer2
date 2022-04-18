@@ -7,6 +7,8 @@
 #include <filesystem>
 #include "filtering/filtered_data.hpp"
 
+#define CEIL_EPS 0.001f
+
 namespace filter {
   COpenvdbBackend* COpenvdbBackend::s_instance = nullptr;
 
@@ -33,6 +35,8 @@ namespace filter {
       backgroundValue.r_yz = 0;
       backgroundValue.diffuseColor = glm::uvec3(0);
       backgroundValue.specularColor = glm::uvec3(0);
+      backgroundValue.normal = glm::vec3(0.f);
+      backgroundValue.ior = 1.f;
       Vec4DGrid::Ptr grid = Vec4DGrid::create(reinterpret_cast<openvdb::Vec4d&>(backgroundValue));
       Vec4DGrid::Accessor accessor = grid->getAccessor();
       m_data = new SOpenvdbData{ grid, accessor };
@@ -55,7 +59,7 @@ namespace filter {
     m_worldToModel = config.worldToModel;
 
     glm::vec3 fNumVoxels = (m_maxWorld - m_minWorld) / config.voxelSize;
-    m_numVoxelsMajorant = glm::ceil(fNumVoxels);
+    m_numVoxelsMajorant = glm::ceil(fNumVoxels - glm::vec3(CEIL_EPS));
 
     glm::vec3 dimensions = glm::abs(glm::inverse(glm::mat4(m_worldToModel)) * glm::vec4(m_maxModel - m_minModel, 0.f));
     printf("World space dimensions: (%f, %f, %f)\n", dimensions.x, dimensions.y, dimensions.z);
@@ -72,7 +76,7 @@ namespace filter {
     glm::vec3 scaling = 1.f / (m_maxModel - m_minModel);
 
     glm::vec3 fNumVoxels = (m_maxWorld - m_minWorld) / voxelSize;
-    glm::ivec3 numVoxels = glm::ceil(fNumVoxels);
+    glm::ivec3 numVoxels = glm::ceil(fNumVoxels - glm::vec3(CEIL_EPS));
     SFilterLaunchParams launchParams;
     launchParams.numVoxels = numVoxels;
 
@@ -130,7 +134,7 @@ namespace filter {
     auto iBB = dstGrid->indexBBox();
     auto worldBB = dstGrid->worldBBox();
     std::filesystem::path p(directory);
-    std::filesystem::create_directory(p);
+    std::filesystem::create_directories(p);
     p.append(fileName);
     nanovdb::io::writeGrid(p.string(), gridHandle);
   }

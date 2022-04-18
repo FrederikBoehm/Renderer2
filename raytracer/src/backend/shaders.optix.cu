@@ -112,6 +112,10 @@ extern "C" __global__ void __closesthit__ch() {
   }
   //geometryNormal = glm::normalize(geometryNormal);
   normal = glm::normalize(normal);
+  
+  if (sceneobject->material()) {
+    si->hitInformation.ior = sceneobject->material()->ior();
+  }
 
   si->hitInformation.hit = true;
   si->hitInformation.pos = glm::vec3(hitPos.x, hitPos.y, hitPos.z);

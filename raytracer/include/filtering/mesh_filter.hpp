@@ -57,11 +57,13 @@ namespace filter {
       glm::mat3 filteredS(0.f);
       glm::vec3 filteredDiffuseClr(0.f);
       glm::vec3 filteredSpecularClr(0.f);
+      glm::vec3 filteredNormal(0.f);
       float specularRoughness = 0.f;
       float rayDistance = 0.f;
       rt::Sphere sphere(m_voxelCenter, 1.1f * diagonal / 2.f, glm::vec3(1.f, 0.f, 0.f)); // Slightly larger than Voxel
       float rayTs[1000] = {};
       float averageTMax = 0.f;
+      float ior = 0.f;
       for (uint32_t i = 0; i < numSamples; ++i) {
         rt::CRay ray;
         if (m_clipRays) {
@@ -83,6 +85,8 @@ namespace filter {
           filteredSpecularClr += interaction.material->glossy(interaction.hitInformation.tc);
           specularRoughness += interaction.material->specularRoughness();
           rayDistance += ray.m_t_max;
+          filteredNormal += interaction.hitInformation.normal;
+          ior += interaction.hitInformation.ior;
         }
       }
       float averageDistance = rayDistance / (float)hits;
@@ -95,12 +99,16 @@ namespace filter {
         filteredData.diffuseColor = filteredDiffuseClr * invHits;
         filteredData.specularColor = filteredSpecularClr * invHits;
         filteredData.S = filteredS * invHits;
+        filteredData.normal = glm::normalize(m_worldToModel * glm::vec4(filteredNormal * invHits, 0.f));
+        filteredData.ior = ior * invHits;
       }
       else {
         filteredData.density = 0.f;
         filteredData.diffuseColor = glm::vec3(0.f);
         filteredData.specularColor = glm::vec3(0.f);
         filteredData.S = glm::mat3(0.f);
+        filteredData.normal = glm::vec3(0.f);
+        filteredData.ior = 1.f;
       }
       return filteredData;
 

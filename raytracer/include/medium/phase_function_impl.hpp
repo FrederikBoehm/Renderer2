@@ -7,12 +7,12 @@
 
 namespace rt {
 
-  inline float CPhaseFunction::p(const glm::vec3& wo, const glm::vec3& wi, const glm::mat3& S, CSampler& sampler) const {
+  inline float CPhaseFunction::p(const glm::vec3& wo, const glm::vec3& wi, const glm::mat3& S, const glm::vec3& normal, float ior, CSampler& sampler) const {
     switch (m_type) {
     case EPhaseFunction::HENYEY_GREENSTEIN:
       return ((CHenyeyGreensteinPhaseFunction*)this)->p(wo, wi);
     case EPhaseFunction::SGGX: {
-      CSGGXPhaseFunction phase(S);
+      CSGGXPhaseFunction phase(S, normal, ior);
       return phase.p(wo, wi, sampler);
     }
     default:
@@ -22,12 +22,12 @@ namespace rt {
     return 0.f;
   }
 
-  inline float CPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::mat3& S, CSampler& sampler) const {
+  inline float CPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, const glm::mat3& S, const glm::vec3& normal, float ior, CSampler& sampler) const {
     switch (m_type) {
     case EPhaseFunction::HENYEY_GREENSTEIN:
       return ((CHenyeyGreensteinPhaseFunction*)this)->sampleP(wo, wi, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
     case EPhaseFunction::SGGX: {
-      CSGGXPhaseFunction phase(S);
+      CSGGXPhaseFunction phase(S, normal, ior);
       return phase.sampleP(wo, wi, sampler);
     }
     default:

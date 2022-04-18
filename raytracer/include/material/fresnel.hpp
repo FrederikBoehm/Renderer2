@@ -8,6 +8,7 @@
 namespace rt {
   // For now only support for dielectrics
   class CFresnel {
+    friend class CMaterial;
   public:
     DH_CALLABLE CFresnel(float etaI, float etaT);
 

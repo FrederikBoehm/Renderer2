@@ -38,6 +38,25 @@ namespace rt {
       return frame;
     }
 
+    // Frisvad's basis construction
+    DH_CALLABLE static CCoordinateFrame fromNormal2(const glm::vec3& N) {
+      CCoordinateFrame frame;
+      frame.m_N = N;
+      if (N.z < -0.9999999f) {
+        frame.m_T = glm::vec3(0.f, -1.f, 0.f);
+        frame.m_B = glm::vec3(-1.f, 0.f, 0.f);
+      }
+      else {
+        const float a = 1.f / (1.f + N.z);
+        const float b = -N.x * N.y*a;
+        frame.m_T = glm::normalize(glm::vec3(1.f - N.x * N.x * a, b, -N.x));
+        frame.m_B = glm::normalize(glm::vec3(b, 1.f - N.y * N.y * a, -N.y));
+      }
+      frame.m_tangentToWorld = glm::mat3(frame.m_T, frame.m_B, frame.m_N);
+      frame.m_worldToTangent = glm::inverse(frame.m_tangentToWorld);
+      return frame;
+    }
+
     DH_CALLABLE static CCoordinateFrame fromTBN(const glm::vec3& T, const glm::vec3& B, const glm::vec3& N) {
       CCoordinateFrame frame;
       frame.m_N = N;

@@ -19,6 +19,7 @@ namespace rt {
     DH_CALLABLE CTexture();
     H_CALLABLE CTexture(const std::string& path, ETextureType type = DIFFUSE);
     H_CALLABLE CTexture(CTexture&& texture);
+    H_CALLABLE CTexture(const CTexture& texture);
     H_CALLABLE ~CTexture();
     H_CALLABLE CTexture& operator=(CTexture&& texture);
     D_CALLABLE glm::vec3 operator()(float x, float y) const;
@@ -29,6 +30,7 @@ namespace rt {
     DH_CALLABLE const float* data() const;
     DH_CALLABLE bool hasAlpha() const;
     H_CALLABLE std::string path() const;
+    DH_CALLABLE ETextureType type() const;
 
     H_CALLABLE void allocateDeviceMemory();
     H_CALLABLE CTexture copyToDevice() const;
@@ -78,6 +80,10 @@ namespace rt {
 
   inline std::string CTexture::path() const {
     return std::string(m_path, m_pathLength);
+  }
+
+  inline ETextureType CTexture::type() const {
+    return m_type;
   }
 }
 #endif // !TEXTURE_HPP

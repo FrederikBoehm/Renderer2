@@ -46,7 +46,7 @@ namespace rt {
           scatteringPdf = si.material->pdf(woTangent, lightTangentSpaceDirection);
         }
         else {
-          scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection, si.hitInformation.sggxS, sampler);
+          scatteringPdf = si.medium->phase().p(wo, lightWorldSpaceDirection, si.hitInformation.sggxS, si.hitInformation.normal, si.hitInformation.ior, sampler);
           f = glm::vec3(scatteringPdf);
         }
 
@@ -76,7 +76,7 @@ namespace rt {
         f *= glm::abs(glm::dot(si.hitInformation.normal, wi));
       }
       else {
-        float p = si.medium->phase().sampleP(wo, &wi, si.hitInformation.sggxS, sampler);
+        float p = si.medium->phase().sampleP(wo, &wi, si.hitInformation.sggxS, si.hitInformation.normal, si.hitInformation.ior, sampler);
         f = glm::vec3(p);
         scatteringPdf = p;
       }
@@ -146,7 +146,7 @@ namespace rt {
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
         //break;
-        mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, *m_sampler);
+        mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior, *m_sampler);
         ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
       else {
