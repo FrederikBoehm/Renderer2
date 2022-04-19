@@ -14,6 +14,7 @@
 #include "utility/functions.hpp"
 #include "backend/asset_manager.hpp"
 #include "medium/medium_instance_impl.hpp"
+#include <regex>
 
 namespace rt {
   std::shared_ptr<CShape> CHostSceneobject::getShape(EShape shape, const glm::vec3& worldPos, float radius, const glm::vec3& normal) {
@@ -33,6 +34,7 @@ namespace rt {
     m_medium(nullptr),
     m_flag(ESceneobjectFlag::GEOMETRY),
     m_mask(mask),
+    m_scaling(1.f),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_material = new CMaterial(diffuseReflection, specularReflection, COrenNayarBRDF(diffuseRougness), CMicrofacetBRDF(alphaX, alphaY, etaI, etaT));
@@ -55,9 +57,11 @@ namespace rt {
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_mask(mask),
+    m_scaling(scaling),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_aabb = m_medium->worldBB();
+    m_medium->setFilterRenderRatio(getFilterRenderRatio(medium, scaling.x));
   }
 
   CHostSceneobject::CHostSceneobject(CHostSceneobject&& sceneobject) :
@@ -70,6 +74,7 @@ namespace rt {
     m_worldToModel(std::move(sceneobject.m_worldToModel)),
     m_aabb(std::move(sceneobject.m_aabb)),
     m_mask(std::move(sceneobject.m_mask)),
+    m_scaling(std::move(sceneobject.m_scaling)),
     m_traversableHandle(std::exchange(sceneobject.m_traversableHandle, NULL)),
     m_deviceGasBuffer(std::exchange(sceneobject.m_deviceGasBuffer, NULL)),
     m_hostDeviceConnection(this) {
@@ -84,6 +89,7 @@ namespace rt {
     m_modelToWorld(getModelToWorldTransform(worldPos, orientation, scaling)),
     m_worldToModel(glm::inverse(glm::mat4(m_modelToWorld))),
     m_mask(mask),
+    m_scaling(scaling),
     m_deviceGasBuffer(NULL),
     m_hostDeviceConnection(this) {
     m_aabb = m_mesh->aabb().transform(m_modelToWorld);
@@ -95,6 +101,21 @@ namespace rt {
 
   CSceneobjectConnection::CSceneobjectConnection(const CSceneobjectConnection&& connection) :
     m_hostSceneobject(std::move(connection.m_hostSceneobject)) {
+  }
+
+  float CHostSceneobject::getFilterRenderRatio(CNVDBMedium* medium, float scaling) const {
+    std::regex r("(\\d+\\.\\d+)(?=\\.nvdb$)");
+    std::smatch match;
+    const std::string path = medium->path();
+    std::regex_search(path, match, r);
+    if (match.size() == 0) {
+      throw std::runtime_error("No valid filepath");
+    }
+    float voxelSizeFiltering = std::stof(match.str());
+    SAABB bb = medium->worldBB().transform(m_modelToWorld);
+    glm::vec3 mediumDim = bb.m_max - bb.m_min;
+    glm::vec3 voxelSizeRendering = mediumDim / glm::vec3(medium->size());
+    return voxelSizeFiltering / voxelSizeRendering.x;
   }
 
   void CSceneobjectConnection::allocateDeviceMemory() {
@@ -165,6 +186,7 @@ namespace rt {
       CUDA_ASSERT(cudaMemcpy(&worldToModelPtr, d_worldToModel, sizeof(glm::mat4x3*), cudaMemcpyDeviceToHost));
 
       CMediumInstance deviceMedium(CAssetManager::deviceMedium(m_hostSceneobject->m_medium->path()), modelToWorldPtr, worldToModelPtr);
+      deviceMedium.setFilterRenderRatio(m_hostSceneobject->m_medium->filterRenderRatio());
       CUDA_ASSERT(cudaMemcpy(m_deviceMedium, &deviceMedium, sizeof(CMediumInstance), cudaMemcpyHostToDevice));
 
     }

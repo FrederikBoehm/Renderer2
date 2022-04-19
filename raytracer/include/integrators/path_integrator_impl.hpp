@@ -31,6 +31,7 @@ namespace rt {
       float lightPdf = 0.f;
       glm::vec3 Le = scene.sampleLightSources(sampler, &lightWorldSpaceDirection, &lightPdf);
       if (lightPdf > 0.f) {
+        lightWorldSpaceDirection = glm::normalize(lightWorldSpaceDirection);
         glm::vec3 lightTangentSpaceDirection = glm::normalize(frame.worldToTangent() * lightWorldSpaceDirection);
 
         CRay rayLight = CRay(si.hitInformation.pos, lightWorldSpaceDirection, CRay::DEFAULT_TMAX, currentMedium);
@@ -82,6 +83,7 @@ namespace rt {
       }
 
       if (scatteringPdf > 0.f) {
+        wi = glm::normalize(wi);
         CRay rayBrdf = CRay(si.hitInformation.pos, wi, CRay::DEFAULT_TMAX, currentMedium);
         rayBrdf.offsetRayOrigin(si.hitInformation.normal);
         glm::vec3 trSecondary;
@@ -124,7 +126,7 @@ namespace rt {
           throughput *= ray.m_medium->sample(ray, *m_sampler, &mi);
         }
         else { // Ray origin outside bb
-          CRay mediumRay(si.hitInformation.pos, ray.m_direction, CRay::DEFAULT_TMAX, si.medium);
+          CRay mediumRay(si.hitInformation.pos, glm::normalize(ray.m_direction), CRay::DEFAULT_TMAX, si.medium);
           mediumRay.offsetRayOrigin(ray.m_direction);
           //SInteraction siMediumEnd = m_scene->intersect(mediumRay);
           SInteraction siMediumEnd;
@@ -147,7 +149,7 @@ namespace rt {
         glm::vec3 wi;
         //break;
         mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior, *m_sampler);
-        ray = CRay(mi.hitInformation.pos, wi, CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
+        ray = CRay(mi.hitInformation.pos, glm::normalize(wi), CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
       }
       else {
         
@@ -164,7 +166,7 @@ namespace rt {
         }
 
         if (!si.material) {
-          ray = CRay(si.hitInformation.pos, ray.m_direction, CRay::DEFAULT_TMAX, !ray.m_medium ? si.medium : nullptr).offsetRayOrigin(ray.m_direction);
+          ray = CRay(si.hitInformation.pos, glm::normalize(ray.m_direction), CRay::DEFAULT_TMAX, !ray.m_medium ? si.medium : nullptr).offsetRayOrigin(ray.m_direction);
           --bounces;
           continue;
         }

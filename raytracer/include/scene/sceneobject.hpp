@@ -68,6 +68,7 @@ namespace rt {
     glm::mat4x3 m_worldToModel;
     SAABB m_aabb;
     ESceneobjectMask m_mask;
+    glm::vec3 m_scaling;
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
@@ -78,6 +79,7 @@ namespace rt {
     OptixProgramGroup getOptixProgramGroup() const;
     void getTransform(float* outMatrix) const;
     H_CALLABLE static glm::mat4 getModelToWorldTransform(const glm::vec3& worldPos, const glm::vec3& orientation, const glm::vec3& scaling);
+    H_CALLABLE float getFilterRenderRatio(CNVDBMedium* medium, float scaling) const;
   };
 
   inline void CHostSceneobject::allocateDeviceMemory() {

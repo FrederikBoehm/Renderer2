@@ -24,8 +24,8 @@ namespace rt {
 
     DH_CALLABLE EMediumType type() const;
 
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
-    D_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio) const;
+    D_CALLABLE glm::vec3 sample(const CRay& ray, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const;
     DH_CALLABLE const CPhaseFunction& phase() const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;

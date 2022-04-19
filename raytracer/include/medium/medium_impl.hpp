@@ -7,20 +7,20 @@ namespace rt {
 
   
 
-  inline glm::vec3 CMedium::tr(const CRay& ray, CSampler& sampler) const {
+  inline glm::vec3 CMedium::tr(const CRay& ray, CSampler& sampler, float filterRenderRatio) const {
     switch (m_type) {
     //case EMediumType::HOMOGENEOUS_MEDIUM:
     //  return ((CHomogeneousMedium*)this)->tr(ray, sampler);
     //case EMediumType::HETEROGENOUS_MEDIUM:
     //  return ((CHeterogenousMedium*)this)->tr(ray, sampler);
     case EMediumType::NVDB_MEDIUM:
-      return ((CNVDBMedium*)this)->tr(ray, sampler);
+      return ((CNVDBMedium*)this)->tr(ray, sampler, filterRenderRatio);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);
   }
 
-  inline glm::vec3 CMedium::sample(const CRay& ray, CSampler& sampler, SInteraction* mi) const {
+  inline glm::vec3 CMedium::sample(const CRay& ray, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const {
     switch (m_type) {
     //case EMediumType::HOMOGENEOUS_MEDIUM:
     //  return ((CHomogeneousMedium*)this)->sample(ray, sampler, mi);
@@ -28,7 +28,7 @@ namespace rt {
     //  return ((CHeterogenousMedium*)this)->sample(ray, sampler, mi);
     case EMediumType::NVDB_MEDIUM:
       //return ((CNVDBMedium*)this)->sample(ray, sampler, mi);
-      return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, mi);
+      return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, filterRenderRatio, mi);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);

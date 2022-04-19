@@ -66,25 +66,30 @@ namespace filter {
       float ior = 0.f;
       for (uint32_t i = 0; i < numSamples; ++i) {
         rt::CRay ray;
+        float currentTMax;
         if (m_clipRays) {
           ray = generateRay(currentVoxel, indexToWorld, rt::CRay::DEFAULT_TMAX);
           rt::SHitInformation hit = sphere.intersect(ray);
           ray.m_t_max = hit.t;
+          currentTMax = hit.t;
           averageTMax += ray.m_t_max;
         }
         else {
           ray = generateRay(currentVoxel, indexToWorld, tMax);
+          currentTMax = tMax;
         }
         rt::SInteraction interaction;
         scene.intersect(ray, &interaction, rt::ESceneobjectMask::FILTER);
         if (interaction.hitInformation.hit) {
-          rayTs[hits] = ray.m_t_max;
+          //rayTs[hits] = ray.m_t_max;
+          rayTs[hits] = currentTMax;
           ++hits;
           filteredS += rt::CSGGXMicroflakeDistribution::buildS(interaction.hitInformation.normal, interaction.material->specularRoughness());
           filteredDiffuseClr += interaction.material->diffuse(interaction.hitInformation.tc);
           filteredSpecularClr += interaction.material->glossy(interaction.hitInformation.tc);
           specularRoughness += interaction.material->specularRoughness();
-          rayDistance += ray.m_t_max;
+          //rayDistance += ray.m_t_max;
+          rayDistance += currentTMax;
           filteredNormal += interaction.hitInformation.normal;
           ior += interaction.hitInformation.ior;
         }
@@ -127,7 +132,7 @@ namespace filter {
 
 
         rt::SInteraction interaction;
-        scene.intersect(rt::CRay(origin, dir), &interaction, rt::ESceneobjectMask::FILTER);
+        scene.intersect(rt::CRay(origin, glm::normalize(dir)), &interaction, rt::ESceneobjectMask::FILTER);
         if (interaction.hitInformation.hit && interaction.object->mesh()) {
           ++hits;
         }

@@ -259,9 +259,13 @@ namespace rt {
     rt::buildOptixAccel(buildInput, &m_traversableHandle, &m_deviceGasBuffer);
   }
 
-  glm::ivec3 CNVDBMedium::getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize) {
+  glm::uvec3 CNVDBMedium::getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize) {
     nanovdb::Vec3R size = boundingBox.dim() / voxelSize;
-    return glm::ivec3(size[0], size[1], size[2]);
+    return glm::uvec3(size[0], size[1], size[2]);
+  }
+
+  const glm::uvec3& CNVDBMedium::size() const {
+    return m_size;
   }
 
   float CNVDBMedium::getMaxValue(const nanovdb::NanoGrid<float>* grid) {

@@ -27,10 +27,13 @@ namespace rt {
     H_CALLABLE std::string path() const;
     H_CALLABLE OptixTraversableHandle getOptixHandle() const;
     H_CALLABLE OptixProgramGroup getOptixProgramGroup() const;
+    H_CALLABLE void setFilterRenderRatio(float ratio);
+    H_CALLABLE float filterRenderRatio() const;
   private:
     CNVDBMedium* m_medium;
     const glm::mat4x3* m_modelToWorld; // Pointer to sceneobject's modelToWorld transform
     const glm::mat4x3* m_worldToModel; // Pointer to sceneobject's worldToModel transform
+    float m_filterRenderRatio;
   };
 
   

@@ -19,4 +19,12 @@ namespace rt {
   OptixProgramGroup CMediumInstance::getOptixProgramGroup() const {
     return m_medium->getOptixProgramGroup();
   }
+
+  void CMediumInstance::setFilterRenderRatio(float ratio) {
+    m_filterRenderRatio = ratio;
+  }
+
+  float CMediumInstance::filterRenderRatio() const {
+    return m_filterRenderRatio;
+  }
 }

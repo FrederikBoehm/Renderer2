@@ -70,32 +70,33 @@ namespace rt {
     return filter::SFilteredData(reinterpret_cast<filter::SFilteredDataCompact&>(value));
   }
 
-  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
+  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const {
     switch (m_gridType) {
     case nanovdb::GridType::Float:
-      return sampleInternal(rayWorld, sampler, mi, m_grid->getAccessor());
+      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor());
     case nanovdb::GridType::Vec4d:
-      return sampleInternal(rayWorld, sampler, mi, m_vec4grid->getAccessor());
+      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
     }
   }
 
   template <typename TReadAccessor>
-  inline glm::vec3 CNVDBMedium::sampleInternal(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, const TReadAccessor& accessor) const {
+  inline glm::vec3 CNVDBMedium::sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor) const {
     static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
       "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
 
-    const CRay ray = rayWorld.transform(m_modelToIndex);
+    const CRay ray = rayWorld.transform2(m_modelToIndex);
     float t = 0.f;
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
     while (true) {
-      t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
+      t -= glm::log(1.f - sampler.uniformSample01()) * invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
         break;
       }
       if constexpr (std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value) {
         float d = density(ray.m_origin + t * ray.m_direction, accessor);
-        if (d * m_invMaxDensity > sampler.uniformSample01()) {
+        if (filterRenderRatio * d * invMaxDensity > sampler.uniformSample01()) {
           ray.m_t_max = t;
-          CRay rayWorldNew = ray.transform(m_indexToModel);
+          CRay rayWorldNew = ray.transform2(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
           SHitInformation hitInfo = { true, worldPos, glm::vec3(0.f), glm::vec3(0.f), glm::mat3(0.f), glm::vec2(0.f), 1.f, rayWorldNew.m_t_max };
@@ -105,9 +106,9 @@ namespace rt {
       }
       else {
         filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor);
-        if (fD.density * m_invMaxDensity > sampler.uniformSample01()) {
+        if (filterRenderRatio * fD.density * invMaxDensity > sampler.uniformSample01()) {
           ray.m_t_max = t;
-          CRay rayWorldNew = ray.transform(m_indexToModel);
+          CRay rayWorldNew = ray.transform2(m_indexToModel);
           rayWorld.m_t_max = rayWorldNew.m_t_max;
           glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
           const glm::vec3 normal = fD.n();
@@ -123,26 +124,27 @@ namespace rt {
     return glm::vec3(1.f);
   }
 
-  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler) const {
+  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio) const {
     switch (m_gridType) {
     case nanovdb::GridType::Float:
-      return trInternal(rayWorld, sampler, m_grid->getAccessor());
+      return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor());
     case nanovdb::GridType::Vec4d:
-      return trInternal(rayWorld, sampler, m_vec4grid->getAccessor());
+      return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
     }
   }
 
   template <typename TReadAccessor>
-  inline glm::vec3 CNVDBMedium::trInternal(const CRay& rayWorld, CSampler& sampler, const TReadAccessor& accessor) const {
+  inline glm::vec3 CNVDBMedium::trInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor) const {
     static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
       "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
     
     const CRay rayWorldCopy = rayWorld;
-    const CRay ray = rayWorld.transform(m_modelToIndex);
+    const CRay ray = rayWorld.transform2(m_modelToIndex);
     float tr = 1.f;
     float t = 0.f;
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
     while (true) {
-      t -= glm::log(1.f - sampler.uniformSample01()) * m_invMaxDensity / m_sigma_t;
+      t -= glm::log(1.f - sampler.uniformSample01()) * invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
         break;
       }
@@ -154,7 +156,7 @@ namespace rt {
       else {
         d = filteredData(ray.m_origin + t * ray.m_direction, accessor).density;
       }
-      tr *= 1.f - glm::max(0.f, d * m_invMaxDensity);
+      tr *= 1.f - glm::max(0.f, filterRenderRatio * d * invMaxDensity);
 
       if (tr < 1.f) {
         float p = 1.f - tr;

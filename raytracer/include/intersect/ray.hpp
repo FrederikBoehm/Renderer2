@@ -21,6 +21,8 @@ namespace rt {
     DH_CALLABLE static glm::vec3 offsetRayOrigin(const glm::vec3& p, const glm::vec3& offsetDir);
     DH_CALLABLE CRay offsetRayOrigin(const glm::vec3& offsetDir);
     DH_CALLABLE CRay transform(const glm::mat4x3& worldToModel) const;
+    // Transforms without scaling direction to length 1
+    DH_CALLABLE CRay transform2(const glm::mat4x3& worldToModel) const;
     DH_CALLABLE CRay robustTransform(const glm::mat4x3& worldToModel, const glm::vec3& offsetDir) const;
     DH_CALLABLE static CRay spawnRay(const glm::vec3& start, const glm::vec3& end, const CMediumInstance* originMedium = nullptr);
   };
@@ -31,7 +33,7 @@ namespace rt {
   }
 
   inline CRay::CRay(const glm::vec3& origin, const glm::vec3& direction, float t_max, const CMediumInstance* medium) :
-    m_origin(origin), m_direction(glm::normalize(direction)), m_t_max(t_max), m_medium(medium) {
+    m_origin(origin), m_direction(direction), m_t_max(t_max), m_medium(medium) {
 
   }
 
@@ -41,6 +43,14 @@ namespace rt {
     glm::vec3 endpoint = transformMatrix * (glm::vec4(m_origin, 1.0f) + m_t_max * glm::vec4(m_direction, 0.f));
     glm::vec3 direction = glm::normalize(transformMatrix * glm::vec4(m_direction, 0.0f));
     CRay r(origin, direction, glm::length(endpoint - origin), m_medium);
+    return r;
+  }
+
+  inline CRay CRay::transform2(const glm::mat4x3& transformMatrix) const {
+    glm::vec3 origin = transformMatrix * glm::vec4(m_origin, 1.0f);
+    glm::vec3 endpoint = transformMatrix * (glm::vec4(m_origin, 1.0f) + m_t_max * glm::vec4(m_direction, 0.f));
+    glm::vec3 direction = transformMatrix * glm::vec4(m_direction, 0.0f);
+    CRay r(origin, direction, glm::length(endpoint - origin) / glm::length(direction), m_medium);
     return r;
   }
 

@@ -44,8 +44,8 @@ namespace rt {
     DH_CALLABLE filter::SFilteredData filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
     DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
-    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
 
@@ -56,6 +56,7 @@ namespace rt {
     H_CALLABLE OptixTraversableHandle getOptixHandle() const;
 
     H_CALLABLE std::string path() const;
+    H_CALLABLE const glm::uvec3& size() const;
 
   private:
     uint16_t m_pathLength;
@@ -69,7 +70,7 @@ namespace rt {
     nanovdb::GridType m_gridType;
     SAABB m_worldBB;
     CUdeviceptr m_deviceAabb;
-    glm::ivec3 m_size;
+    glm::uvec3 m_size;
     glm::vec3 m_sigma_a;
     glm::vec3 m_sigma_s;
     glm::mat4x3 m_indexToModel;
@@ -82,6 +83,9 @@ namespace rt {
     float m_sigma_t;
     float m_invMaxDensity;
 
+    
+    float m_densityScaling;
+
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
 
@@ -89,17 +93,17 @@ namespace rt {
 
     H_CALLABLE void init(const std::string& path);
 
-    H_CALLABLE static glm::ivec3 getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize);
+    H_CALLABLE static glm::uvec3 getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize);
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<float>* grid);
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<nanovdb::Vec4d>* grid);
     H_CALLABLE static glm::mat4 getIndexToModelTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
     
     template <typename TReadAccessor>
-    D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, const TReadAccessor& accessor) const;
+    D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor) const;
 
     template <typename TReadAccessor>
-    D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, const TReadAccessor& accessor) const;
+    D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor) const;
   };
 
   

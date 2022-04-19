@@ -5,9 +5,9 @@
 
 namespace rt {
   inline glm::vec3 CMediumInstance::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
-    const CRay rayMedium = rayWorld.transform(*m_worldToModel);
-    glm::vec3 albedo = m_medium->sample(rayMedium, sampler, mi);
-    const CRay rayWorldNew = rayMedium.transform(*m_modelToWorld);
+    const CRay rayMedium = rayWorld.transform2(*m_worldToModel);
+    glm::vec3 albedo = m_medium->sample(rayMedium, sampler, m_filterRenderRatio, mi);
+    const CRay rayWorldNew = rayMedium.transform2(*m_modelToWorld);
     rayWorld.m_t_max = rayWorldNew.m_t_max;
     mi->hitInformation.t = rayWorldNew.m_t_max;
     mi->hitInformation.pos = *m_modelToWorld * glm::vec4(mi->hitInformation.pos, 1.f);
@@ -18,8 +18,8 @@ namespace rt {
   }
 
   inline glm::vec3 CMediumInstance::tr(const CRay& ray, CSampler& sampler) const {
-    const CRay rayMedium = ray.transform(*m_worldToModel);
-    return m_medium->tr(rayMedium, sampler);
+    const CRay rayMedium = ray.transform2(*m_worldToModel);
+    return m_medium->tr(rayMedium, sampler, m_filterRenderRatio);
   }
 
   inline glm::vec3 CMediumInstance::normal(const glm::vec3& p, CSampler& sampler) const {
