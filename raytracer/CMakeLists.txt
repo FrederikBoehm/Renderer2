@@ -64,7 +64,8 @@ set(SOURCE_FILES
 	src/filtering/openvdb_backend.cpp
 	src/scene/sceneobject_mask.cpp
 	pipeline.cu
-	filter.cu)
+	filter.cu
+	src/filtering/volume_description_manager.cpp)
 set(HEADER_FILES
 	raytracer.hpp
 	include/utility/performance_monitoring.hpp
@@ -134,7 +135,8 @@ set(HEADER_FILES
 	pipeline.hpp
 	filter.hpp
 	include/filtering/launch_params.hpp
-	include/filtering/filtered_data.hpp)
+	include/filtering/filtered_data.hpp
+	include/filtering/volume_description_manager.hpp)
 
 
 

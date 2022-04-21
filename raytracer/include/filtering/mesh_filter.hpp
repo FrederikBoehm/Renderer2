@@ -29,7 +29,8 @@ namespace filter {
                             float sigma_t,
                             uint32_t estimationIterations,
                             float alpha,
-                            bool clipRays):
+                            bool clipRays,
+                            float scaling):
       m_currentVoxel(currentVoxel),
       m_indexToModel(indexToModel),
       m_modelToIndex(modelToIndex),
@@ -41,7 +42,8 @@ namespace filter {
       m_sigma_t(sigma_t),
       m_estimationIterations(estimationIterations),
       m_alpha(alpha),
-      m_clipRays(clipRays) {
+      m_clipRays(clipRays),
+      m_scaling(scaling) {
       m_voxelCenter = modelToWorld * glm::vec4(indexToModel * glm::vec4(glm::vec3(currentVoxel) + 0.5f, 1.f), 1.f); // +0.5 to get voxel center in world space
       m_voxelSize = (worldBB.m_max - worldBB.m_min) / glm::vec3(numVoxels);
     }
@@ -174,6 +176,7 @@ namespace filter {
     uint32_t m_estimationIterations;
     float m_alpha;
     bool m_clipRays;
+    float m_scaling;
 
     D_CALLABLE float estimateDensity(float averageDistance, uint32_t hits, uint32_t numSamples, float tMax, float* rayTs) const {
       //uint3 launchIdx = optixGetLaunchIndex();

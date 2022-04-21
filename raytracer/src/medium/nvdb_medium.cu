@@ -261,7 +261,7 @@ namespace rt {
 
   glm::uvec3 CNVDBMedium::getMediumSize(const nanovdb::BBox<nanovdb::Vec3R>& boundingBox, const nanovdb::Vec3R& voxelSize) {
     nanovdb::Vec3R size = boundingBox.dim() / voxelSize;
-    return glm::uvec3(size[0], size[1], size[2]);
+    return glm::uvec3(roundf(size[0]), roundf(size[1]), roundf(size[2]));
   }
 
   const glm::uvec3& CNVDBMedium::size() const {

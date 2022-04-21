@@ -12,6 +12,8 @@
 #include <device_functions.h>
 #include <cuda_runtime_api.h>
 #include "filtering/launch_params.hpp"
+#include "filtering/volume_description_manager.hpp"
+#include "utility/functions.hpp"
 
 namespace filter {
   CFilter::CFilter(const SConfig& config):
@@ -27,14 +29,17 @@ namespace filter {
     m_alpha(config.filteringConfig.alpha),
     m_clipRays(config.filteringConfig.clipRays),
     m_voxelSize(config.filteringConfig.voxelSize),
-    m_lods(config.filteringConfig.lods) {
+    m_lods(config.filteringConfig.lods){
     SOpenvdbBackendConfig openvdbConfig;
-    auto[modelSpaceBBs, worldSpaceBBs, worldToModel, filename] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
+    auto[modelSpaceBBs, worldSpaceBBs, worldToModel, filename, orientation, scaling] = config.scene->getObjectBBs(rt::ESceneobjectMask::FILTER);
     openvdbConfig.modelSpaceBoundingBoxes = modelSpaceBBs;
     openvdbConfig.worldSpaceBoundingBoxes = worldSpaceBBs;
     openvdbConfig.worldToModel = worldToModel;
     openvdbConfig.voxelSize = config.filteringConfig.voxelSize;
     m_outDir = "./filtering/" + filename;
+    m_filename = filename;
+    m_orientation = orientation;
+    m_scaling = scaling;
     if (openvdbConfig.modelSpaceBoundingBoxes.size() > 0) {
       m_backend = filter::COpenvdbBackend::instance();
       m_backend->init(openvdbConfig);
@@ -42,6 +47,7 @@ namespace filter {
       allocateDeviceMemory();
       initOptix(config);
       initDeviceData();
+      CVolumeDescriptionManager::instance()->loadDescriptions("../../raytracer/src/filtering/volume_description.json");
     }
     else {
       printf("[WARNING]: No bounding boxes provided --> proceed without filtering.\n");
@@ -68,6 +74,8 @@ namespace filter {
     if (!m_backend) {
       return;
     }
+
+    CVolumeDescriptionManager* volumeDescriptionManager = CVolumeDescriptionManager::instance();
 
     uint8_t lod;
     float voxelSize;
@@ -96,8 +104,18 @@ namespace filter {
         nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = m_backend->getNanoGridHandle();
         std::string filename = "filtered_mesh_" + std::to_string(voxelSize) + ".nvdb";
         m_backend->writeToFile(gridHandle, m_outDir.c_str(), filename.c_str());
+
+
+        glm::mat4 transform = rt::getRotation(m_orientation) * glm::mat4(launchParams.worldToModel);
+        glm::vec3 tempMin = transform * glm::vec4(launchParams.worldBB.m_min, 1.f);
+        glm::vec3 tempMax = transform * glm::vec4(launchParams.worldBB.m_max, 1.f);
+        glm::vec3 modelMin = glm::min(tempMin, tempMax);
+        glm::vec3 modelMax = glm::max(tempMin, tempMax);
+        volumeDescriptionManager->addDescription(m_filename, voxelSize, modelMin, modelMax, numVoxels);
       }
     }
+
+    volumeDescriptionManager->storeDescriptions("../../raytracer/src/filtering/volume_description.json");
   }
 
   void CFilter::initOptix(const SConfig& config) {
@@ -136,6 +154,7 @@ namespace filter {
     launchParams.estimationIterations = m_estimationIterations;
     launchParams.alpha = m_alpha;
     launchParams.clipRays = m_clipRays;
+    launchParams.scaling = m_scaling.x;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SFilterLaunchParams), cudaMemcpyHostToDevice));
   }
 

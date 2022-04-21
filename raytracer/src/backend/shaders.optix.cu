@@ -272,7 +272,8 @@ extern "C" __global__ void __raygen__filtering() {
                      paramsFiltering.sigma_t,
                      paramsFiltering.estimationIterations,
                      paramsFiltering.alpha,
-                     paramsFiltering.clipRays);
+                     paramsFiltering.clipRays,
+                     paramsFiltering.scaling);
   if (paramsFiltering.debug) {
     filter.debug(*paramsFiltering.scene, paramsFiltering.debugSamples);
   }
