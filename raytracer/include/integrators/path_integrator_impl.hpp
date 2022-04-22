@@ -36,6 +36,9 @@ namespace rt {
 
         CRay rayLight = CRay(si.hitInformation.pos, lightWorldSpaceDirection, CRay::DEFAULT_TMAX, currentMedium);
         rayLight.offsetRayOrigin(si.hitInformation.normal);
+        if (si.medium) {
+          rayLight = si.medium->moveToVoxelBorder(rayLight);
+        }
         glm::vec3 trSecondary;
         SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
 
@@ -86,6 +89,9 @@ namespace rt {
         wi = glm::normalize(wi);
         CRay rayBrdf = CRay(si.hitInformation.pos, wi, CRay::DEFAULT_TMAX, currentMedium);
         rayBrdf.offsetRayOrigin(si.hitInformation.normal);
+        if (si.medium) {
+          rayBrdf = si.medium->moveToVoxelBorder(rayBrdf);
+        }
         glm::vec3 trSecondary;
         SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary);
 
@@ -149,7 +155,7 @@ namespace rt {
         glm::vec3 wi;
         //break;
         mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior, *m_sampler);
-        ray = CRay(mi.hitInformation.pos, glm::normalize(wi), CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi);
+        ray = mi.medium->moveToVoxelBorder(CRay(mi.hitInformation.pos, glm::normalize(wi), CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi));
       }
       else {
         

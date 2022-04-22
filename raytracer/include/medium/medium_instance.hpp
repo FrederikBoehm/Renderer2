@@ -23,6 +23,7 @@ namespace rt {
     DH_CALLABLE const CPhaseFunction& phase() const;
     DH_CALLABLE SAABB worldBB() const;
     DH_CALLABLE SAABB modelBB() const;
+    D_CALLABLE CRay moveToVoxelBorder(const CRay& ray) const;
     
     H_CALLABLE std::string path() const;
     H_CALLABLE OptixTraversableHandle getOptixHandle() const;

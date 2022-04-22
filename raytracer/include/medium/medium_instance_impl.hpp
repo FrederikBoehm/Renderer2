@@ -39,6 +39,11 @@ namespace rt {
   inline SAABB CMediumInstance::modelBB() const {
     return m_medium->worldBB();
   }
+
+  inline CRay CMediumInstance::moveToVoxelBorder(const CRay& ray) const {
+    CRay modelSpaceRay = ray.transform(*m_worldToModel);
+    return m_medium->moveToVoxelBorder(modelSpaceRay).transform(*m_modelToWorld);
+  }
 }
 
 #endif // !MEDIUM_INSTANCE_IMPL_HPP

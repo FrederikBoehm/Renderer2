@@ -139,6 +139,12 @@ namespace rt {
        return glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
      }
    }
+
+   template <typename T> DH_CALLABLE void swap(T& v1, T& v2) {
+     T temp = std::move(v1);
+     v1 = std::move(v2);
+     v2 = std::move(temp);
+   }
 }
 
 #endif // !FUNCTIONS_HPP

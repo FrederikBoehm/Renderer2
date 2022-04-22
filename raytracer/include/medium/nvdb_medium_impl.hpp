@@ -7,6 +7,7 @@
 #include "scene/interaction.hpp"
 #include "filtering/filtered_data.hpp"
 #include "material/fresnel.hpp"
+#include "utility/functions.hpp"
 
 namespace rt {
 
@@ -169,6 +170,32 @@ namespace rt {
       }
     }
     return glm::vec3(tr);
+  }
+
+  inline CRay CNVDBMedium::moveToVoxelBorder(const CRay& ray) const {
+    CRay rayIndex = ray.transform(m_modelToIndex);
+    glm::vec3 ibbMin = glm::vec3(m_ibbMin);
+    glm::vec3 size = glm::vec3(m_size);
+    glm::vec3 integerPos = rayIndex.m_origin * size + ibbMin;
+    glm::vec3 voxelMin = (glm::floor(integerPos) - ibbMin) / size;
+    glm::vec3 voxelMax = (glm::ceil(integerPos) - ibbMin) / size;
+
+    constexpr float gamma = (3.f * FLT_EPSILON) / (1.f - 3.f * FLT_EPSILON);
+    float t1 = rayIndex.m_t_max;
+    for (uint8_t i = 0; i < 3; ++i) {
+      float invRayDir = 1.f / rayIndex.m_direction[i];
+      float tNear = (voxelMin[i] - rayIndex.m_origin[i]) * invRayDir;
+      float tFar = (voxelMax[i] - rayIndex.m_origin[i]) * invRayDir;
+
+      if (tNear > tFar) {
+        swap(tNear, tFar);
+      }
+      tFar *= 1.f + 2.f * gamma;
+      t1 = tFar < t1 ? tFar : t1;
+    }
+
+    t1 *= (1.f - CRay::OFFSET); // Just slightly before leaving voxel
+    return CRay(rayIndex.m_origin + t1 * rayIndex.m_direction, rayIndex.m_direction, rayIndex.m_t_max - t1, rayIndex.m_medium).transform(m_indexToModel);
   }
 }
 #endif
