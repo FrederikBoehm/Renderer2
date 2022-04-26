@@ -6,6 +6,8 @@
 #include <nanovdb/util/IO.h>
 #include <filesystem>
 #include "filtering/filtered_data.hpp"
+#include "grid_brick/host_grid_brick.hpp"
+#include "grid_brick/serialization.hpp"
 
 #define CEIL_EPS 0.001f
 
@@ -114,10 +116,9 @@ namespace filter {
         }
       }
     }
-
   }
 
-  nanovdb::GridHandle<nanovdb::HostBuffer> COpenvdbBackend::getNanoGridHandle() const {
+  void COpenvdbBackend::writeToFile(const char* directory, const char* fileName, const glm::uvec3& numVoxels) const {
     if (!m_data) {
       throw new std::exception("Called COpenvdbBackend::getNanoGrid without initializing COpenvdbBackend backend.");
     }
@@ -125,18 +126,21 @@ namespace filter {
     auto handle = nanovdb::openToNanoVDB(m_data->grid);
     auto* dstGrid = handle.grid<nanovdb::Vec4d>();
     if (!dstGrid)
-      throw std::runtime_error("GridHandle does not contain a grid with value type float");
-    return handle;
-  }
+      throw std::runtime_error("GridHandle does not contain a grid with value type vec4d");
 
-  void COpenvdbBackend::writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const {
-    auto* dstGrid = gridHandle.grid<nanovdb::Vec4d>();
-    auto iBB = dstGrid->indexBBox();
-    auto worldBB = dstGrid->worldBBox();
-    std::filesystem::path p(directory);
-    std::filesystem::create_directories(p);
-    p.append(fileName);
-    nanovdb::io::writeGrid(p.string(), gridHandle);
+    std::shared_ptr<rt::CHostBrickGrid> gridBrick = std::make_shared<rt::CHostBrickGrid>(*m_data, numVoxels);
+
+    std::filesystem::path baseDir(directory);
+    std::filesystem::create_directories(baseDir);
+    baseDir.append(fileName);
+
+    std::filesystem::path nanoPath = baseDir;
+    nanoPath.concat(".nvdb");
+    nanovdb::io::writeGrid(nanoPath.string(), handle);
+
+    std::filesystem::path brickGridPath = baseDir;
+    brickGridPath.concat(".brickgrid");
+    rt::write_grid(gridBrick, brickGridPath.string());
   }
 
   COpenvdbBackend* COpenvdbBackend::instance() {

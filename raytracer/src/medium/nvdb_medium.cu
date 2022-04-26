@@ -18,6 +18,10 @@
 #include "medium/medium_impl.hpp"
 #include "backend/build_optix_accel.hpp"
 #include "filtering/filtered_data.hpp"
+#include <numeric>
+#include <algorithm>
+#include <execution>
+#include "grid_brick/device_grid_brick.hpp"
 
 namespace rt {
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g):
@@ -32,6 +36,7 @@ namespace rt {
     m_sigma_s(sigma_s),
     m_phase(new CHenyeyGreensteinPhaseFunction(g)),
     m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
+    m_hostBrickGrid(loadBrickGrid(path)),
     m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
     
@@ -50,6 +55,7 @@ namespace rt {
     m_sigma_s(sigma_s),
     m_phase(new CSGGXPhaseFunctionPlaceholder()),
     m_sigma_t(glm::max(sigma_a.x + sigma_s.x, glm::max(sigma_a.y + sigma_s.y, sigma_a.z + sigma_s.z))),
+    m_hostBrickGrid(loadBrickGrid(path)),
     m_deviceGasBuffer(NULL),
     m_deviceResource(nullptr) {
 
@@ -73,6 +79,7 @@ namespace rt {
     m_ibbMin(0),
     m_ibbMax(0),
     m_sigma_t(0.f),
+    m_hostBrickGrid(nullptr),
     m_invMaxDensity(0.f),
     m_deviceResource(nullptr) {
 
@@ -95,6 +102,7 @@ namespace rt {
     m_phase(std::exchange(medium.m_phase, nullptr)),
     m_ibbMin(std::move(medium.m_ibbMin)),
     m_ibbMax(std::move(medium.m_ibbMax)),
+    m_hostBrickGrid(std::move(medium.m_hostBrickGrid)),
     m_sigma_t(std::move(medium.m_sigma_t)),
     m_invMaxDensity(std::move(medium.m_invMaxDensity)),
     m_deviceResource(std::exchange(medium.m_deviceResource, nullptr)) {
@@ -113,6 +121,7 @@ namespace rt {
       delete m_path;
       delete m_handle;
       delete m_phase;
+      delete m_hostBrickGrid;
     }
   }
 
@@ -180,11 +189,12 @@ namespace rt {
       CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_phase, sizeof(CSGGXPhaseFunctionPlaceholder)));
       break;
     }
+    CUDA_ASSERT(cudaMalloc(&m_deviceResource->d_brickGrid, sizeof(CDeviceBrickGrid)));
+    brickGridAllocateDeviceMemory();
   }
 
   CNVDBMedium CNVDBMedium::copyToDevice() const {
     m_handle->deviceUpload();
-
     
     CNVDBMedium medium;
     medium.m_isHostObject = false;
@@ -212,6 +222,8 @@ namespace rt {
         CUDA_ASSERT(cudaMemcpy(m_deviceResource->d_phase, this->m_phase, sizeof(CSGGXPhaseFunctionPlaceholder), cudaMemcpyHostToDevice));
         break;
       }
+      medium.m_deviceBrickGrid = m_deviceResource->d_brickGrid;
+      brickGridCopyToDevice(m_deviceResource->d_brickGrid);
     }
     else {
       fprintf(stderr, "No device resource for CNVDBMedium");
@@ -234,9 +246,11 @@ namespace rt {
   void CNVDBMedium::freeDeviceMemory() const {
     if (m_deviceResource) {
       CUDA_ASSERT(cudaFree(m_deviceResource->d_phase));
+      CUDA_ASSERT(cudaFree(m_deviceResource->d_brickGrid));
     }
     CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_deviceAabb)));
     CUDA_ASSERT(cudaFree(reinterpret_cast<void*>(m_deviceGasBuffer)));
+    brickGridFreeDeviceMemory();
   }
 
   void CNVDBMedium::buildOptixAccel() {
@@ -307,7 +321,7 @@ namespace rt {
   nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* CNVDBMedium::getHandle(const std::string& path) {
     nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* handle = nullptr;
     try {
-      handle = new nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>(nanovdb::io::readGrid<nanovdb::CudaDeviceBuffer>(path));
+      handle = new nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>(nanovdb::io::readGrid<nanovdb::CudaDeviceBuffer>(path + ".nvdb"));
     }
     catch (const std::exception& e) {
       fprintf(stderr, "Couldn't load nvdb file: %s", e.what());

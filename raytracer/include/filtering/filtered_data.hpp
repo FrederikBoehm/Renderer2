@@ -1,6 +1,7 @@
 #ifndef FILTERED_DATA_HPP
 #define FILTERED_DATA_HPP
 #include <glm/glm.hpp>
+#include "utility/qualifiers.hpp"
 #include <cuda_fp16.h>
 
 namespace filter {

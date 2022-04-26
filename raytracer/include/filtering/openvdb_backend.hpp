@@ -22,8 +22,7 @@ namespace filter {
 
     void init(const SOpenvdbBackendConfig& config);
     void setValues(const std::vector<SFilteredDataCompact>& filteredData, const glm::ivec3& numVoxels);
-    nanovdb::GridHandle<nanovdb::HostBuffer> getNanoGridHandle() const;
-    void writeToFile(const nanovdb::GridHandle<nanovdb::HostBuffer>& gridHandle, const char* directory, const char* fileName) const;
+    void writeToFile(const char* directory, const char* fileName, const glm::uvec3& numVoxels) const;
     SFilterLaunchParams setupGrid(const glm::vec3& voxelSize);
 
     const glm::ivec3& numVoxelsMajorant() const;

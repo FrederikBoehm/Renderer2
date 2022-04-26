@@ -171,29 +171,28 @@ namespace rt {
     m_deviceResource = new STexture_DeviceResource;
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
     CUDA_ASSERT(cudaMallocArray(&m_deviceResource->d_data, &channelDesc, m_width, m_height));
+
+    cudaResourceDesc resDesc;
+    memset(&resDesc, 0, sizeof(cudaResourceDesc));
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = m_deviceResource->d_data;
+
+    cudaTextureDesc texDesc;
+    memset(&texDesc, 0, sizeof(cudaTextureDesc));
+    texDesc.addressMode[0] = cudaAddressModeWrap;
+    texDesc.addressMode[1] = cudaAddressModeWrap;
+    texDesc.filterMode = cudaFilterModeLinear;
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.normalizedCoords = 1;
+
+    CUDA_ASSERT(cudaCreateTextureObject(&m_deviceResource->d_texObj, &resDesc, &texDesc, NULL));
   }
 
   CTexture CTexture::copyToDevice() const {
     if (m_deviceResource) {
       const size_t spitch = m_width * sizeof(float) * 4;
       CUDA_ASSERT(cudaMemcpy2DToArray(m_deviceResource->d_data, 0, 0, m_data, spitch, m_width * sizeof(float) * 4, m_height, cudaMemcpyHostToDevice)); // TODO: Can we ensure alignment without vec4 per pixel?
-      
-      cudaResourceDesc resDesc;
-      memset(&resDesc, 0, sizeof(cudaResourceDesc));
-      resDesc.resType = cudaResourceTypeArray;
-      resDesc.res.array.array = m_deviceResource->d_data;
-
-      cudaTextureDesc texDesc;
-      memset(&texDesc, 0, sizeof(cudaTextureDesc));
-      texDesc.addressMode[0] = cudaAddressModeWrap;
-      texDesc.addressMode[1] = cudaAddressModeWrap;
-      texDesc.filterMode = cudaFilterModeLinear;
-      texDesc.readMode = cudaReadModeElementType;
-      texDesc.normalizedCoords = 1;
-
-      CUDA_ASSERT(cudaCreateTextureObject(&m_deviceResource->d_texObj, &resDesc, &texDesc, NULL));
     }
-
 
     CTexture t;
     t.m_width = m_width;

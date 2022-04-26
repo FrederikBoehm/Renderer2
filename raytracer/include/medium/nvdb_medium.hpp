@@ -12,16 +12,21 @@
 #include "scene/types.hpp"
 #include "intersect/aabb.hpp"
 #include "filtering/filtered_data.hpp"
+#include "grid_brick/buf3d.hpp"
+#include <atomic>
 namespace rt {
   class CRay;
   class CSampler;
   struct SInteraction;
   class CPhaseFunction;
   struct SSGGXDistributionParameters;
+  class CHostBrickGrid;
+  class CDeviceBrickGrid;
 
   class CNVDBMedium : public CMedium {
     struct DeviceResource {
       CPhaseFunction* d_phase = nullptr;
+      CDeviceBrickGrid* d_brickGrid = nullptr;
     };
 
   public:
@@ -58,7 +63,7 @@ namespace rt {
 
     H_CALLABLE std::string path() const;
     H_CALLABLE const glm::uvec3& size() const;
-
+    
   private:
     uint16_t m_pathLength;
     char* m_path;
@@ -80,6 +85,11 @@ namespace rt {
     glm::ivec3 m_ibbMin;
     glm::ivec3 m_ibbMax;
 
+    union {
+      CHostBrickGrid* m_hostBrickGrid;
+      CDeviceBrickGrid* m_deviceBrickGrid;
+    };
+
 
     float m_sigma_t;
     float m_invMaxDensity;
@@ -99,12 +109,21 @@ namespace rt {
     H_CALLABLE static float getMaxValue(const nanovdb::NanoGrid<nanovdb::Vec4d>* grid);
     H_CALLABLE static glm::mat4 getIndexToModelTransformation(const nanovdb::Map& map, const glm::ivec3& ibbMin, const glm::ivec3& size);
     H_CALLABLE static nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>* getHandle(const std::string& path);
+    H_CALLABLE static CHostBrickGrid* loadBrickGrid(const std::string& path);
+
+    H_CALLABLE void brickGridAllocateDeviceMemory();
+    H_CALLABLE void brickGridCopyToDevice(CDeviceBrickGrid* dst) const;
+    H_CALLABLE void brickGridFreeDeviceMemory() const;
     
     template <typename TReadAccessor>
     D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor) const;
+    D_CALLABLE glm::vec3 sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
 
     template <typename TReadAccessor>
     D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor) const;
+    D_CALLABLE glm::vec3 trDDA(const CRay& ray, CSampler& sampler, float filterRenderRatio) const;
+
+    D_CALLABLE float stepDDA(const glm::vec3& pos, const glm::vec3& inv_dir, const int mip) const;
   };
 
   
