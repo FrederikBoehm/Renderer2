@@ -99,6 +99,8 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Cmake install
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING INTERNAL FORCE)
 set(CMAKE_BUILD_PARALLEL_LEVEL 4)
 
+set(SKIP_PERFORMANCE_COMPARISON TRUE) #Cereal
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -139,6 +141,7 @@ add_subdirectory(visualisation)
 add_subdirectory(3rdparty/glm)
 add_subdirectory(3rdparty/assimp)
 add_subdirectory(3rdparty/libtiff)
+add_subdirectory(3rdparty/cereal)
 
 if (GUI)
 add_subdirectory(3rdparty/glfw)

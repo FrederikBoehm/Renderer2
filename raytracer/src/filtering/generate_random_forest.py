@@ -50,7 +50,7 @@ def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_b
         description = {
             "Type": "Medium",
             "Directory": "./filtering/" + model_name + "/",
-            "Filename": "filtered_mesh_" + lod + ".nvdb",
+            "Filename": "filtered_mesh_" + lod,
             "Pos": model_pos,
             "BoundingCirclePos": bounding_circle_pos,
             "Orientation": model["Orientation"],
@@ -244,7 +244,7 @@ def generateRandomForest(generate_gt):
     with open('relevant_models.json', 'r') as f:
         relevant_models_dict = json.load(f)
 
-    with open('volume_description.json', 'r') as f:
+    with open('../../../build/raytracer/filtering/volume_description.json', 'r') as f:
         volume_description_dict = json.load(f)
 
     volume_max_bounds = getMaxBounds(volume_description_dict)

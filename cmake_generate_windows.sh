@@ -32,6 +32,9 @@ mv "$LOCAL_TEMP/vcpkg/vcpkg-2021.05.12" "3rdparty/vcpkg"
 (cd $LOCAL_TEMP && curl -o libtiff.zip -L --url https://download.osgeo.org/libtiff/tiff-4.3.0.zip -k && unzip -o "libtiff.zip" -d "libtiff")
 mv "$LOCAL_TEMP/libtiff/tiff-4.3.0" "3rdparty/libtiff"
 
+(cd $LOCAL_TEMP && curl -o cereal.zip -L --url https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.zip && unzip -o "cereal.zip" -d "cereal")
+mv "$LOCAL_TEMP/cereal/cereal-1.3.2" "3rdparty/cereal"
+
 (cd "3rdparty" && if [ ! -d "json" ]; then mkdir json; fi && cd json && curl -o json.hpp -L --url https://github.com/nlohmann/json/releases/download/v3.10.5/json.hpp)
 
 (cd "3rdparty/vcpkg" && ./bootstrap-vcpkg.sh && \ 

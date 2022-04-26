@@ -47,7 +47,7 @@ namespace filter {
       allocateDeviceMemory();
       initOptix(config);
       initDeviceData();
-      CVolumeDescriptionManager::instance()->loadDescriptions("../../raytracer/src/filtering/volume_description.json");
+      CVolumeDescriptionManager::instance()->loadDescriptions("./filtering/volume_description.json");
     }
     else {
       printf("[WARNING]: No bounding boxes provided --> proceed without filtering.\n");
@@ -101,10 +101,8 @@ namespace filter {
         std::vector<SFilteredDataCompact> filteredData(voxelCount);
         CUDA_ASSERT(cudaMemcpy(filteredData.data(), m_deviceFilterData, sizeof(SFilteredDataCompact) * voxelCount, cudaMemcpyDeviceToHost));
         m_backend->setValues(filteredData, numVoxels);
-        nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle = m_backend->getNanoGridHandle();
-        std::string filename = "filtered_mesh_" + std::to_string(voxelSize) + ".nvdb";
-        m_backend->writeToFile(gridHandle, m_outDir.c_str(), filename.c_str());
-
+        std::string filename = "filtered_mesh_" + std::to_string(voxelSize);
+        m_backend->writeToFile(m_outDir.c_str(), filename.c_str(), numVoxels);
 
         glm::mat4 transform = rt::getRotation(m_orientation) * glm::mat4(launchParams.worldToModel);
         glm::vec3 tempMin = transform * glm::vec4(launchParams.worldBB.m_min, 1.f);
@@ -115,7 +113,7 @@ namespace filter {
       }
     }
 
-    volumeDescriptionManager->storeDescriptions("../../raytracer/src/filtering/volume_description.json");
+    volumeDescriptionManager->storeDescriptions("./filtering/volume_description.json");
   }
 
   void CFilter::initOptix(const SConfig& config) {

@@ -108,7 +108,7 @@ namespace rt {
   }
 
   float CHostSceneobject::getFilterRenderRatio(CNVDBMedium* medium, float scaling) const {
-    std::regex r("(\\d+\\.\\d+)(?=\\.nvdb$)");
+    std::regex r("(\\d+\\.\\d+)(?=$)");
     std::smatch match;
     const std::string path = medium->path();
     std::regex_search(path, match, r);

@@ -7,7 +7,7 @@ def generateRegularGrid():
     with open('relevant_models.json', 'r') as f:
         relevant_models_dict = json.load(f)
 
-    with open('volume_description.json', 'r') as f:
+    with open('../../../build/raytracer/filtering/volume_description.json', 'r') as f:
         volume_description_dict = json.load(f)
 
     volume_max_bounds = getMaxBounds(volume_description_dict)
@@ -67,7 +67,7 @@ def generateRegularGrid():
             scene_description.append((
                 "Medium",
                 "./filtering/" + model_name + "/",
-                "filtered_mesh_" + lod_size + ".nvdb",
+                "filtered_mesh_" + lod_size,
                 list(model_pos),
                 model["Orientation"],
                 [scaling, scaling, scaling]

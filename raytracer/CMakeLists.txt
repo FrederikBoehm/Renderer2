@@ -51,6 +51,7 @@ set(SOURCE_FILES
 	src/medium/medium.cu
 	src/medium/heterogenous_medium.cu
 	src/medium/nvdb_medium.cu
+	src/medium/nvdb_medium.cpp
 	src/medium/sggx_phase_function.cu
 	src/medium/phase_function.cu
 	src/texture/texture.cu
@@ -65,6 +66,8 @@ set(SOURCE_FILES
 	src/scene/sceneobject_mask.cpp
 	pipeline.cu
 	filter.cu
+	src/grid_brick/host_grid_brick.cpp
+	src/grid_brick/serialization.cpp
 	src/filtering/volume_description_manager.cpp)
 set(HEADER_FILES
 	raytracer.hpp
@@ -136,6 +139,12 @@ set(HEADER_FILES
 	filter.hpp
 	include/filtering/launch_params.hpp
 	include/filtering/filtered_data.hpp
+	include/grid_brick/buf3d.hpp
+	include/grid_brick/host_grid_brick.hpp
+	include/grid_brick/serialization.hpp
+	include/grid_brick/device_grid_brick.hpp
+	include/grid_brick/device_grid_brick_impl.hpp
+	include/grid_brick/common.hpp
 	include/filtering/volume_description_manager.hpp)
 
 
@@ -149,6 +158,7 @@ target_include_directories(raytracer PRIVATE "../3rdparty/glm")
 target_include_directories(raytracer PRIVATE "../3rdparty")
 target_include_directories(raytracer PRIVATE "../3rdparty/vcpkg/installed/x64-windows/include")
 target_include_directories(raytracer PRIVATE "../3rdparty/assimp/include")
+target_include_directories(raytracer PRIVATE "../3rdparty/cereal/include")
 
 target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE_DEBUG}>
 											 $<$<CONFIG:Release>:${NANOVDB_INCLUDE_RELEASE}>)
@@ -157,6 +167,7 @@ target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE
 target_link_libraries(raytracer PRIVATE glm)
 target_link_libraries(raytracer PRIVATE visualisation)
 target_link_libraries(raytracer PRIVATE assimp)
+target_link_libraries(raytracer PRIVATE cereal)
 add_dependencies(raytracer cuda_to_ptx)
 #target_link_libraries(raytracer PRIVATE cuda_to_ptx)
 #message("[DEBUG] Adding link library openvdb")

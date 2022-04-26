@@ -8,6 +8,11 @@
 #include "filtering/filtered_data.hpp"
 #include "material/fresnel.hpp"
 #include "utility/functions.hpp"
+#include "grid_brick/device_grid_brick_impl.hpp"
+
+#define MIP_START 3
+#define MIP_SPEED_UP 0.25
+#define MIP_SPEED_DOWN 2
 
 namespace rt {
 
@@ -72,12 +77,13 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const {
-    switch (m_gridType) {
-    case nanovdb::GridType::Float:
-      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor());
-    case nanovdb::GridType::Vec4d:
-      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
-    }
+    //switch (m_gridType) {
+    //case nanovdb::GridType::Float:
+    //  return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor());
+    //case nanovdb::GridType::Vec4d:
+      //return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+    //}
+    return sampleDDA(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
   }
 
   template <typename TReadAccessor>
@@ -125,13 +131,65 @@ namespace rt {
     return glm::vec3(1.f);
   }
 
-  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio) const {
-    switch (m_gridType) {
-    case nanovdb::GridType::Float:
-      return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor());
-    case nanovdb::GridType::Vec4d:
-      return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+  inline glm::vec3 CNVDBMedium::sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+
+    const CRay ray = rayWorld.transform2(m_modelToIndex);
+    glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
+    const CRay iray = ray.transform2(indexToScaledIndex);
+    const glm::vec3 ri = 1.f / iray.m_direction;
+    float tr = 1.f;
+    float t = 0.f;
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float tau = -glm::log(1.f - sampler.uniformSample01());
+    float mip = MIP_START;
+    float volMajorant = 1.f / invMaxDensity;
+    while (t < iray.m_t_max) {
+      const glm::vec3 curr = iray.m_origin + t * iray.m_direction;
+
+      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)));
+      const float dt = stepDDA(curr, ri, int(glm::round(mip)));
+      t += dt / m_sigma_t;
+      tau -= majorant * dt;
+      mip = glm::min(float(mip + MIP_SPEED_UP), 3.f);
+      if (tau > 0.f) {
+        continue; // no collision, step ahead
+      }
+      t += tau / (majorant * m_sigma_t); // step back to point of collision
+      if (t >= iray.m_t_max) {
+        break;
+      }
+
+      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()));
+      if (sampler.uniformSample01() * majorant < d * filterRenderRatio) {
+        iray.m_t_max = t;
+        CRay rayNew = iray.transform2(glm::inverse(glm::mat4(indexToScaledIndex)));
+        glm::vec3 pos = ((iray.m_origin + t * iray.m_direction) - glm::vec3(m_ibbMin)) / glm::vec3(m_size);
+        filter::SFilteredData fD = filteredData(pos, accessor);
+        CRay rayWorldNew = rayNew.transform2(m_indexToModel);
+        rayWorld.m_t_max = rayWorldNew.m_t_max;
+        glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
+        const glm::vec3 normal = fD.n();
+        SHitInformation hitInfo = { true, worldPos, normal, normal, fD.S, glm::vec2(0.f), fD.ior, rayWorldNew.m_t_max };
+        *mi = { hitInfo, nullptr, nullptr, nullptr };
+        CFresnel fresnel(1.f, fD.ior);
+        float weight = fresnel.evaluate(glm::abs(glm::dot(-rayWorldNew.m_direction, normal))); // TODO: normalize ray dir
+        return (fD.diffuseColor * (1.f - weight) + fD.specularColor * weight) * m_sigma_s / m_sigma_t;
+      }
+
+      tau = -glm::log(1.f - sampler.uniformSample01());
+      mip = glm::max(0.f, mip - MIP_SPEED_DOWN);
     }
+    return glm::vec3(1.f);
+  }
+
+  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio) const {
+    //switch (m_gridType) {
+    //case nanovdb::GridType::Float:
+    //  return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor());
+    //case nanovdb::GridType::Vec4d:
+      //return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+    //}
+    return trDDA(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
   }
 
   template <typename TReadAccessor>
@@ -168,6 +226,61 @@ namespace rt {
           tr /= 1.f - p;
         }
       }
+    }
+    return glm::vec3(tr);
+  }
+
+  inline float CNVDBMedium::stepDDA(const glm::vec3& pos, const glm::vec3& inv_dir, const int mip) const {
+    const float dim = 8 << mip;
+    const glm::vec3 offs = glm::mix(glm::vec3(-0.5f), glm::vec3(dim + 0.5f), glm::greaterThanEqual(inv_dir, glm::vec3(0.f)));
+    const glm::vec3 tmax = (glm::floor(pos * (1.f / dim)) * dim + offs - pos) * inv_dir;
+    return glm::min(tmax.x, glm::min(tmax.y, tmax.z));
+  }
+
+  inline glm::vec3 CNVDBMedium::trDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+    const CRay rayWorldCopy = rayWorld;
+    const CRay ray = rayWorld.transform2(m_modelToIndex);
+    glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
+    const CRay iray = ray.transform2(indexToScaledIndex);
+    const glm::vec3 ri = 1.f / iray.m_direction;
+    float tr = 1.f;
+    float t = 0.f;
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float tau = -glm::log(1.f - sampler.uniformSample01());
+    float mip = MIP_START;
+    float volMajorant = 1.f / invMaxDensity;
+    while (t < iray.m_t_max) {
+      const glm::vec3 curr = iray.m_origin + t * iray.m_direction;
+
+      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)));
+      const float dt = stepDDA(curr, ri, int(glm::round(mip)));
+      t += dt / m_sigma_t;
+      tau -= majorant * dt;
+      mip = glm::min(float(mip + MIP_SPEED_UP), 3.f);
+      if (tau > 0.f) {
+        continue; // no collision, step ahead
+      }
+      t += tau / (majorant * m_sigma_t); // step back to point of collision
+      if (t >= iray.m_t_max) {
+        break;
+      }
+
+      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()));
+
+      if (sampler.uniformSample01() * majorant < d * filterRenderRatio) { // check if real or null collision
+        tr *= glm::max(0.f, 1.f - volMajorant / majorant); // adjust by ratio of global to local majorant
+        // russian roulette
+        if (tr < .1f) {
+          const float prob = 1.f - tr;
+          if (sampler.uniformSample01() < prob) {
+            return glm::vec3(0.f);
+          }
+          tr /= 1.f - prob;
+        }
+      }
+      tau = -glm::log(1.f - sampler.uniformSample01());
+      mip = glm::max(0.f, float(mip - MIP_SPEED_DOWN));
+
     }
     return glm::vec3(tr);
   }
