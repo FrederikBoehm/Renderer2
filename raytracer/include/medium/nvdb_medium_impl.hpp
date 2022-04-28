@@ -127,7 +127,7 @@ namespace rt {
           SHitInformation hitInfo = { true, worldPos, normal, normal, fD.S, glm::vec2(0.f), fD.ior, rayWorldNew.m_t_max };
           *mi = { hitInfo, nullptr, nullptr, nullptr };
           CFresnel fresnel(1.f, fD.ior);
-          float weight = fresnel.evaluate(glm::abs(glm::dot(-rayWorldNew.m_direction, normal)));
+          float weight = fresnel.evaluate(glm::abs(glm::dot(glm::normalize(-rayWorldNew.m_direction), normal)));
           return (fD.diffuseColor * (1.f - weight) + fD.specularColor * weight) * m_sigma_s / m_sigma_t;
         }
       }
@@ -177,7 +177,7 @@ namespace rt {
         SHitInformation hitInfo = { true, worldPos, normal, normal, fD.S, glm::vec2(0.f), fD.ior, rayWorldNew.m_t_max };
         *mi = { hitInfo, nullptr, nullptr, nullptr };
         CFresnel fresnel(1.f, fD.ior);
-        float weight = fresnel.evaluate(glm::abs(glm::dot(-rayWorldNew.m_direction, normal))); // TODO: normalize ray dir
+        float weight = fresnel.evaluate(glm::abs(glm::dot(glm::normalize(-rayWorldNew.m_direction), normal)));
         return (fD.diffuseColor * (1.f - weight) + fD.specularColor * weight) * m_sigma_s / m_sigma_t;
       }
 

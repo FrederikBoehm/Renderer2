@@ -213,13 +213,13 @@ namespace rt {
 
   inline float CSGGXPhaseFunction::p(const glm::vec3& w_o, const glm::vec3& w_i, CSampler& sampler) const {
     CFresnel fresnel(1.f, m_ior);
-    float weight = fresnel.evaluate(glm::abs(glm::dot(w_o, m_normal)));
+    float weight = fresnel.evaluate(glm::abs(glm::dot(glm::normalize(w_o), m_normal)));
     return m_diffuse.p(w_o, w_i, sampler) * (1.f - weight) + m_specular.p(w_o, w_i) * weight;
   }
 
   inline float CSGGXPhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
     CFresnel fresnel(1.f, m_ior);
-    float p = fresnel.evaluate(glm::abs(glm::dot(wo, m_normal)));
+    float p = fresnel.evaluate(glm::abs(glm::dot(glm::normalize(wo), m_normal)));
     if (sampler.uniformSample01() < p) {
       return m_specular.sampleP(wo, wi, sampler);
     }
