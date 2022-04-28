@@ -4,9 +4,9 @@
 #include "nvdb_medium_impl.hpp"
 
 namespace rt {
-  inline glm::vec3 CMediumInstance::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const {
+  inline glm::vec3 CMediumInstance::sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, bool useBrickGrid) const {
     const CRay rayMedium = rayWorld.transform2(*m_worldToModel);
-    glm::vec3 albedo = m_medium->sample(rayMedium, sampler, m_filterRenderRatio, mi);
+    glm::vec3 albedo = m_medium->sample(rayMedium, sampler, m_filterRenderRatio, mi, useBrickGrid);
     const CRay rayWorldNew = rayMedium.transform2(*m_modelToWorld);
     rayWorld.m_t_max = rayWorldNew.m_t_max;
     mi->hitInformation.t = rayWorldNew.m_t_max;
@@ -17,9 +17,9 @@ namespace rt {
     return albedo;
   }
 
-  inline glm::vec3 CMediumInstance::tr(const CRay& ray, CSampler& sampler) const {
+  inline glm::vec3 CMediumInstance::tr(const CRay& ray, CSampler& sampler, bool useBrickGrid) const {
     const CRay rayMedium = ray.transform2(*m_worldToModel);
-    return m_medium->tr(rayMedium, sampler, m_filterRenderRatio);
+    return m_medium->tr(rayMedium, sampler, m_filterRenderRatio, useBrickGrid);
   }
 
   inline glm::vec3 CMediumInstance::normal(const glm::vec3& p, CSampler& sampler) const {

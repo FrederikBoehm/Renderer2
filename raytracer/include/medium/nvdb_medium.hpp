@@ -49,8 +49,8 @@ namespace rt {
     DH_CALLABLE filter::SFilteredData filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
     DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
-    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const;
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio) const;
+    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio, bool useBrickGrid) const;
     D_CALLABLE CRay moveToVoxelBorder(const CRay& ray) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;

@@ -56,6 +56,7 @@ namespace rt {
     float* m_deviceAverage;
     float* m_deviceTonemappingValue;
     const uint16_t m_blockSize;
+    bool m_useBrickGrid;
     SLaunchParams* m_deviceLaunchParams;
 
     static glm::vec3 getSpherePosition(float sphereRadius, uint8_t index, uint8_t maxSpheres);

@@ -27,6 +27,7 @@ namespace rt {
     CCamera* camera;
     CSampler* sampler;
     uint16_t numSamples;
+    bool useBrickGrid;
   };
 }
 

@@ -13,7 +13,7 @@ namespace rt {
 
   class CPathIntegrator { // TODO: Make Integrator host callable
   public:
-    D_CALLABLE CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples);
+    D_CALLABLE CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid);
     D_CALLABLE glm::vec3 Li() const;
 
   private:
@@ -21,6 +21,7 @@ namespace rt {
     CPixelSampler* m_pixelSampler;
     CSampler* m_sampler;
     uint16_t m_numSamples;
+    bool m_useBrickGrid;
   };
 }
 #endif // !PATH_INTEGRATOR_HPP

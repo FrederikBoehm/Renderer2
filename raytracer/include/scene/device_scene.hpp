@@ -20,9 +20,9 @@ namespace rt {
     D_CALLABLE float lightSourcePdf(const SInteraction& lightHit, const CRay& shadowRay) const;
     D_CALLABLE float lightSourcesPdf(const SInteraction& lightHit) const;
 
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
-    D_CALLABLE SInteraction intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr) const;
-    D_CALLABLE void intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, SInteraction* interaction) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, bool useBrickGrid) const;
+    D_CALLABLE SInteraction intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, bool useBrickGrid) const;
+    D_CALLABLE void intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, SInteraction* interaction, bool useBrickGrid) const;
 
   private:
     uint16_t m_numSceneobjects;

@@ -147,7 +147,7 @@ namespace filter {
 
           if (siMediumEnd.hitInformation.hit) {
             rt::SInteraction mediumInteraction;
-            interaction.object->medium()->sample(mediumRay, m_sampler, &mediumInteraction);
+            interaction.object->medium()->sample(mediumRay, m_sampler, &mediumInteraction, false);
             if (mediumInteraction.hitInformation.hit) {
               ++hits;
             }

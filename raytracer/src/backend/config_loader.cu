@@ -47,14 +47,16 @@
     auto channelsPerPixel = general["ChannelsPerPixel"];
     auto samples = general["Samples"];
     auto gamma = general["Gamma"];
+    auto useBrickGrid = general["UseBrickGrid"];
 
-    bool valid = !general.empty() && !frameWidth.empty() && !frameHeight.empty() && !channelsPerPixel.empty() && !samples.empty() && !gamma.empty();
+    bool valid = !general.empty() && !frameWidth.empty() && !frameHeight.empty() && !channelsPerPixel.empty() && !samples.empty() && !gamma.empty() && !useBrickGrid.empty();
     if (valid) {
       config->frameWidth = frameWidth.get<uint16_t>();
       config->frameHeight = frameHeight.get<uint16_t>();
       config->channelsPerPixel = channelsPerPixel.get<uint8_t>();
       config->samples = samples.get<uint16_t>();
       config->gamma = gamma.get<float>();
+      config->useBrickGrid = useBrickGrid.get<bool>();
     }
     return valid;
   }

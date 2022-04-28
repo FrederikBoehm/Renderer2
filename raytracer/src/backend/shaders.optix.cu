@@ -245,7 +245,7 @@ extern "C" __global__ void __raygen__rg() {
 
   CPixelSampler pixelSampler(params.camera, launchIdx.x, launchIdx.y, &(params.sampler[samplerId]));
   //CPathIntegrator integrator((CDeviceScene*)sharedScene, &pixelSampler, &(sampler[samplerId]), numSamples);
-  CPathIntegrator integrator(params.scene, &pixelSampler, &(params.sampler[samplerId]), params.numSamples);
+  CPathIntegrator integrator(params.scene, &pixelSampler, &(params.sampler[samplerId]), params.numSamples, params.useBrickGrid);
   glm::vec3 L = integrator.Li();
 
   uint32_t currentPixel = params.bpp * (launchIdx.y * launchDim.x + launchIdx.x);

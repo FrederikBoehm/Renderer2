@@ -10,15 +10,16 @@
 #include "medium/medium_impl.hpp"
 #include "material/material.hpp"
 namespace rt {
-  inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples) :
+  inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid) :
     m_scene(scene),
     m_pixelSampler(pixelSampler),
     m_sampler(sampler),
-    m_numSamples(numSamples) {
+    m_numSamples(numSamples),
+    m_useBrickGrid(useBrickGrid) {
 
   }
 
-  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMediumInstance* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler) {
+  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMediumInstance* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler, bool useBrickGrid) {
     glm::vec3 L(0.f);
 
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
@@ -40,7 +41,7 @@ namespace rt {
           rayLight = si.medium->moveToVoxelBorder(rayLight);
         }
         glm::vec3 trSecondary;
-        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary); // TODO: Handle case that second hit is on volume
+        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary, useBrickGrid); // TODO: Handle case that second hit is on volume
 
 
         glm::vec3 f(0.f);
@@ -93,7 +94,7 @@ namespace rt {
           rayBrdf = si.medium->moveToVoxelBorder(rayBrdf);
         }
         glm::vec3 trSecondary;
-        SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary);
+        SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary, useBrickGrid);
 
         float lightPdf;
         glm::vec3 Le = scene.le(wi, &lightPdf);
@@ -129,7 +130,7 @@ namespace rt {
       SInteraction mi;
       if (si.medium) { //Bounding box hit
         if (ray.m_medium) { // Ray origin inside bb
-          throughput *= ray.m_medium->sample(ray, *m_sampler, &mi);
+          throughput *= ray.m_medium->sample(ray, *m_sampler, &mi, m_useBrickGrid);
         }
         else { // Ray origin outside bb
           CRay mediumRay(si.hitInformation.pos, glm::normalize(ray.m_direction), CRay::DEFAULT_TMAX, si.medium);
@@ -138,7 +139,7 @@ namespace rt {
           SInteraction siMediumEnd;
           m_scene->intersect(mediumRay, &siMediumEnd);
           if (siMediumEnd.hitInformation.hit) {
-            throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi);
+            throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi, m_useBrickGrid);
           }
         }
         if (any(throughput, 0.f)) {
@@ -149,7 +150,7 @@ namespace rt {
       
 
       if (mi.medium) {
-        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
+        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid);
         //L = direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
@@ -179,7 +180,7 @@ namespace rt {
 
 
         //direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler);
-        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler) * throughput;
+        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid) * throughput;
         //L = (si.hitInformation.normal + 1.f) * 0.5f;
         //break;
 

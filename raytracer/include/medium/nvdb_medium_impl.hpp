@@ -76,14 +76,18 @@ namespace rt {
     return filter::SFilteredData(reinterpret_cast<filter::SFilteredDataCompact&>(value));
   }
 
-  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi) const {
+  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid) const {
     //switch (m_gridType) {
     //case nanovdb::GridType::Float:
     //  return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor());
     //case nanovdb::GridType::Vec4d:
-      //return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
     //}
-    return sampleDDA(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+    if (useBrickGrid) {
+      return sampleDDA(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+    }
+    else {
+      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+    }
   }
 
   template <typename TReadAccessor>
@@ -182,14 +186,18 @@ namespace rt {
     return glm::vec3(1.f);
   }
 
-  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio) const {
+  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, bool useBrickGrid) const {
     //switch (m_gridType) {
     //case nanovdb::GridType::Float:
     //  return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor());
     //case nanovdb::GridType::Vec4d:
-      //return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
     //}
-    return trDDA(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+    if (useBrickGrid) {
+      return trDDA(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+    }
+    else {
+      return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+    }
   }
 
   template <typename TReadAccessor>

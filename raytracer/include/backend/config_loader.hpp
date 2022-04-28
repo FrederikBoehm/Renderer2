@@ -26,6 +26,7 @@ struct SConfig {
   float gamma;
   std::shared_ptr<rt::CCamera> camera;
   std::shared_ptr<rt::CHostScene> scene;
+  bool useBrickGrid;
   SFilteringConfig filteringConfig;
 };
 

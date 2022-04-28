@@ -17,8 +17,8 @@ namespace rt {
   public:
     H_CALLABLE CMediumInstance(CNVDBMedium* medium, const glm::mat4x3* modelToWorld, const glm::mat4x3* worldToModel);
 
-    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi) const;
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler) const;
+    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, SInteraction* mi, bool useBrickGrid) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, bool useBrickGrid) const;
     D_CALLABLE glm::vec3 normal(const glm::vec3& p, CSampler& sampler) const;
     DH_CALLABLE const CPhaseFunction& phase() const;
     DH_CALLABLE SAABB worldBB() const;
