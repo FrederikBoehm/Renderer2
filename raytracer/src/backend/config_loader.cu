@@ -48,8 +48,9 @@
     auto samples = general["Samples"];
     auto gamma = general["Gamma"];
     auto useBrickGrid = general["UseBrickGrid"];
+    auto debugMode = general["DebugMode"];
 
-    bool valid = !general.empty() && !frameWidth.empty() && !frameHeight.empty() && !channelsPerPixel.empty() && !samples.empty() && !gamma.empty() && !useBrickGrid.empty();
+    bool valid = !general.empty() && !frameWidth.empty() && !frameHeight.empty() && !channelsPerPixel.empty() && !samples.empty() && !gamma.empty() && !useBrickGrid.empty() && !debugMode.empty();
     if (valid) {
       config->frameWidth = frameWidth.get<uint16_t>();
       config->frameHeight = frameHeight.get<uint16_t>();
@@ -57,6 +58,16 @@
       config->samples = samples.get<uint16_t>();
       config->gamma = gamma.get<float>();
       config->useBrickGrid = useBrickGrid.get<bool>();
+      std::string debugModeStr = debugMode.get<std::string>();
+      if (debugModeStr == "VISUALIZE_LODS") {
+        config->debugMode = rt::EDebugMode::VISUALIZE_LODS;
+      }
+      else if (debugModeStr == "VISUALIZE_VOLUME_LOOKUPS") {
+        config->debugMode = rt::EDebugMode::VISUALIZE_VOLUME_LOOKUPS;
+      }
+      else {
+        config->debugMode = rt::EDebugMode::NONE;
+      }
     }
     return valid;
   }

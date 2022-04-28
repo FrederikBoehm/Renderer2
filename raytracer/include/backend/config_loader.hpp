@@ -4,6 +4,7 @@
 #include "scene/scene.hpp"
 #include "camera/camera.hpp"
 #include <memory>
+#include "backend/types.hpp"
 
 struct SFilteringConfig {
   bool filter;
@@ -27,6 +28,7 @@ struct SConfig {
   std::shared_ptr<rt::CCamera> camera;
   std::shared_ptr<rt::CHostScene> scene;
   bool useBrickGrid;
+  rt::EDebugMode debugMode;
   SFilteringConfig filteringConfig;
 };
 

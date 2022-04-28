@@ -14,7 +14,8 @@ namespace rt {
     //case EMediumType::HETEROGENOUS_MEDIUM:
     //  return ((CHeterogenousMedium*)this)->tr(ray, sampler);
     case EMediumType::NVDB_MEDIUM:
-      return ((CNVDBMedium*)this)->tr(ray, sampler, filterRenderRatio, false);
+      size_t numLookups = 0;
+      return ((CNVDBMedium*)this)->tr(ray, sampler, filterRenderRatio, false, &numLookups);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);
@@ -28,7 +29,8 @@ namespace rt {
     //  return ((CHeterogenousMedium*)this)->sample(ray, sampler, mi);
     case EMediumType::NVDB_MEDIUM:
       //return ((CNVDBMedium*)this)->sample(ray, sampler, mi);
-      return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, filterRenderRatio, mi, false);
+      size_t numLookups = 0;
+      return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, filterRenderRatio, mi, false, &numLookups);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);

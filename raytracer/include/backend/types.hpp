@@ -12,6 +12,12 @@ namespace rt {
 
   struct SEmptyData {}; 
 
+  enum class EDebugMode {
+    NONE,
+    VISUALIZE_LODS,
+    VISUALIZE_VOLUME_LOOKUPS
+  };
+
   class CDeviceScene;
   struct CCamera;
   class CSampler;
@@ -28,6 +34,7 @@ namespace rt {
     CSampler* sampler;
     uint16_t numSamples;
     bool useBrickGrid;
+    EDebugMode debugMode;
   };
 }
 

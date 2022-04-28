@@ -67,7 +67,7 @@ namespace rt {
   }
 
 
-  inline glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler, bool useBrickGrid) const {
+  inline glm::vec3 CDeviceScene::tr(const CRay& ray, CSampler& sampler, bool useBrickGrid, size_t* numLookups) const {
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
     const CMediumInstance* currentMedium = ray.m_medium;
@@ -77,7 +77,7 @@ namespace rt {
       SInteraction interaction;
       intersect(r, &interaction);
       if (interaction.hitInformation.hit && r.m_medium) {
-        Tr *= r.m_medium->tr(r, sampler, useBrickGrid);
+        Tr *= r.m_medium->tr(r, sampler, useBrickGrid, numLookups);
       }
 
       if (!interaction.hitInformation.hit) {
@@ -90,7 +90,7 @@ namespace rt {
     return Tr;
   }
 
-  inline SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, bool useBrickGrid) const {
+  inline SInteraction CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, bool useBrickGrid, size_t* numLookups) const {
     *Tr = glm::vec3(1.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
@@ -101,7 +101,7 @@ namespace rt {
       SInteraction interaction;
       intersect(r, &interaction);
       if (interaction.hitInformation.hit && r.m_medium) {
-        *Tr *= r.m_medium->tr(r, sampler, useBrickGrid);
+        *Tr *= r.m_medium->tr(r, sampler, useBrickGrid, numLookups);
       }
 
       if (!interaction.hitInformation.hit || interaction.material) {
@@ -113,7 +113,7 @@ namespace rt {
     }
   }
 
-  inline void CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, SInteraction* interaction, bool useBrickGrid) const {
+  inline void CDeviceScene::intersectTr(const CRay& ray, CSampler& sampler, glm::vec3* Tr, SInteraction* interaction, bool useBrickGrid, size_t* numLookups) const {
     *Tr = glm::vec3(1.f);
     glm::vec3 p0 = ray.m_origin;
     const glm::vec3 p1 = p0 + ray.m_t_max * ray.m_direction;
@@ -123,7 +123,7 @@ namespace rt {
 
       intersect(r, interaction);
       if (interaction->hitInformation.hit && r.m_medium) {
-        *Tr *= r.m_medium->tr(r, sampler, useBrickGrid);
+        *Tr *= r.m_medium->tr(r, sampler, useBrickGrid, numLookups);
       }
 
       if (!interaction->hitInformation.hit || interaction->material) {

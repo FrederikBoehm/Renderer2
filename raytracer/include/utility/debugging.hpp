@@ -5,6 +5,7 @@
 #include "qualifiers.hpp"
 #include <optix/optix_types.h>
 #include <optix/optix_host.h>
+#include <glm/glm.hpp>
 
 inline void gpuAssert(cudaError_t code, const char* file, int line) {
   if (code != cudaSuccess) {
@@ -29,6 +30,27 @@ namespace rt {
   class CSampler;
   H_CALLABLE void storeRandomState(CSampler* samplers, size_t numStates, const char* storePath);
   H_CALLABLE void loadRandomState(CSampler* samplers, const char* loadPath);
+
+  DH_CALLABLE inline glm::vec3 mapLODs(float lodSize) {
+    if (lodSize == 0.1f) {
+      return glm::vec3(1.f, 0.f, 0.f);
+    }
+    else if (lodSize == 0.2f) {
+      return glm::vec3(0.f, 1.f, 0.f);
+    }
+    else if (lodSize == 0.4f) {
+      return glm::vec3(0.f, 0.f, 1.f);
+    }
+    else if (lodSize == 0.8f) {
+      return glm::vec3(0.f, 1.f, 1.f);
+    }
+    else if (lodSize == 1.6f) {
+      return glm::vec3(1.f, 0.f, 1.f);
+    }
+    else {
+      return glm::vec3(1.f, 1.f, 0.f);
+    }
+  }
 }
 
 #endif

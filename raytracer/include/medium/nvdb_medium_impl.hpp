@@ -44,7 +44,7 @@ namespace rt {
     return interpolate(d.z, d0, d1);
   }
 
-  inline filter::SFilteredData CNVDBMedium::filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+  inline filter::SFilteredData CNVDBMedium::filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
     glm::vec3 pSamples(p.x * m_size.x + m_ibbMin.x - 0.5f, p.y * m_size.y + m_ibbMin.y - 0.5f, p.z * m_size.z + m_ibbMin.z - 0.5f);
     glm::ivec3 pi = glm::floor(pSamples);
     glm::vec3 d = pSamples - (glm::vec3)pi;
@@ -52,10 +52,10 @@ namespace rt {
     int y = pi.y;
     int z = pi.z;
 
-    filter::SFilteredData d00 = interpolate(d.x, getValue(pi, accessor), getValue(pi + glm::ivec3(1, 0, 0), accessor));
-    filter::SFilteredData d10 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 0), accessor), getValue(pi + glm::ivec3(1, 1, 0), accessor));
-    filter::SFilteredData d01 = interpolate(d.x, getValue(pi + glm::ivec3(0, 0, 1), accessor), getValue(pi + glm::ivec3(1, 0, 1), accessor));
-    filter::SFilteredData d11 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 1), accessor), getValue(pi + glm::ivec3(1, 1, 1), accessor));
+    filter::SFilteredData d00 = interpolate(d.x, getValue(pi, accessor, numLookups), getValue(pi + glm::ivec3(1, 0, 0), accessor, numLookups));
+    filter::SFilteredData d10 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 0), accessor, numLookups), getValue(pi + glm::ivec3(1, 1, 0), accessor, numLookups));
+    filter::SFilteredData d01 = interpolate(d.x, getValue(pi + glm::ivec3(0, 0, 1), accessor, numLookups), getValue(pi + glm::ivec3(1, 0, 1), accessor, numLookups));
+    filter::SFilteredData d11 = interpolate(d.x, getValue(pi + glm::ivec3(0, 1, 1), accessor, numLookups), getValue(pi + glm::ivec3(1, 1, 1), accessor, numLookups));
 
     filter::SFilteredData d0 = interpolate(d.y, d00, d10);
     filter::SFilteredData d1 = interpolate(d.y, d01, d11);
@@ -69,29 +69,30 @@ namespace rt {
     return accessor.getValue(coord);
   }
 
-  inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+  inline filter::SFilteredData CNVDBMedium::getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
     glm::vec3 pCopy = p;
     nanovdb::Coord coord(p.x, p.y, p.z);
     nanovdb::Vec4d value = accessor.getValue(coord);
+    *numLookups += 1;
     return filter::SFilteredData(reinterpret_cast<filter::SFilteredDataCompact&>(value));
   }
 
-  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid) const {
+  inline glm::vec3 CNVDBMedium::sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid, size_t* numLookups) const {
     //switch (m_gridType) {
     //case nanovdb::GridType::Float:
-    //  return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor());
+    //  return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_grid->getAccessor(), numLookups);
     //case nanovdb::GridType::Vec4d:
     //}
     if (useBrickGrid) {
-      return sampleDDA(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+      return sampleDDA(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor(), numLookups);
     }
     else {
-      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor());
+      return sampleInternal(rayWorld, sampler, filterRenderRatio, mi, m_vec4grid->getAccessor(), numLookups);
     }
   }
 
   template <typename TReadAccessor>
-  inline glm::vec3 CNVDBMedium::sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor) const {
+  inline glm::vec3 CNVDBMedium::sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor, size_t* numLookups) const {
     static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
       "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
 
@@ -116,7 +117,7 @@ namespace rt {
         }
       }
       else {
-        filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor);
+        filter::SFilteredData fD = filteredData(ray.m_origin + t * ray.m_direction, accessor, numLookups);
         if (filterRenderRatio * fD.density * invMaxDensity > sampler.uniformSample01()) {
           ray.m_t_max = t;
           CRay rayWorldNew = ray.transform2(m_indexToModel);
@@ -135,7 +136,7 @@ namespace rt {
     return glm::vec3(1.f);
   }
 
-  inline glm::vec3 CNVDBMedium::sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+  inline glm::vec3 CNVDBMedium::sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
 
     const CRay ray = rayWorld.transform2(m_modelToIndex);
     glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
@@ -150,7 +151,7 @@ namespace rt {
     while (t < iray.m_t_max) {
       const glm::vec3 curr = iray.m_origin + t * iray.m_direction;
 
-      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)));
+      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)), numLookups);
       const float dt = stepDDA(curr, ri, int(glm::round(mip)));
       t += dt / m_sigma_t;
       tau -= majorant * dt;
@@ -163,12 +164,12 @@ namespace rt {
         break;
       }
 
-      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()));
+      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()), numLookups);
       if (sampler.uniformSample01() * majorant < d * filterRenderRatio) {
         iray.m_t_max = t;
         CRay rayNew = iray.transform2(glm::inverse(glm::mat4(indexToScaledIndex)));
         glm::vec3 pos = ((iray.m_origin + t * iray.m_direction) - glm::vec3(m_ibbMin)) / glm::vec3(m_size);
-        filter::SFilteredData fD = filteredData(pos, accessor);
+        filter::SFilteredData fD = filteredData(pos, accessor, numLookups);
         CRay rayWorldNew = rayNew.transform2(m_indexToModel);
         rayWorld.m_t_max = rayWorldNew.m_t_max;
         glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
@@ -186,22 +187,22 @@ namespace rt {
     return glm::vec3(1.f);
   }
 
-  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, bool useBrickGrid) const {
+  inline glm::vec3 CNVDBMedium::tr(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, bool useBrickGrid, size_t* numLookups) const {
     //switch (m_gridType) {
     //case nanovdb::GridType::Float:
-    //  return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor());
+    //  return trInternal(rayWorld, sampler, filterRenderRatio, m_grid->getAccessor(), numLookups);
     //case nanovdb::GridType::Vec4d:
     //}
     if (useBrickGrid) {
-      return trDDA(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+      return trDDA(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor(), numLookups);
     }
     else {
-      return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor());
+      return trInternal(rayWorld, sampler, filterRenderRatio, m_vec4grid->getAccessor(), numLookups);
     }
   }
 
   template <typename TReadAccessor>
-  inline glm::vec3 CNVDBMedium::trInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor) const {
+  inline glm::vec3 CNVDBMedium::trInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor, size_t* numLookups) const {
     static_assert(std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<float>>::value || std::is_same<TReadAccessor, nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>::value,
       "Argument accessor has to be of type const nanovdb::DefaultReadAccessor<float>& or const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>>&");
     
@@ -221,7 +222,7 @@ namespace rt {
         d = density(ray.m_origin + t * ray.m_direction, accessor);
       }
       else {
-        d = filteredData(ray.m_origin + t * ray.m_direction, accessor).density;
+        d = filteredData(ray.m_origin + t * ray.m_direction, accessor, numLookups).density;
       }
       tr *= 1.f - glm::max(0.f, filterRenderRatio * d * invMaxDensity);
 
@@ -245,7 +246,7 @@ namespace rt {
     return glm::min(tmax.x, glm::min(tmax.y, tmax.z));
   }
 
-  inline glm::vec3 CNVDBMedium::trDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const {
+  inline glm::vec3 CNVDBMedium::trDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
     const CRay rayWorldCopy = rayWorld;
     const CRay ray = rayWorld.transform2(m_modelToIndex);
     glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
@@ -260,7 +261,7 @@ namespace rt {
     while (t < iray.m_t_max) {
       const glm::vec3 curr = iray.m_origin + t * iray.m_direction;
 
-      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)));
+      const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)), numLookups);
       const float dt = stepDDA(curr, ri, int(glm::round(mip)));
       t += dt / m_sigma_t;
       tau -= majorant * dt;
@@ -273,7 +274,7 @@ namespace rt {
         break;
       }
 
-      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()));
+      const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()), numLookups);
 
       if (sampler.uniformSample01() * majorant < d * filterRenderRatio) { // check if real or null collision
         tr *= glm::max(0.f, 1.f - volMajorant / majorant); // adjust by ratio of global to local majorant

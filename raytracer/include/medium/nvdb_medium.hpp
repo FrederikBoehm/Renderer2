@@ -46,11 +46,11 @@ namespace rt {
     H_CALLABLE void freeDeviceMemory() const;
 
     DH_CALLABLE float density(const glm::vec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
-    DH_CALLABLE filter::SFilteredData filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
+    DH_CALLABLE filter::SFilteredData filteredData(const glm::vec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const;
     DH_CALLABLE float D(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<float>& accessor) const;
-    DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
-    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid) const;
-    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio, bool useBrickGrid) const;
+    DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const;
+    D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid, size_t* numLookups) const;
+    D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio, bool useBrickGrid, size_t* numLookups) const;
     D_CALLABLE CRay moveToVoxelBorder(const CRay& ray) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
@@ -63,7 +63,10 @@ namespace rt {
 
     H_CALLABLE std::string path() const;
     H_CALLABLE const glm::uvec3& size() const;
-    
+    DH_CALLABLE float voxelSizeFiltering() const {
+      return m_voxelSizeFiltering;
+    }
+
   private:
     uint16_t m_pathLength;
     char* m_path;
@@ -96,6 +99,7 @@ namespace rt {
 
     
     float m_densityScaling;
+    float m_voxelSizeFiltering;
 
     OptixTraversableHandle m_traversableHandle;
     CUdeviceptr m_deviceGasBuffer;
@@ -114,14 +118,16 @@ namespace rt {
     H_CALLABLE void brickGridAllocateDeviceMemory();
     H_CALLABLE void brickGridCopyToDevice(CDeviceBrickGrid* dst) const;
     H_CALLABLE void brickGridFreeDeviceMemory() const;
+
+    H_CALLABLE float getVoxelSizeFiltering(const std::string& path) const;
     
     template <typename TReadAccessor>
-    D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor) const;
-    D_CALLABLE glm::vec3 sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
+    D_CALLABLE glm::vec3 sampleInternal(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const TReadAccessor& accessor, size_t* numLookups) const;
+    D_CALLABLE glm::vec3 sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const;
 
     template <typename TReadAccessor>
-    D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor) const;
-    D_CALLABLE glm::vec3 trDDA(const CRay& ray, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor) const;
+    D_CALLABLE glm::vec3 trInternal(const CRay& ray, CSampler& sampler, float filterRenderRatio, const TReadAccessor& accessor, size_t* numLookups) const;
+    D_CALLABLE glm::vec3 trDDA(const CRay& ray, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const;
 
     D_CALLABLE float stepDDA(const glm::vec3& pos, const glm::vec3& inv_dir, const int mip) const;
   };

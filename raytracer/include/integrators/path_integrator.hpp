@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include "utility/qualifiers.hpp"
+#include "backend/types.hpp"
 
 
 namespace rt {
@@ -13,7 +14,7 @@ namespace rt {
 
   class CPathIntegrator { // TODO: Make Integrator host callable
   public:
-    D_CALLABLE CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid);
+    D_CALLABLE CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid, EDebugMode debugMode);
     D_CALLABLE glm::vec3 Li() const;
 
   private:
@@ -22,6 +23,8 @@ namespace rt {
     CSampler* m_sampler;
     uint16_t m_numSamples;
     bool m_useBrickGrid;
+    
+    EDebugMode m_debugMode;
   };
 }
 #endif // !PATH_INTEGRATOR_HPP

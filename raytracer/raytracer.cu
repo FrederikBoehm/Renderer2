@@ -218,7 +218,8 @@ namespace rt {
     m_deviceFrameData(nullptr),
     m_deviceSampler(nullptr),
     m_blockSize(128),
-    m_useBrickGrid(config.useBrickGrid) {
+    m_useBrickGrid(config.useBrickGrid),
+    m_debugMode(config.debugMode) {
 
     allocateDeviceMemory();
     initOptix();
@@ -413,6 +414,7 @@ namespace rt {
     launchParams.sampler = m_deviceSampler;
     launchParams.numSamples = m_numSamples;
     launchParams.useBrickGrid = m_useBrickGrid;
+    launchParams.debugMode = m_debugMode;
     CUDA_ASSERT(cudaMemcpy(m_deviceLaunchParams, &launchParams, sizeof(SLaunchParams), cudaMemcpyHostToDevice));
 
   }

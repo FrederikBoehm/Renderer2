@@ -108,14 +108,7 @@ namespace rt {
   }
 
   float CHostSceneobject::getFilterRenderRatio(CNVDBMedium* medium, float scaling) const {
-    std::regex r("(\\d+\\.\\d+)(?=$)");
-    std::smatch match;
-    const std::string path = medium->path();
-    std::regex_search(path, match, r);
-    if (match.size() == 0) {
-      throw std::runtime_error("No valid filepath");
-    }
-    float voxelSizeFiltering = std::stof(match.str());
+    float voxelSizeFiltering = medium->voxelSizeFiltering();
     SAABB bb = medium->worldBB().transform(m_modelToWorld);
     glm::vec3 mediumDim = bb.m_max - bb.m_min;
     glm::vec3 voxelSizeRendering = mediumDim / glm::vec3(medium->size());

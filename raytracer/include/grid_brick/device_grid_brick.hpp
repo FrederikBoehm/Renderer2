@@ -17,8 +17,8 @@ namespace rt {
   public:
     CDeviceBrickGrid() = default;
 
-    D_CALLABLE float lookupDensity(const glm::vec3& ipos, const glm::vec3& random) const;
-    D_CALLABLE float lookupMajorant(const glm::vec3& ipos, int mip) const;
+    D_CALLABLE float lookupDensity(const glm::vec3& ipos, const glm::vec3& random, size_t* numLookups) const;
+    D_CALLABLE float lookupMajorant(const glm::vec3& ipos, int mip, size_t* numLookups) const;
 
   private:
     cudaArray_t m_indirectionData;
@@ -34,8 +34,8 @@ namespace rt {
 
     const float m_volDensityScale = 1.f;
 
-    D_CALLABLE float lookupDensity(const glm::vec3& ipos) const;
-    D_CALLABLE float lookupDensityBrick(const glm::vec3& ipos) const;
+    D_CALLABLE float lookupDensity(const glm::vec3& ipos, size_t* numLookups) const;
+    D_CALLABLE float lookupDensityBrick(const glm::vec3& ipos, size_t* numLookups) const;
   };
 }
 

@@ -9,17 +9,19 @@
 #include "medium/phase_function_impl.hpp"
 #include "medium/medium_impl.hpp"
 #include "material/material.hpp"
+#include "utility/debugging.hpp"
 namespace rt {
-  inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid) :
+  inline CPathIntegrator::CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid, EDebugMode debugMode) :
     m_scene(scene),
     m_pixelSampler(pixelSampler),
     m_sampler(sampler),
     m_numSamples(numSamples),
-    m_useBrickGrid(useBrickGrid) {
+    m_useBrickGrid(useBrickGrid),
+    m_debugMode(debugMode) {
 
   }
 
-  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMediumInstance* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler, bool useBrickGrid) {
+  D_CALLABLE inline glm::vec3 direct(const SInteraction& si, const CMediumInstance* currentMedium, const glm::vec3& wo, const CDeviceScene& scene, CSampler& sampler, bool useBrickGrid, size_t* numLookups) {
     glm::vec3 L(0.f);
 
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(si.hitInformation.normal);
@@ -41,7 +43,7 @@ namespace rt {
           rayLight = si.medium->moveToVoxelBorder(rayLight);
         }
         glm::vec3 trSecondary;
-        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary, useBrickGrid); // TODO: Handle case that second hit is on volume
+        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary, useBrickGrid, numLookups); // TODO: Handle case that second hit is on volume
 
 
         glm::vec3 f(0.f);
@@ -94,7 +96,7 @@ namespace rt {
           rayBrdf = si.medium->moveToVoxelBorder(rayBrdf);
         }
         glm::vec3 trSecondary;
-        SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary, useBrickGrid);
+        SInteraction siBrdf = scene.intersectTr(rayBrdf, sampler, &trSecondary, useBrickGrid, numLookups);
 
         float lightPdf;
         glm::vec3 Le = scene.le(wi, &lightPdf);
@@ -122,6 +124,7 @@ namespace rt {
     CRay ray = m_pixelSampler->samplePixel();
 
     bool isEyeRay = true;
+    size_t numLookups = 0;
     for (size_t bounces = 0; bounces < 50; ++bounces) {
       SInteraction si;
       //si = m_scene->intersect(ray);
@@ -130,16 +133,19 @@ namespace rt {
       SInteraction mi;
       if (si.medium) { //Bounding box hit
         if (ray.m_medium) { // Ray origin inside bb
-          throughput *= ray.m_medium->sample(ray, *m_sampler, &mi, m_useBrickGrid);
+          throughput *= ray.m_medium->sample(ray, *m_sampler, &mi, m_useBrickGrid, &numLookups);
         }
         else { // Ray origin outside bb
+          if (isEyeRay && m_debugMode == EDebugMode::VISUALIZE_LODS) {
+            L += mapLODs(si.medium->voxelSizeFiltering());
+          }
           CRay mediumRay(si.hitInformation.pos, glm::normalize(ray.m_direction), CRay::DEFAULT_TMAX, si.medium);
           mediumRay.offsetRayOrigin(ray.m_direction);
           //SInteraction siMediumEnd = m_scene->intersect(mediumRay);
           SInteraction siMediumEnd;
           m_scene->intersect(mediumRay, &siMediumEnd);
           if (siMediumEnd.hitInformation.hit) {
-            throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi, m_useBrickGrid);
+            throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi, m_useBrickGrid, &numLookups);
           }
         }
         if (any(throughput, 0.f)) {
@@ -147,15 +153,17 @@ namespace rt {
         }
 
       }
+      isEyeRay = false;
       
 
       if (mi.medium) {
-        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid);
+        L += throughput * direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid, &numLookups);
         //L = direct(mi, mi.medium, -ray.m_direction, *m_scene, *m_sampler);
         glm::vec3 wo = -ray.m_direction;
         glm::vec3 wi;
         //break;
         mi.medium->phase().sampleP(wo, &wi, mi.hitInformation.sggxS, mi.hitInformation.normal, mi.hitInformation.ior, *m_sampler);
+        isEyeRay = false;
         ray = mi.medium->moveToVoxelBorder(CRay(mi.hitInformation.pos, glm::normalize(wi), CRay::DEFAULT_TMAX, mi.medium).offsetRayOrigin(wi));
       }
       else {
@@ -180,7 +188,7 @@ namespace rt {
 
 
         //direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler);
-        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid) * throughput;
+        L += direct(si, ray.m_medium, -ray.m_direction, *m_scene, *m_sampler, m_useBrickGrid, &numLookups) * throughput;
         //L = (si.hitInformation.normal + 1.f) * 0.5f;
         //break;
 
@@ -192,6 +200,8 @@ namespace rt {
           glm::vec3 wi(0.f);
           float brdfPdf = 0.f;
           glm::vec3 f = si.material->sampleF(si.hitInformation.tc, -rayTangent.m_direction, &wi, *m_sampler, &brdfPdf);
+          
+          isEyeRay = false;
           if (brdfPdf == 0.f) {
             break;
           }
@@ -216,6 +226,10 @@ namespace rt {
         throughput /= (1 - p);
       }
 
+    }
+
+    if (m_debugMode == EDebugMode::VISUALIZE_VOLUME_LOOKUPS) {
+      L += glm::vec3(0.0001f * numLookups, 0.f, 0.f);
     }
 
     if (glm::any(glm::isnan(L)) || glm::any(glm::isinf(L))) {

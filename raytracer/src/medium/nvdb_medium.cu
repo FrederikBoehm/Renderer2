@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <execution>
 #include "grid_brick/device_grid_brick.hpp"
+#include <regex>
 
 namespace rt {
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g):
@@ -81,6 +82,8 @@ namespace rt {
     m_sigma_t(0.f),
     m_hostBrickGrid(nullptr),
     m_invMaxDensity(0.f),
+    m_densityScaling(0.f),
+    m_voxelSizeFiltering(0.f),
     m_deviceResource(nullptr) {
 
   }
@@ -105,6 +108,8 @@ namespace rt {
     m_hostBrickGrid(std::move(medium.m_hostBrickGrid)),
     m_sigma_t(std::move(medium.m_sigma_t)),
     m_invMaxDensity(std::move(medium.m_invMaxDensity)),
+    m_densityScaling(std::move(medium.m_densityScaling)),
+    m_voxelSizeFiltering(std::move(medium.m_voxelSizeFiltering)),
     m_deviceResource(std::exchange(medium.m_deviceResource, nullptr)) {
     switch (m_gridType) {
     case nanovdb::GridType::Float:
@@ -165,6 +170,7 @@ namespace rt {
       m_modelToIndex = glm::inverse(glm::mat4(m_indexToModel));
       break;
     }
+    m_voxelSizeFiltering = getVoxelSizeFiltering(path);
   }
 
 
@@ -172,7 +178,15 @@ namespace rt {
     return *this;
   }
 
-  
+  float CNVDBMedium::getVoxelSizeFiltering(const std::string& path) const {
+    std::regex r("(\\d+\\.\\d+)(?=$)");
+    std::smatch match;
+    std::regex_search(path, match, r);
+    if (match.size() == 0) {
+      throw std::runtime_error("No valid filepath");
+    }
+    return std::stof(match.str());
+  }
 
   void CNVDBMedium::allocateDeviceMemory() {
     if (m_deviceResource) {
@@ -239,6 +253,7 @@ namespace rt {
     medium.m_ibbMin = m_ibbMin;
     medium.m_ibbMax = m_ibbMax;
     medium.m_worldBB = m_worldBB;
+    medium.m_voxelSizeFiltering = m_voxelSizeFiltering;
     
     return medium;
   }
