@@ -133,6 +133,9 @@ namespace rt {
       SInteraction mi;
       if (si.medium) { //Bounding box hit
         if (ray.m_medium) { // Ray origin inside bb
+          if (si.medium && si.medium != ray.m_medium) {
+            break; // TODO: Fix ray offsetting
+          }
           throughput *= ray.m_medium->sample(ray, *m_sampler, &mi, m_useBrickGrid, &numLookups);
         }
         else { // Ray origin outside bb
@@ -145,6 +148,9 @@ namespace rt {
           SInteraction siMediumEnd;
           m_scene->intersect(mediumRay, &siMediumEnd);
           if (siMediumEnd.hitInformation.hit) {
+            if (siMediumEnd.medium && si.medium != siMediumEnd.medium) {
+              break; // TODO: Fix ray offsetting
+            }
             throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi, m_useBrickGrid, &numLookups);
           }
         }

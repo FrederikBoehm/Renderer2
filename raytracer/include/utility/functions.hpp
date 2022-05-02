@@ -136,7 +136,8 @@ namespace rt {
      else {
        float angle = glm::acos(glm::dot(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
        glm::vec3 rotationAxis = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
-       return glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
+       glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
+       return glm::mat4(glm::round(rotation[0]), glm::round(rotation[1]), glm::round(rotation[2]), glm::round(rotation[3]));
      }
    }
 

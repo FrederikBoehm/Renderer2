@@ -73,7 +73,7 @@ def generateRegularGrid():
                 [scaling, scaling, scaling]
             ))
 
-        current_pos += grid_direction_x * 2 * bounding_radius
+        current_pos += grid_direction_x * 2 * bounding_radius + 0.0001
 
     toFile(scene_description, "scenedescription_regular_grid.json")
     print()

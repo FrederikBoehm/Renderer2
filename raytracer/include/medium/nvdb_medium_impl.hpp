@@ -317,7 +317,7 @@ namespace rt {
     }
 
     t1 *= (1.f - CRay::OFFSET); // Just slightly before leaving voxel
-    return CRay(rayIndex.m_origin + t1 * rayIndex.m_direction, rayIndex.m_direction, rayIndex.m_t_max - t1, rayIndex.m_medium).transform(m_indexToModel);
+    return CRay(rayIndex.m_origin + t1 * rayIndex.m_direction, rayIndex.m_direction, rayIndex.m_t_max - t1, rayIndex.m_medium).robustTransform(m_indexToModel, -ray.m_direction);
   }
 }
 #endif

@@ -82,7 +82,7 @@ namespace filter {
     SFilterLaunchParams launchParams;
     launchParams.numVoxels = numVoxels;
 
-    glm::mat4 indexToModel = glm::mat4(m_worldToModel) * glm::translate(m_minWorld) * glm::scale(m_maxWorld - m_minWorld) * glm::scale(1.f / fNumVoxels);
+    glm::mat4 indexToModel = glm::mat4(m_worldToModel) * glm::translate(m_minWorld) * glm::scale(m_maxWorld - m_minWorld) * glm::scale(1.f / glm::vec3(numVoxels));
     launchParams.indexToModel = indexToModel;
     launchParams.modelToIndex = glm::inverse(indexToModel);
 
@@ -94,10 +94,14 @@ namespace filter {
 
     m_data->grid->setTransform(openvdb::math::Transform::createLinearTransform(transformMatrix));
 
-    launchParams.worldBB = { m_minWorld, m_minWorld + glm::vec3(numVoxels) * voxelSize }; // Since we round up the number of voxels our volume bounding box can be larger than the BB of the mesh (maxWorld)
-
-    launchParams.modelToWorld = glm::inverse(glm::mat4(m_worldToModel));
+    glm::mat4 modelToWorld = glm::inverse(glm::mat4(m_worldToModel));
+    launchParams.modelToWorld = modelToWorld;
     launchParams.worldToModel = m_worldToModel;
+    glm::mat4 indexToWorld = modelToWorld * indexToModel;
+
+    glm::vec3 modelMin = indexToWorld * glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec3 modelMax = indexToWorld * glm::vec4(numVoxels, 1.f);
+    launchParams.worldBB = { glm::min(modelMin, modelMax), glm::max(modelMin, modelMax) };
     return launchParams;
   }
 
@@ -110,7 +114,16 @@ namespace filter {
       for (int y = 0; y < numVoxels.y; ++y) {
         for (int z = 0; z < numVoxels.z; ++z) {
           size_t id = x + y * numVoxels.x + z * numVoxels.x * numVoxels.y;
-          if (filteredData[id].density > 0.f) {
+          glm::ivec3 coord(x, y, z);
+          if (filteredData[id].density > 0.f ||
+              coord == glm::ivec3(0, 0, 0) ||
+              coord == glm::ivec3(0, 0, numVoxels.z - 1) ||
+              coord == glm::ivec3(0, numVoxels.y - 1, 0) ||
+              coord == glm::ivec3(0, numVoxels.y - 1, numVoxels.z - 1) ||
+              coord == glm::ivec3(numVoxels.x - 1, 0, 0) ||
+              coord == glm::ivec3(numVoxels.x - 1, 0, numVoxels.z - 1) ||
+              coord == glm::ivec3(numVoxels.x - 1, numVoxels.y - 1, 0) ||
+              coord == glm::ivec3(numVoxels.x - 1, numVoxels.y - 1, numVoxels.z - 1)) {
             m_data->accessor.setValue(openvdb::Coord(x, y, z), reinterpret_cast<const openvdb::Vec4d&>(filteredData[id]));
           }
         }

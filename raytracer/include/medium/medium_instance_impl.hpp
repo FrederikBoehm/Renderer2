@@ -42,7 +42,7 @@ namespace rt {
 
   inline CRay CMediumInstance::moveToVoxelBorder(const CRay& ray) const {
     CRay modelSpaceRay = ray.transform(*m_worldToModel);
-    return m_medium->moveToVoxelBorder(modelSpaceRay).transform(*m_modelToWorld);
+    return m_medium->moveToVoxelBorder(modelSpaceRay).robustTransform(*m_modelToWorld, -ray.m_direction);
   }
 
   inline float CMediumInstance::voxelSizeFiltering() const {

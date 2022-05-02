@@ -218,7 +218,7 @@ def checkCollision(object1, object2):
     connection = object1["BoundingCirclePos"] - object2["BoundingCirclePos"]
     distance = np.sqrt(np.dot(connection, connection))
 
-    return distance <= object1["BoundingRadius"] + object2["BoundingRadius"]
+    return distance <= object1["BoundingRadius"] + object2["BoundingRadius"] + 0.0001
 
 
 

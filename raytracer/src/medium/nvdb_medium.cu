@@ -157,7 +157,6 @@ namespace rt {
       m_invMaxDensity = 1.f / getMaxValue(m_vec4grid);
       box = m_vec4grid->indexBBox();
       m_worldBB = m_vec4grid->worldBBox();
-      m_size = getMediumSize(m_vec4grid->worldBBox(), m_vec4grid->voxelSize());
       if (m_grid->activeVoxelCount() == 0) {
         m_ibbMin = glm::ivec3(0);
         m_ibbMax = glm::ivec3(0);
@@ -166,6 +165,7 @@ namespace rt {
         m_ibbMin = glm::ivec3(box.min().x(), box.min().y(), box.min().z());
         m_ibbMax = glm::ivec3(box.max().x(), box.max().y(), box.max().z());
       }
+      m_size = m_ibbMax - m_ibbMin + 1;
       m_indexToModel = getIndexToModelTransformation(m_vec4grid->map(), m_ibbMin, m_size);
       m_modelToIndex = glm::inverse(glm::mat4(m_indexToModel));
       break;
