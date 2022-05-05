@@ -132,7 +132,7 @@ namespace rt {
     const glm::vec3 M_k(glm::sqrt(glm::abs(glm::determinant(S_kji))) / temp, 0.f, 0.f);
     const float scaling = 1.f / glm::sqrt(S_ii);
     const glm::vec3 M_j = glm::vec3(-(S_ki*S_ji - S_kj * S_ii) / temp, temp, 0.f) * scaling;
-    const glm::vec3 M_i = glm::vec3(S_kj, S_ji, S_ii) * scaling;
+    const glm::vec3 M_i = glm::vec3(S_ki, S_ji, S_ii) * scaling;
 
     const float sqrt_Ux = glm::sqrt(U.x);
     const float u = sqrt_Ux * glm::cos(2.f * M_PI * U.y);
@@ -195,9 +195,9 @@ namespace rt {
   inline float CSGGXDiffusePhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
     glm::vec3 w_n = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_n);
-    glm::vec3 w_m = sampler.uniformSampleHemisphere();
-    glm::vec3 w_m_world = frame.tangentToWorld() * glm::vec4(w_m, 0.f);
-    *wi = glm::normalize(w_m_world); // TODO: Check coordinate space
+    glm::vec3 w_m = sampler.cosineSampleHemisphere();
+    glm::vec3 w_m_world = frame.tangentToWorld() * w_m;
+    *wi = glm::normalize(w_m_world);
     return p(wo, *wi, w_n);
   }
 
