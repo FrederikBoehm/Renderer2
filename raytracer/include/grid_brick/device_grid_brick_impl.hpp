@@ -22,7 +22,7 @@ namespace rt {
     glm::vec3 atlasPos = glm::ivec3(ptr << 3u) + (iipos & 7);
     atlasPos = (atlasPos + 0.5f) / glm::vec3(m_atlasSize);
     const unsigned char value_unorm = tex3D<unsigned char>(m_atlasObj, atlasPos.x, atlasPos.y, atlasPos.z);
-    numLookups += 3;
+    *numLookups += 3;
     return decode_voxel(value_unorm, glm::vec2(range.x, range.y));
   }
 
