@@ -32,8 +32,6 @@ namespace rt {
     cudaTextureObject_t m_atlasObj;
     glm::uvec3 m_atlasSize;
 
-    const float m_volDensityScale = 1.f;
-
     D_CALLABLE float lookupDensity(const glm::vec3& ipos, size_t* numLookups) const;
     D_CALLABLE float lookupDensityBrick(const glm::vec3& ipos, size_t* numLookups) const;
   };

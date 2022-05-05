@@ -106,6 +106,7 @@ namespace rt {
     return !(l == r);
   }
 
+  // Load assets just once and use instances
   class CAssetManager {
   public:
     H_CALLABLE static std::vector<std::tuple<CMesh*, CMaterial*>> loadMesh(const std::string& assetsBasePath, const std::string& meshFileName);
@@ -113,6 +114,7 @@ namespace rt {
     H_CALLABLE static CNVDBMedium* loadMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g);
     H_CALLABLE static CTexture* loadTexture(const std::string& path, ETextureType type);
     H_CALLABLE static CTexture* loadAlpha(const std::string& path);
+    // Converts diffuse texture to specular map by computing the luma of the color
     H_CALLABLE static CTexture* specularFromDiffuse(const CTexture* diffuseTexture);
     H_CALLABLE static void allocateDeviceMemory();
     H_CALLABLE static void copyToDevice();

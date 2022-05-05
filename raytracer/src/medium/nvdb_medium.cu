@@ -15,7 +15,6 @@
 #include "backend/rt_backend.hpp"
 #include <optix/optix_stubs.h>
 #include "medium/phase_function_impl.hpp"
-#include "medium/medium_impl.hpp"
 #include "backend/build_optix_accel.hpp"
 #include "filtering/filtered_data.hpp"
 #include <numeric>
@@ -26,7 +25,6 @@
 
 namespace rt {
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s, float g):
-    CMedium(EMediumType::NVDB_MEDIUM),
     m_pathLength(path.size()),
     m_path((char*)malloc(path.size())),
     m_isHostObject(true),
@@ -45,7 +43,6 @@ namespace rt {
   }
 
   CNVDBMedium::CNVDBMedium(const std::string& path, const glm::vec3& sigma_a, const glm::vec3& sigma_s) :
-    CMedium(EMediumType::NVDB_MEDIUM),
     m_pathLength(path.size()),
     m_path((char*)malloc(path.size())),
     m_isHostObject(true),
@@ -64,7 +61,6 @@ namespace rt {
   }
 
   CNVDBMedium::CNVDBMedium() :
-    CMedium(EMediumType::NVDB_MEDIUM),
     m_pathLength(0),
     m_path(nullptr),
     m_isHostObject(true),
@@ -89,7 +85,6 @@ namespace rt {
   }
 
   CNVDBMedium::CNVDBMedium(CNVDBMedium&& medium) :
-    CMedium(std::move(medium.type())),
     m_pathLength(std::move(medium.m_pathLength)),
     m_path(std::exchange(medium.m_path, nullptr)),
     m_isHostObject(std::move(medium.m_isHostObject)),
@@ -100,6 +95,8 @@ namespace rt {
     m_size(std::move(medium.m_size)),
     m_indexToModel(std::move(medium.m_indexToModel)),
     m_modelToIndex(std::move(medium.m_modelToIndex)),
+    m_scaledIndexToIndex(std::move(medium.m_scaledIndexToIndex)),
+    m_indexToScaledIndex(std::move(medium.m_indexToScaledIndex)),
     m_sigma_a(std::move(medium.m_sigma_a)),
     m_sigma_s(std::move(medium.m_sigma_s)),
     m_phase(std::exchange(medium.m_phase, nullptr)),
@@ -168,6 +165,8 @@ namespace rt {
       m_size = m_ibbMax - m_ibbMin + 1;
       m_indexToModel = getIndexToModelTransformation(m_vec4grid->map(), m_ibbMin, m_size);
       m_modelToIndex = glm::inverse(glm::mat4(m_indexToModel));
+      m_indexToScaledIndex = glm::mat4x3(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
+      m_scaledIndexToIndex = glm::inverse(glm::mat4(m_indexToScaledIndex));
       break;
     }
     m_voxelSizeFiltering = getVoxelSizeFiltering(path);
@@ -245,6 +244,8 @@ namespace rt {
     medium.m_size = this->m_size;
     medium.m_indexToModel = this->m_indexToModel;
     medium.m_modelToIndex = this->m_modelToIndex;
+    medium.m_scaledIndexToIndex = this->m_scaledIndexToIndex;
+    medium.m_indexToScaledIndex = this->m_indexToScaledIndex;
     medium.m_sigma_a = this->m_sigma_a;
     medium.m_sigma_s = this->m_sigma_s;
     medium.m_sigma_t = this->m_sigma_t;

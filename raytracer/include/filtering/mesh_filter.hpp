@@ -69,14 +69,14 @@ namespace filter {
       for (uint32_t i = 0; i < numSamples; ++i) {
         rt::CRay ray;
         float currentTMax;
-        if (m_clipRays) {
+        if (m_clipRays) { // Clip rays on bounding sphere
           ray = generateRay(currentVoxel, indexToWorld, rt::CRay::DEFAULT_TMAX);
           rt::SHitInformation hit = sphere.intersect(ray);
           ray.m_t_max = hit.t;
           currentTMax = hit.t;
           averageTMax += ray.m_t_max;
         }
-        else {
+        else { // Rays have length of Voxel border (see Loubet and Neyret Hybrid mesh-volume LoDs for all-scale pre-filtering of complex 3D assets)
           ray = generateRay(currentVoxel, indexToWorld, tMax);
           currentTMax = tMax;
         }
@@ -180,55 +180,21 @@ namespace filter {
     float m_scaling;
 
     D_CALLABLE float estimateDensity(float averageDistance, uint32_t hits, uint32_t numSamples, float tMax, float* rayTs) const {
-      //uint3 launchIdx = optixGetLaunchIndex();
-      //uint3 launchDim = optixGetLaunchDimensions();
-
       float volumeCorrection = m_voxelSize.x; // Correction term (CurrentVolume/UnitVolume) because density is defined on unit cube
       const float P_hit_mesh = hits / (float)numSamples;
-      //float density = (P_hit_mesh * volumeCorrection) / (tMax * m_sigma_t);
       float density = -glm::log(1.f - P_hit_mesh) / (averageDistance * m_sigma_t); // For clipping this is just initialisation
       float normalizedAlpha = m_alpha / m_sigma_t;
-      //if (launchIdx.x == int(launchDim.x / 2) && launchIdx.y == int(launchDim.y / 2) && launchIdx.z == int(launchDim.z / 2)) {
-      //  printf("P_hit_mesh: %f, initial density: %f\n", P_hit_mesh, density);
-      //}
 
-      //for (float d = -1.f; d < 1.f; d += 0.001f) {
-      //  float pHit = estimatePhitVolume(d, tMax, 100);
-      //  float loss = glm::abs(pHit - P_hit_mesh);
-      //  printf("density: %f, P_hit_volume: %f, loss: %f\n", d, pHit, loss);
-      //}
-      //if (launchIdx.x == launchDim.x / 2 && launchIdx.y == launchDim.y / 2 && launchIdx.z == launchDim.z / 2) {
-      //  printf("iteration, P_hit_volume_gt, density\n");
-      //}
-      float delta = 0.001f; // For loss derivative
       float P_hit_volume_gt;
       for (size_t iteration = 0; iteration < m_estimationIterations; ++iteration) {
-        //float alpha = normalizedAlpha * glm::pow(0.5f, (float)iteration / 2.f);
         uint32_t volumeHits = 0;
-        float P_hit_volume = estimatePhitVolume(density, tMax, numSamples);
         if (m_clipRays) {
           P_hit_volume_gt = estimatePhitVolumeGT2(density, rayTs, hits);
         }
         else {
           P_hit_volume_gt = estimatePhitVolumeGT(density, tMax);
         }
-        //density += (P_hit_mesh - P_hit_volume) * alpha;
-        float dLoss = estimateLoss(density, tMax, P_hit_mesh, numSamples);
-        float dLossGT = estimateLossGT(density, tMax, P_hit_mesh);
-        //density = density - alpha * dLossGT;
-        //printf("iteration %i, P_hit_volume: %f, P_hit_volume_gt: %f, dLoss: %f, dLossGT: %f, density: %f, alpha: %f\n", (int)iteration, P_hit_volume, P_hit_volume_gt, dLoss, dLossGT, density, alpha);
-        density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh);
-        //if (launchIdx.x == launchDim.x / 2 && launchIdx.y == launchDim.y / 2 && launchIdx.z == launchDim.z / 2) {
-        //  printf("%i, %f, %f\n", (int)iteration, P_hit_volume_gt, density);
-        //}
-        //density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh);
-        //float invMaxDensity = 1.f / density;
-        //for (size_t sample = 0; sample < numSamples; ++sample) {
-        //  volumeHits += deltaTrack(invMaxDensity, tMax);
-        //}
-        //float P_hit_volume = (float)volumeHits / numSamples;
-        //density += (P_hit_mesh - P_hit_volume) * delta;
-        //printf("iteration %i, P_hit_volume: %f, density: %f\n", (int)iteration, P_hit_volume, density);
+        density = density - normalizedAlpha * (P_hit_volume_gt - P_hit_mesh); // Simplified gradient descent
       }
       float diff = P_hit_volume_gt - P_hit_mesh;
       if (diff > 0.01f) {
@@ -253,7 +219,7 @@ namespace filter {
 
     DH_CALLABLE float estimatePhitVolumeGT2(float density, float* rayTs, uint32_t hits) const {
       float P = 0.f;
-      for (uint32_t hit = 0; hit < hits; ++hit) {
+      for (uint32_t hit = 0; hit < hits; ++hit) { // In case of bounding sphere clipping, rays have different length --> Solve numerically
         P += glm::exp(-density * m_sigma_t * rayTs[hit]);
       }
       return 1.f - P / (float)hits;

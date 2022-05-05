@@ -20,28 +20,28 @@ namespace rt {
   }
 
   OptixProgramGroup CMedium::getOptixProgramGroup() const {
-    switch (m_type) {
-    case NVDB_MEDIUM:
-      return static_cast<const CNVDBMedium*>(this)->getOptixProgramGroup();
-    }
+    //switch (m_type) {
+    //case NVDB_MEDIUM:
+    //  return static_cast<const CNVDBMedium*>(this)->getOptixProgramGroup();
+    //}
     fprintf(stderr, "[ERROR] No OptixProgramGroup found for given medium type\n");
     return OptixProgramGroup();
   }
 
   std::string CMedium::path() const {
-    switch (m_type) {
-    case NVDB_MEDIUM:
-      return static_cast<const CNVDBMedium*>(this)->path();
-    }
+    //switch (m_type) {
+    //case NVDB_MEDIUM:
+    //  return static_cast<const CNVDBMedium*>(this)->path();
+    //}
     printf("[ERROR] No path found for given medium type\n");
     return "";
   }
 
   OptixTraversableHandle CMedium::getOptixHandle() const {
-    switch (m_type) {
-    case NVDB_MEDIUM:
-      return static_cast<const CNVDBMedium*>(this)->getOptixHandle();
-    }
+    //switch (m_type) {
+    //case NVDB_MEDIUM:
+    //  return static_cast<const CNVDBMedium*>(this)->getOptixHandle();
+    //}
     printf("[ERROR] No OptixTraversableHandle found for given medium type\n");
     return NULL;
   }

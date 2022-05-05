@@ -22,6 +22,7 @@ namespace filter {
     glm::vec3 p7;
   };
 
+  // Exports information about aabb sizes, which is required for scene generation
   class CVolumeDescriptionManager {
   public:
     static CVolumeDescriptionManager* instance();

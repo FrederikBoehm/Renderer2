@@ -193,9 +193,9 @@ namespace rt {
   }
 
   inline float CSGGXDiffusePhaseFunction::sampleP(const glm::vec3& wo, glm::vec3* wi, CSampler& sampler) const {
-    glm::vec3 w_n = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01()));
+    glm::vec3 w_n = m_distribution.sampleVNDF(wo, glm::vec2(sampler.uniformSample01(), sampler.uniformSample01())); // Sample direction of the hemisphere first
     CCoordinateFrame frame = CCoordinateFrame::fromNormal(w_n);
-    glm::vec3 w_m = sampler.cosineSampleHemisphere();
+    glm::vec3 w_m = sampler.cosineSampleHemisphere(); // Generate reflection direction in this hemisphere
     glm::vec3 w_m_world = frame.tangentToWorld() * w_m;
     *wi = glm::normalize(w_m_world);
     return p(wo, *wi, w_n);

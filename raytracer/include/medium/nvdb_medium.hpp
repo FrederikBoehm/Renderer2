@@ -23,7 +23,7 @@ namespace rt {
   class CHostBrickGrid;
   class CDeviceBrickGrid;
 
-  class CNVDBMedium : public CMedium {
+  class CNVDBMedium {
     struct DeviceResource {
       CPhaseFunction* d_phase = nullptr;
       CDeviceBrickGrid* d_brickGrid = nullptr;
@@ -51,6 +51,7 @@ namespace rt {
     DH_CALLABLE filter::SFilteredData getValue(const glm::ivec3& p, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const;
     D_CALLABLE glm::vec3 sample(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, bool useBrickGrid, size_t* numLookups) const;
     D_CALLABLE glm::vec3 tr(const CRay& ray, CSampler& sampler, float filterRenderRatio, bool useBrickGrid, size_t* numLookups) const;
+    // Moves ray origin in ray direction to border of current voxel (See Vicini et al. A Non-Exponential Transmittance Model for Volumetric Scene Representations)
     D_CALLABLE CRay moveToVoxelBorder(const CRay& ray) const;
 
     DH_CALLABLE const CPhaseFunction& phase() const;
@@ -84,6 +85,8 @@ namespace rt {
     glm::vec3 m_sigma_s;
     glm::mat4x3 m_indexToModel;
     glm::mat4x3 m_modelToIndex;
+    glm::mat4x3 m_scaledIndexToIndex;
+    glm::mat4x3 m_indexToScaledIndex;
     CPhaseFunction* m_phase;
     glm::ivec3 m_ibbMin;
     glm::ivec3 m_ibbMax;

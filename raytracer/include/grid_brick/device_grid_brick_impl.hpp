@@ -11,7 +11,7 @@ namespace rt {
   }
 
   inline float CDeviceBrickGrid::lookupDensity(const glm::vec3& ipos, size_t* numLookups) const {
-    return m_volDensityScale * lookupDensityBrick(ipos, numLookups);
+    return lookupDensityBrick(ipos, numLookups);
   }
 
   inline float CDeviceBrickGrid::lookupDensityBrick(const glm::vec3& ipos, size_t* numLookups) const {
@@ -29,7 +29,7 @@ namespace rt {
   inline float CDeviceBrickGrid::lookupMajorant(const glm::vec3& ipos, int mip, size_t* numLookups) const {
     const glm::ivec3 brick = glm::ivec3(glm::floor(ipos)) >> 3;
     *numLookups += 1;
-    return m_volDensityScale * tex3DLod<float2>(m_rangeObj, (brick.x + 0.5f) / m_rangeSize.x, (brick.y + 0.5f) / m_rangeSize.y, (brick.z + 0.5f) / m_rangeSize.z, mip).y; // Seems like CUDA doesn't support half2 lookups
+    return tex3DLod<float2>(m_rangeObj, (brick.x + 0.5f) / m_rangeSize.x, (brick.y + 0.5f) / m_rangeSize.y, (brick.z + 0.5f) / m_rangeSize.z, mip).y; // Seems like CUDA doesn't support half2 lookups
   }
 
 }

@@ -22,11 +22,6 @@ namespace rt {
     return m_medium->tr(rayMedium, sampler, m_filterRenderRatio, useBrickGrid, numLookups);
   }
 
-  inline glm::vec3 CMediumInstance::normal(const glm::vec3& p, CSampler& sampler) const {
-    const glm::vec3 pMedium = *m_worldToModel * glm::vec4(p, 1.f);
-    return *m_modelToWorld * glm::vec4(m_medium->normal(pMedium, sampler), 1.f);
-  }
-
   inline const CPhaseFunction& CMediumInstance::phase() const {
     return m_medium->phase();
   }

@@ -98,7 +98,7 @@ namespace rt {
 
     const CRay ray = rayWorld.transform2(m_modelToIndex);
     float t = 0.f;
-    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity); // filterRenderRatio accounts for different scaling during filtering and rendering
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
@@ -137,14 +137,11 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::sampleDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, SInteraction* mi, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
-
-    const CRay ray = rayWorld.transform2(m_modelToIndex);
-    glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
-    const CRay iray = ray.transform2(indexToScaledIndex);
+    const CRay iray = rayWorld.transform2(glm::mat4(m_indexToScaledIndex) * glm::mat4(m_modelToIndex));
     const glm::vec3 ri = 1.f / iray.m_direction;
     float tr = 1.f;
     float t = 0.f;
-    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity); // filterRenderRatio accounts for different scaling during filtering and rendering
     float tau = -glm::log(1.f - sampler.uniformSample01());
     float mip = MIP_START;
     float volMajorant = 1.f / invMaxDensity;
@@ -167,10 +164,9 @@ namespace rt {
       const float d = m_deviceBrickGrid->lookupDensity(iray.m_origin + t * iray.m_direction, glm::vec3(sampler.uniformSample01(), sampler.uniformSample01(), sampler.uniformSample01()), numLookups);
       if (sampler.uniformSample01() * majorant < d * filterRenderRatio) {
         iray.m_t_max = t;
-        CRay rayNew = iray.transform2(glm::inverse(glm::mat4(indexToScaledIndex)));
         glm::vec3 pos = ((iray.m_origin + t * iray.m_direction) - glm::vec3(m_ibbMin)) / glm::vec3(m_size);
         filter::SFilteredData fD = filteredData(pos, accessor, numLookups);
-        CRay rayWorldNew = rayNew.transform2(m_indexToModel);
+        CRay rayWorldNew = iray.transform2(glm::mat4(m_indexToModel) * glm::mat4(m_scaledIndexToIndex));
         rayWorld.m_t_max = rayWorldNew.m_t_max;
         glm::vec3 worldPos = rayWorldNew.m_origin + rayWorldNew.m_t_max * rayWorldNew.m_direction;
         const glm::vec3 normal = fD.n();
@@ -210,7 +206,7 @@ namespace rt {
     const CRay ray = rayWorld.transform2(m_modelToIndex);
     float tr = 1.f;
     float t = 0.f;
-    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity); // filterRenderRatio accounts for different scaling during filtering and rendering
     while (true) {
       t -= glm::log(1.f - sampler.uniformSample01()) * invMaxDensity / m_sigma_t;
       if (t >= ray.m_t_max) {
@@ -247,14 +243,11 @@ namespace rt {
   }
 
   inline glm::vec3 CNVDBMedium::trDDA(const CRay& rayWorld, CSampler& sampler, float filterRenderRatio, const nanovdb::DefaultReadAccessor<nanovdb::Vec4d>& accessor, size_t* numLookups) const {
-    const CRay rayWorldCopy = rayWorld;
-    const CRay ray = rayWorld.transform2(m_modelToIndex);
-    glm::mat4x3 indexToScaledIndex(glm::vec3(m_size.x, 0.f, 0.f), glm::vec3(0.f, m_size.y, 0.f), glm::vec3(0.f, 0.f, m_size.z), m_ibbMin);
-    const CRay iray = ray.transform2(indexToScaledIndex);
+    const CRay iray = rayWorld.transform2(glm::mat4(m_indexToScaledIndex) * glm::mat4(m_modelToIndex));
     const glm::vec3 ri = 1.f / iray.m_direction;
     float tr = 1.f;
     float t = 0.f;
-    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity);
+    float invMaxDensity = 1.f / (filterRenderRatio / m_invMaxDensity); // filterRenderRatio accounts for different scaling during filtering and rendering
     float tau = -glm::log(1.f - sampler.uniformSample01());
     float mip = MIP_START;
     float volMajorant = 1.f / invMaxDensity;

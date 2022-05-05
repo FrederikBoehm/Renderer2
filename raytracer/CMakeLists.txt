@@ -145,7 +145,8 @@ set(HEADER_FILES
 	include/grid_brick/device_grid_brick.hpp
 	include/grid_brick/device_grid_brick_impl.hpp
 	include/grid_brick/common.hpp
-	include/filtering/volume_description_manager.hpp)
+	include/filtering/volume_description_manager.hpp
+	include/utility/luma.hpp)
 
 
 

@@ -12,7 +12,7 @@ namespace filter {
     glm::mat3 S;
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
-    glm::vec3 normal; // Might not have length 1 during interpolation
+    glm::vec3 normal; // Might not have length 1 during interpolation --> access via SFilteredData::n()
     float ior;
     
     DH_CALLABLE SFilteredData() :

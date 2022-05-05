@@ -9,6 +9,7 @@
 #include "utility/debugging.hpp"
 #include "medium/nvdb_medium.hpp"
 #include "texture/texture.hpp"
+#include "utility/luma.hpp"
 
 namespace rt {
   std::unordered_map<std::string, size_t> CAssetManager::s_submeshes;
@@ -172,7 +173,7 @@ namespace rt {
       float* r = tex->m_data + i;
       float* g = tex->m_data + i + 1;
       float* b = tex->m_data + i + 2;
-      float grey = 0.2126f * *r + 0.7152f * *g + 0.0722f * *b;
+      float grey = luma(*r, *g, *b);
       *r = grey;
       *g = grey;
       *b = grey;

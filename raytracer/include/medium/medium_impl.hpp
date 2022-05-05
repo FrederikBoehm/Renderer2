@@ -13,9 +13,9 @@ namespace rt {
     //  return ((CHomogeneousMedium*)this)->tr(ray, sampler);
     //case EMediumType::HETEROGENOUS_MEDIUM:
     //  return ((CHeterogenousMedium*)this)->tr(ray, sampler);
-    case EMediumType::NVDB_MEDIUM:
-      size_t numLookups = 0;
-      return ((CNVDBMedium*)this)->tr(ray, sampler, filterRenderRatio, false, &numLookups);
+    //case EMediumType::NVDB_MEDIUM:
+    //  size_t numLookups = 0;
+    //  return ((CNVDBMedium*)this)->tr(ray, sampler, filterRenderRatio, false, &numLookups);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);
@@ -27,10 +27,10 @@ namespace rt {
     //  return ((CHomogeneousMedium*)this)->sample(ray, sampler, mi);
     //case EMediumType::HETEROGENOUS_MEDIUM:
     //  return ((CHeterogenousMedium*)this)->sample(ray, sampler, mi);
-    case EMediumType::NVDB_MEDIUM:
-      //return ((CNVDBMedium*)this)->sample(ray, sampler, mi);
-      size_t numLookups = 0;
-      return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, filterRenderRatio, mi, false, &numLookups);
+    //case EMediumType::NVDB_MEDIUM:
+    //  //return ((CNVDBMedium*)this)->sample(ray, sampler, mi);
+    //  size_t numLookups = 0;
+    //  return static_cast<const CNVDBMedium*>(this)->sample(ray, sampler, filterRenderRatio, mi, false, &numLookups);
     }
     printf("[ERROR]: No matching medium\n");
     return glm::vec3(0.f);
@@ -42,8 +42,8 @@ namespace rt {
     //  return ((CHomogeneousMedium*)this)->phase();
     //case EMediumType::HETEROGENOUS_MEDIUM:
     //  return ((CHeterogenousMedium*)this)->phase();
-    case EMediumType::NVDB_MEDIUM:
-      return ((CNVDBMedium*)this)->phase();
+    //case EMediumType::NVDB_MEDIUM:
+    //  return ((CNVDBMedium*)this)->phase();
     }
     printf("[ERROR]: No matching medium\n");
     return CHenyeyGreensteinPhaseFunction(0.f);
@@ -51,8 +51,8 @@ namespace rt {
 
   inline glm::vec3 CMedium::normal(const glm::vec3& p, CSampler& sampler) const {
     switch (m_type) {
-    case EMediumType::NVDB_MEDIUM:
-      return ((CNVDBMedium*)this)->normal(p, sampler);
+    //case EMediumType::NVDB_MEDIUM:
+    //  return ((CNVDBMedium*)this)->normal(p, sampler);
     }
     return glm::vec3(1.f, 0.f, 0.f);
   }
