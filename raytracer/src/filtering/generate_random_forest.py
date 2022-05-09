@@ -16,7 +16,7 @@ def uniformSampleCircle(radius):
     theta = 2 * math.pi * np.random.uniform()
     return np.array([r * math.cos(theta), 0, r * math.sin(theta)])
 
-def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_bounds, camera, generate_gt):
+def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_bounds, camera, generate_gt, min_lod, covered_pixels):
     model = relevant_models[index]
     model_name = model["Name"]
     model_space_height = model["Dimensions"][1]
@@ -32,7 +32,7 @@ def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_b
     bounding_radius = math.sqrt((model_dimensions[0] / 2) ** 2 + (model_dimensions[2] / 2) ** 2)
 
 
-    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model["Name"]], generate_gt)
+    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model["Name"]], generate_gt, min_lod, covered_pixels)
     if lod == "0":
 
         description = {
@@ -167,7 +167,7 @@ def approximateNumVoxels2(lod, lod_pos, scaling, camera):
     return math.ceil(np.linalg.norm(num_voxels1) * np.linalg.norm(num_voxels2))
 
 
-def selectLOD(camera, tree_pos, scaling, lods, generate_gt):
+def selectLOD(camera, tree_pos, scaling, lods, generate_gt, min_lod, covered_pixels):
     if generate_gt:
         return "0"
 
@@ -206,11 +206,12 @@ def selectLOD(camera, tree_pos, scaling, lods, generate_gt):
     for lod_size in sorted(lods):
         # close_voxels = countCloseVoxels(lod_size, lods[lod_size], tree_pos, scaling, camera)
         # approximated1 = approximateNumVoxels(lods[lod_size], None, camera)
-        approximated2 = approximateNumVoxels2(lods[lod_size], tree_pos, scaling, camera)
-        if approximated2 > num_covered_pixels:
-            best_match = lod_size
-        else:
-            return best_match
+        if float(lod_size) >= min_lod:
+            approximated2 = approximateNumVoxels2(lods[lod_size], tree_pos, scaling, camera)
+            if approximated2 * covered_pixels > num_covered_pixels:
+                best_match = lod_size
+            else:
+                return best_match
 
     return best_match
 
@@ -237,7 +238,7 @@ def getRelevantAccelerationClasses(description):
 
 
 
-def generateRandomForest(generate_gt):
+def generateRandomForest(generate_gt, min_lod, covered_pixels):
     tree_cdf = [0.9, 0.98, 1.0] # large, medium, small
     np.random.seed(0)
 
@@ -265,7 +266,7 @@ def generateRandomForest(generate_gt):
             relevant_models = relevant_models_dict["Small"]
 
         index = int(np.random.uniform() * len(relevant_models))
-        description = getTreeDescription(relevant_models, index, volume_description_dict, volume_max_bounds, camera, generate_gt)
+        description = getTreeDescription(relevant_models, index, volume_description_dict, volume_max_bounds, camera, generate_gt, min_lod, covered_pixels)
         acceleration_classes = getRelevantAccelerationClasses(description)
 
         collide = False
@@ -299,6 +300,8 @@ def generateRandomForest(generate_gt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-gt', dest="groundtruth", action="store_true")
+    parser.add_argument('-min_lod', type=float, default=0.1, dest="min_lod")
+    parser.add_argument('-covered_pixels', type=float, default=1, dest="covered_pixels")
     args = parser.parse_args()
-    generateRandomForest(args.groundtruth)
+    generateRandomForest(args.groundtruth, args.min_lod, args.covered_pixels)
 

@@ -36,19 +36,22 @@ namespace rt {
       return glm::vec3(1.f, 0.f, 0.f);
     }
     else if (lodSize == 0.2f) {
-      return glm::vec3(0.f, 1.f, 0.f);
+      return glm::vec3(1.f, 0.85f, 0.f);
     }
     else if (lodSize == 0.4f) {
-      return glm::vec3(0.f, 0.f, 1.f);
+      return glm::vec3(0.28f, 1.f, 0.f);
     }
     else if (lodSize == 0.8f) {
-      return glm::vec3(0.f, 1.f, 1.f);
+      return glm::vec3(0.f, 1.f, 0.57f);
     }
     else if (lodSize == 1.6f) {
-      return glm::vec3(1.f, 0.f, 1.f);
+      return glm::vec3(0.f, 0.57f, 1.f);
+    }
+    else if (lodSize == 3.2f) {
+      return glm::vec3(0.28f, 0.f, 1.f);
     }
     else {
-      return glm::vec3(1.f, 1.f, 0.f);
+      return glm::vec3(1.f, 0.f, 0.85f);
     }
   }
 }
