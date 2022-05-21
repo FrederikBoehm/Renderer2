@@ -16,7 +16,36 @@ def uniformSampleCircle(radius):
     theta = 2 * math.pi * np.random.uniform()
     return np.array([r * math.cos(theta), 0, r * math.sin(theta)])
 
-def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_bounds, camera, generate_gt, min_lod, covered_pixels):
+def getTreeDescription(position_data, volume_descriptions, camera, generate_gt, min_lod, covered_pixels):
+    model_pos = position_data["Pos"]
+    scaling = position_data["Scaling"]
+    model = position_data["Model"]
+    model_name = model["Name"]
+
+    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model_name], generate_gt, min_lod, covered_pixels)
+    if lod == "0":
+
+        description = {
+            "Type": "Mesh",
+            "Directory": "../../raytracer/assets/" + model["Path"],
+            "Filename": model_name + ".obj",
+            "Pos": model_pos,
+            "Orientation": model["Orientation"],
+            "Scaling": [scaling, scaling, scaling],
+        }
+        return description
+    else:
+        description = {
+            "Type": "Medium",
+            "Directory": "./filtering/" + model_name + "/",
+            "Filename": "filtered_mesh_" + lod,
+            "Pos": model_pos,
+            "Orientation": model["Orientation"],
+            "Scaling": [scaling, scaling, scaling],
+        }
+        return description
+
+def sampleModelPosition(relevant_models, index, volume_max_bounds):
     model = relevant_models[index]
     model_name = model["Name"]
     model_space_height = model["Dimensions"][1]
@@ -31,33 +60,13 @@ def getTreeDescription(relevant_models, index, volume_descriptions, volume_max_b
     model_dimensions = scaling * (bbmax - bbmin)
     bounding_radius = math.sqrt((model_dimensions[0] / 2) ** 2 + (model_dimensions[2] / 2) ** 2)
 
-
-    lod = selectLOD(camera, model_pos, scaling, volume_descriptions[model["Name"]], generate_gt, min_lod, covered_pixels)
-    if lod == "0":
-
-        description = {
-            "Type": "Mesh",
-            "Directory": "../../raytracer/assets/" + model["Path"],
-            "Filename": model["Name"] + ".obj",
-            "Pos": model_pos,
-            "BoundingCirclePos": bounding_circle_pos,
-            "Orientation": model["Orientation"],
-            "Scaling": [scaling, scaling, scaling],
-            "BoundingRadius": bounding_radius
-        }
-        return description
-    else:
-        description = {
-            "Type": "Medium",
-            "Directory": "./filtering/" + model_name + "/",
-            "Filename": "filtered_mesh_" + lod,
-            "Pos": model_pos,
-            "BoundingCirclePos": bounding_circle_pos,
-            "Orientation": model["Orientation"],
-            "Scaling": [scaling, scaling, scaling],
-            "BoundingRadius": bounding_radius
-        }
-        return description
+    return {
+        "Model": model,
+        "Pos": model_pos,
+        "BoundingCirclePos": bounding_circle_pos,
+        "Scaling": scaling,
+        "BoundingRadius": bounding_radius
+    }
         
 
 
@@ -254,6 +263,8 @@ def generateRandomForest(generate_gt, min_lod, covered_pixels):
     acceleration = []
     for c in range(ACCEL_CLASSES):
         acceleration.append([])
+
+    scene = []
     for i in range(100000):
 
         random_tree_class = np.random.uniform()
@@ -266,31 +277,29 @@ def generateRandomForest(generate_gt, min_lod, covered_pixels):
             relevant_models = relevant_models_dict["Small"]
 
         index = int(np.random.uniform() * len(relevant_models))
-        description = getTreeDescription(relevant_models, index, volume_description_dict, volume_max_bounds, camera, generate_gt, min_lod, covered_pixels)
-        acceleration_classes = getRelevantAccelerationClasses(description)
+        position_data = sampleModelPosition(relevant_models, index, volume_max_bounds)
+        acceleration_classes = getRelevantAccelerationClasses(position_data)
 
         collide = False
         for acceleration_class in acceleration_classes:
             for sceneobject in acceleration[acceleration_class]:
-                if checkCollision(sceneobject, description):
+                if checkCollision(sceneobject, position_data):
                     collide = True
                     break
 
         if not collide:
-            for acceleration_class in acceleration_classes:
-                acceleration[acceleration_class].append(description)
-
-    scene = set()
-    for acceleration_class in acceleration:
-        for sceneobject in acceleration_class:
-            scene.add((
-                sceneobject["Type"],
-                sceneobject["Directory"],
-                sceneobject["Filename"],
-                tuple(sceneobject["Pos"]),
-                tuple(sceneobject["Orientation"]),
-                tuple(sceneobject["Scaling"])
+            description = getTreeDescription(position_data, volume_description_dict, camera, generate_gt, min_lod, covered_pixels)
+            scene.append((
+                description["Type"],
+                description["Directory"],
+                description["Filename"],
+                tuple(description["Pos"]),
+                tuple(description["Orientation"]),
+                tuple(description["Scaling"])
             ))
+            for acceleration_class in acceleration_classes:
+                acceleration[acceleration_class].append(position_data)
+
 
     print(f"Scene has {len(scene)} items")
     toFile(scene, "scenedescription_random_forest.json")
