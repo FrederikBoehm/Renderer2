@@ -1,2 +1,4 @@
 reference.jpg
 test.jpg
+*.png
+__pycache__
