@@ -33,25 +33,25 @@ namespace rt {
 
   DH_CALLABLE inline glm::vec3 mapLODs(float lodSize) {
     if (lodSize == 0.1f) {
-      return glm::vec3(1.f, 0.f, 0.f);
+      return glm::vec3(0.f, 0.f, 1.f);
     }
     else if (lodSize == 0.2f) {
-      return glm::vec3(1.f, 0.85f, 0.f);
+      return glm::vec3(0.f, 0.67f, 1.f);
     }
     else if (lodSize == 0.4f) {
-      return glm::vec3(0.28f, 1.f, 0.f);
+      return glm::vec3(0.f, 1.f, 0.67f);
     }
     else if (lodSize == 0.8f) {
-      return glm::vec3(0.f, 1.f, 0.57f);
+      return glm::vec3(0.f, 1.f, 0.f);
     }
     else if (lodSize == 1.6f) {
-      return glm::vec3(0.f, 0.57f, 1.f);
+      return glm::vec3(0.67f, 1.f, 0.f);
     }
     else if (lodSize == 3.2f) {
-      return glm::vec3(0.28f, 0.f, 1.f);
+      return glm::vec3(1.f, 0.67f, 0.f);
     }
     else {
-      return glm::vec3(1.f, 0.f, 0.85f);
+      return glm::vec3(1.f, 0.f, 0.f);
     }
   }
 }
