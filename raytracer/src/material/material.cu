@@ -115,7 +115,7 @@ namespace rt {
       m_albedoTexture = CAssetManager::loadTexture(diffuseTexPath, DIFFUSE);
     }
 
-    if (specular.r <= 0.02f || specular.g <= 0.02f || specular.b <= 0.02f) {
+    if (m_albedoTexture && (specular.r <= 0.02f || specular.g <= 0.02f || specular.b <= 0.02f)) {
       m_glossyTexture = CAssetManager::specularFromDiffuse(m_albedoTexture);
     }
     else {
