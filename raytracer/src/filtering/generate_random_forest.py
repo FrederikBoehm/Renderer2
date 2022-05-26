@@ -258,7 +258,7 @@ def generateRandomForest(generate_gt, min_lod, covered_pixels):
         volume_description_dict = json.load(f)
 
     volume_max_bounds = getMaxBounds(volume_description_dict)
-    camera = getCamera([ -680.0, 35.1, 680.0 ], [ -675.0, 35.0, 675.0 ], [ 0.0, 1.0, 0.0 ], 1920, 1080, 90)
+    camera = getCamera([ -680.0, 35.1, 680.0 ], [ -675.0, 31.5, 675.0 ], [ 0.0, 1.0, 0.0 ], 1920, 1080, 90)
 
     acceleration = []
     for c in range(ACCEL_CLASSES):
@@ -302,7 +302,7 @@ def generateRandomForest(generate_gt, min_lod, covered_pixels):
 
 
     print(f"Scene has {len(scene)} items")
-    toFile(scene, "scenedescription_random_forest.json")
+    toFile(scene, f"scenedescription_random_forest_{str(min_lod)}_{str(covered_pixels)}.json")
 
 
 
