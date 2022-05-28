@@ -210,6 +210,7 @@ add_custom_command(TARGET raytracer POST_BUILD
         $<TARGET_FILE:assimp>
         $<TARGET_FILE_DIR:raytracer>)
 
+if (GUI)
 add_custom_command(TARGET raytracer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:glad>
@@ -219,6 +220,7 @@ add_custom_command(TARGET raytracer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:glfw>
         $<TARGET_FILE_DIR:raytracer>)
+endif()
 
 get_target_property(OPENVDB_BIN_DEBUG lib_openvdb_external_dbg IMPORTED_LOCATION)
 get_target_property(OPENVDB_BIN_RELEASE lib_openvdb_external_rel IMPORTED_LOCATION)
