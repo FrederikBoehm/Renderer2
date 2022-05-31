@@ -150,7 +150,10 @@ namespace rt {
 
       const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)), numLookups);
       const float dt = stepDDA(curr, ri, int(glm::round(mip)));
+      float prevT = t;
       t += dt / m_sigma_t;
+      if (t == prevT) // Exit if not enough floating point precision --> This has to be fixed
+        break;
       tau -= majorant * dt;
       mip = glm::min(float(mip + MIP_SPEED_UP), 3.f);
       if (tau > 0.f) {
@@ -256,7 +259,10 @@ namespace rt {
 
       const float majorant = filterRenderRatio * m_deviceBrickGrid->lookupMajorant(curr, int(glm::round(mip)), numLookups);
       const float dt = stepDDA(curr, ri, int(glm::round(mip)));
+      float prevT = t;
       t += dt / m_sigma_t;
+      if (t == prevT) // Exit if not enough floating point precision --> This has to be fixed
+        break;
       tau -= majorant * dt;
       mip = glm::min(float(mip + MIP_SPEED_UP), 3.f);
       if (tau > 0.f) {
