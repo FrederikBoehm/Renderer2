@@ -1,0 +1,39 @@
+{
+  "General": {
+    "FrameWidth": 1920,
+    "FrameHeight": 1080,
+    "ChannelsPerPixel": 3,
+    "Samples": 32,
+    "Gamma": 2.0,
+    "UseBrickGrid": true,
+    "DebugMode": "NONE"
+  },
+  "Filtering": {
+    "Active": false,
+    "MinVoxelSize": 1.0,
+    "LODs": 7,
+    "SamplesPerVoxel": 100,
+    "Debug": false,
+    "DebugSamples": 100,
+    "SigmaT": 10.0,
+    "EstimationIterations": 20,
+    "Alpha": 0.1,
+    "ClipRays": true
+  },
+  "Camera": {
+    //"Fov": 30.0, // For debug view from the top, single instance quality rendering
+    "Fov": 90.0, // For forest rendering, single instance performance rendering
+    //"Pos": [ -100, 2, 0.0 ], // For single instance rendering
+    "Pos": [ -680.0, 35.1, 680.0 ], // For forest scene
+    //"Pos": [ -9.9, 7000.0, 9.9 ], // For debug view from the top
+    //"LookAt": [ 0, 12, 0 ], // For single instance performance rendering
+    //"LookAt": [ 0, 8, 0 ], // For single instance quality rendering
+    "LookAt": [ -675.0, 31.5, 675.0 ], // For forest scene
+    //"LookAt": [ 0, 0, 0 ], // For debug view from the top
+    "Up": [ 0.0, 1.0, 0.0 ]
+  },
+  "Scene": {
+    "Envmap": "./../../raytracer/assets/envmap_4k.hdr",
+    "Scenedescription": "./../../raytracer/scenedescription.json"
+  }
+}

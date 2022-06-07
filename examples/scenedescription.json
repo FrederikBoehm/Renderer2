@@ -1,0 +1,288 @@
+[
+  //{
+  //  "Type": "Medium",
+  //  "Path": "./filtering/EA01a//filtered_mesh_0.100000",
+  //  "SigmaA": [
+  //    0.0,
+  //    0.0,
+  //    0.0
+  //  ],
+  //  "SigmaS": [
+  //    10.0,
+  //    10.0,
+  //    10.0
+  //  ],
+  //  "Pos": [
+  //    0,
+  //    0.0,
+  //    0
+  //  ],
+  //  "Orientation": [
+  //    0.0,
+  //    0.0,
+  //    1.0
+  //  ],
+  //  "Scaling": [
+  //    0.0872766422172645,
+  //    0.0872766422172645,
+  //    0.0872766422172645
+  //  ],
+  //  "Mask": [
+  //    "RENDER"
+  //  ]
+  //},
+  // -----------------------------------------------------------------------------------------------
+  // FILTER CONFIGURATIONS -->
+  // -----------------------------------------------------------------------------------------------
+  {
+    "Type": "Mesh",
+    "Directory": "../../raytracer/assets/XfrogPlants/PR04_Asterophyllites_equisetiformis_OBJ/Models",
+    "Filename": "PR04a.obj",
+    //"Pos": [ 0.0, 0.0, 0.0 ],
+    "Pos": [ 0.0, 0.0, 0.0 ],
+    "Orientation": [ 0.0, 0.0, 1.0 ],
+    "Scaling": [ 0.08232360177118406, 0.08232360177118406, 0.08232360177118406 ],
+    "Mask": [ "FILTER", "RENDER" ]
+  },
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/CL13_Pinus_muricata_Bishop_Pine_OBJ/Models",
+  //  "Filename": "CL13a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.09139740230303174, 0.09139740230303174, 0.09139740230303174 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EA01_Acer_rubrum_Red_Maple_OBJ/Models",
+  //  "Filename": "EA01a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.09208475308183188, 0.09208475308183188, 0.09208475308183188 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/WE04_Calocedrus_decurrens_Incense_Cedar_OBJ/Models",
+  //  "Filename": "WE04a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08923790472413966, 0.08923790472413966, 0.08923790472413966 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/AL05_Aesculus_hippocastanum_Horse_Chestnut_OBJ/Models",
+  //  "Filename": "AL05a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.09599193013372327, 0.09599193013372327, 0.09599193013372327 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EU06_Celtis_australis_European_Hackberry_OBJ/Models",
+  //  "Filename": "EU06a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.0872766422172645, 0.0872766422172645, 0.0872766422172645 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/OC12_Eucalyptus_globulus_Bluegum_obj/Models",
+  //  "Filename": "OC12_9.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.9999961875145352, 0.9999961875145352, 0.9999961875145352 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/PR04_Asterophyllites_equisetiformis_OBJ/Models",
+  //  "Filename": "PR04m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08408030981239917, 0.08408030981239917, 0.08408030981239917 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/TR19_Syagrus_romanzoffiana_Queen_Palm_OBJ/Models",
+  //  "Filename": "TR19a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.10450049276510692, 0.10450049276510692, 0.10450049276510692 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/CL13_Pinus_muricata_Bishop_Pine_OBJ/Models",
+  //  "Filename": "CL13m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.0883198577838322, 0.0883198577838322, 0.0883198577838322 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EA01_Acer_rubrum_Red_Maple_OBJ/Models",
+  //  "Filename": "EA01m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08519795954635596, 0.08519795954635596, 0.08519795954635596 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/WE04_Calocedrus_decurrens_Incense_Cedar_OBJ/Models",
+  //  "Filename": "WE04m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08933740709978089, 0.08933740709978089, 0.08933740709978089 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/AL05_Aesculus_hippocastanum_Horse_Chestnut_OBJ/Models",
+  //  "Filename": "AL05m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.10589487336368689, 0.10589487336368689, 0.10589487336368689 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EU43_Castanea_sativa_Chestnut_obj/Models",
+  //  "Filename": "EU43_8.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.8676596774590838, 0.8676596774590838, 0.8676596774590838 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/JA08_Juglans_ailantifolia_Japanese_Walnut_OBJ/Models",
+  //  "Filename": "JA08a.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08285342649431526, 0.08285342649431526, 0.08285342649431526 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/OC12_Eucalyptus_globulus_Bluegum_obj/Models",
+  //  "Filename": "OC12_5.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.9999675635521572, 0.9999675635521572, 0.9999675635521572 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/pine",
+  //  "Filename": "scrubPine.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 1.0, 0.0 ],
+  //  "Scaling": [ 0.017187480335105507, 0.017187480335105507, 0.017187480335105507 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/OC41_Acacia_sophorae_Coastal_Wattle_obj/Models",
+  //  "Filename": "OC41_9.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.9998987602505247, 0.9998987602505247, 0.9998987602505247 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/PR04_Asterophyllites_equisetiformis_OBJ/Models",
+  //  "Filename": "PR04y.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.07886895980691112, 0.07886895980691112, 0.07886895980691112 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/WE04_Calocedrus_decurrens_Incense_Cedar_OBJ/Models",
+  //  "Filename": "WE04y.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.08963837191617857, 0.08963837191617857, 0.08963837191617857 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/AS12_Murraya_koenigii_Curry_Leaf_Tree_obj/Models",
+  //  "Filename": "AS12_8.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 1.0, 0.0 ],
+  //  "Scaling": [ 1.0026469880484479, 1.0026469880484479, 1.0026469880484479 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EU06_Celtis_australis_European_Hackberry_OBJ/Models",
+  //  "Filename": "EU06m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.09060010380673789, 0.09060010380673789, 0.09060010380673789 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/EU43_Castanea_sativa_Chestnut_obj/Models",
+  //  "Filename": "EU43_3.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.8585428075576297, 0.8585428075576297, 0.8585428075576297 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/JA08_Juglans_ailantifolia_Japanese_Walnut_OBJ/Models",
+  //  "Filename": "JA08m.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.09289728536667469, 0.09289728536667469, 0.09289728536667469 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/OC12_Eucalyptus_globulus_Bluegum_obj/Models",
+  //  "Filename": "OC12_3.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.9999566685443632, 0.9999566685443632, 0.9999566685443632 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  //{
+  //  "Type": "Mesh",
+  //  "Directory": "../../raytracer/assets/XfrogPlants/OC26_Banksia_serrata_Saw_Banksia_obj/Models",
+  //  "Filename": "OC26_9.obj",
+  //  "Pos": [ 0.0, 0.0, 0.0 ],
+  //  "Orientation": [ 0.0, 0.0, 1.0 ],
+  //  "Scaling": [ 0.9999587159901541, 0.9999587159901541, 0.9999587159901541 ],
+  //  "Mask": [ "FILTER", "RENDER" ]
+  //},
+  // -----------------------------------------------------------------------------------------------
+  // <-- FILTER CONFIGURATIONS
+  // -----------------------------------------------------------------------------------------------
+  {
+    "Type": "Circle",
+    "Pos": [ 0.0, 0.0, 0.0 ],
+    "Radius": 3.402823466e+38,
+    "Normal": [ 0.0, 1.0, 0.0 ],
+    "DiffuseReflection": [ 0.3, 0.3, 0.3 ],
+    "DiffuseRoughness": 0.99,
+    "SpecularReflection": [ 0.9, 0.9, 0.9 ],
+    "AlphaX": 0.99,
+    "AlphaY": 0.99,
+    "EtaI": 1.00029,
+    "EtaT": 1.2
+  }
+]
