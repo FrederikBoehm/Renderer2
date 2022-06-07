@@ -221,6 +221,10 @@ namespace rt {
     m_useBrickGrid(config.useBrickGrid),
     m_debugMode(config.debugMode) {
 
+    const glm::vec3& camPos = m_hostCamera->position();
+    const glm::vec3& camLookAt = m_hostCamera->lookAt();
+    printf("Initial camera pos: (%f, %f, %f), lookAt: (%f, %f, %f)\n", camPos.x, camPos.y, camPos.z, camLookAt.x, camLookAt.y, camLookAt.z);
+
     allocateDeviceMemory();
     initOptix();
     copyToDevice();

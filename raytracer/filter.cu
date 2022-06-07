@@ -14,6 +14,7 @@
 #include "filtering/launch_params.hpp"
 #include "filtering/volume_description_manager.hpp"
 #include "utility/functions.hpp"
+#include <iostream>
 
 namespace filter {
   CFilter::CFilter(const SConfig& config):
@@ -74,6 +75,7 @@ namespace filter {
     if (!m_backend) {
       return;
     }
+    auto start = std::chrono::steady_clock::now();
 
     CVolumeDescriptionManager* volumeDescriptionManager = CVolumeDescriptionManager::instance();
 
@@ -114,6 +116,10 @@ namespace filter {
     }
 
     volumeDescriptionManager->storeDescriptions("./filtering/volume_description.json");
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<float> diff = end - start;
+    std::cout << "Filtering took " << diff.count() << " s" << std::endl;
   }
 
   void CFilter::initOptix(const SConfig& config) {
