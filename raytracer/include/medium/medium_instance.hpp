@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include "intersect/aabb.hpp"
 #include <string>
-#include <optix/optix_types.h>
+#include <optix_types.h>
 namespace rt {
   class CNVDBMedium;
   class CPhaseFunction;

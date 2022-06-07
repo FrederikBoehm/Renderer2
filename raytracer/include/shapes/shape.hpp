@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include "scene/types.hpp"
 #include "utility/functions.hpp"
 #include "intersect/aabb.hpp"

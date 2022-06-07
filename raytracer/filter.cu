@@ -3,7 +3,7 @@
 #include "filtering/openvdb_backend.hpp"
 #include "backend/rt_backend.hpp"
 #include "utility/debugging.hpp"
-#include <optix/optix_stubs.h>
+#include <optix_stubs.h>
 #include "backend/types.hpp"
 
 #include <cuda.h>

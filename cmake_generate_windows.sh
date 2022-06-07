@@ -20,6 +20,9 @@ mv "$LOCAL_TEMP/glfw/glfw-3.3.4" "3rdparty/glfw"
 (cd $LOCAL_TEMP && curl -o glm.zip -L --url https://github.com/g-truc/glm/releases/download/0.9.9.8/glm-0.9.9.8.zip && unzip -o "glm.zip" -d "glm")
 mv "$LOCAL_TEMP/glm/glm" "3rdparty/glm"
 
+(cd $LOCAL_TEMP && curl -o assimp.zip -L --url https://github.com/assimp/assimp/archive/refs/tags/v5.1.2.zip && unzip -o "assimp.zip" -d "assimp")
+mv "$LOCAL_TEMP/assimp/assimp-5.1.2" "3rdparty/assimp"
+
 (cd $LOCAL_TEMP && curl -o stb.zip -L --url https://github.com/nothings/stb/archive/80c8f6af0304588b9d780a41015472013b705194.zip && unzip -o "stb.zip" -d "stb")
 mv "$LOCAL_TEMP/stb/stb-80c8f6af0304588b9d780a41015472013b705194" "3rdparty/stb"
 
@@ -50,8 +53,19 @@ mv "$LOCAL_TEMP/cereal/cereal-1.3.2" "3rdparty/cereal"
 
 rm -rf $LOCAL_TEMP
 
+OPTIX_INSTALL_DIR="../3rdparty/optix"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -OPTIX_DIR)
+      OPTIX_INSTALL_DIR="$2"
+      shift # past argument
+      shift # past value
+      ;;
+  esac
+done
 
 cd build
 #cmake -DCMAKE_CUDA_FLAGS="-arch=sm_52" -DGUI:BOOL=true -A x64 ../
-cmake -DCMAKE_CUDA_FLAGS="-gencode=arch=compute_86" -DGUI:BOOL=true -DLTO:BOOL=true -A x64 ../
+cmake -DCMAKE_CUDA_FLAGS="-gencode=arch=compute_86" -DGUI:BOOL=true -DLTO:BOOL=true -DOptiX_INSTALL_DIR="${OPTIX_INSTALL_DIR}" -A x64 ../
 

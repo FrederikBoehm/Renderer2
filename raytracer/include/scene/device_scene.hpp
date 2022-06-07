@@ -1,7 +1,7 @@
 #ifndef DEVICE_SCENE_HPP
 #define DEVICE_SCENE_HPP
 #include "utility/qualifiers.hpp"
-#include <optix/optix_device.h>
+#include <optix_device.h>
 #include "interaction.hpp"
 namespace rt {
   class CHostScene;

@@ -6,7 +6,7 @@
 #include "shapes/circle.hpp"
 #include "shapes/sphere.hpp"
 #include "interaction.hpp"
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include "sceneobject_mask.hpp"
 namespace rt {
   class CHostSceneobject;

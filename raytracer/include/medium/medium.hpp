@@ -3,7 +3,7 @@
 
 #include "utility/qualifiers.hpp"
 #include "henyey_greenstein_phase_function.hpp"
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include <string>
 namespace rt {
   class CRay;

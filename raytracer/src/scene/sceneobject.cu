@@ -10,7 +10,7 @@
 #include "medium/nvdb_medium.hpp"
 #include "backend/rt_backend.hpp"
 #include "utility/debugging.hpp"
-#include <optix/optix_stubs.h>
+#include <optix_stubs.h>
 #include "utility/functions.hpp"
 #include "backend/asset_manager.hpp"
 #include "medium/medium_instance_impl.hpp"

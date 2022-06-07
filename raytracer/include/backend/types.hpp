@@ -1,6 +1,6 @@
 #ifndef BACKEND_TYPES_HPP
 #define BACKEND_TYPES_HPP
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include <cstdint>
 
 namespace rt {

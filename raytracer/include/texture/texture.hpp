@@ -6,7 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <cuda_runtime.h>
 #include "backend/asset_manager.hpp"
-#include <optix/optix_types.h>
+#include <optix_types.h>
 namespace rt {
   struct STexture_DeviceResource {
     cudaArray_t d_data;

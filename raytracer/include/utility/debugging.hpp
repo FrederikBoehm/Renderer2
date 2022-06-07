@@ -3,8 +3,8 @@
 #include "cuda_runtime.h"
 #include <stdio.h>
 #include "qualifiers.hpp"
-#include <optix/optix_types.h>
-#include <optix/optix_host.h>
+#include <optix_types.h>
+#include <optix_host.h>
 #include <glm/glm.hpp>
 
 inline void gpuAssert(cudaError_t code, const char* file, int line) {

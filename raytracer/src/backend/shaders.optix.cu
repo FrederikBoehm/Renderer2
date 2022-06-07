@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <crt/device_functions.h>
 #include "intersect/hit_information.hpp"
-#include <optix/optix_device.h>
+#include <optix_device.h>
 #include <glm/glm.hpp>
 #include "backend/types.hpp"
 #include "camera/camera.hpp"

@@ -1,7 +1,7 @@
 #ifndef NVDB_MEDIUM_IMPL_HPP
 #define NVDB_MEDIUM_IMPL_HPP
 #include "nvdb_medium.hpp"
-#include <optix/optix_device.h>
+#include <optix_device.h>
 #include "utility/functions.hpp"
 #include "intersect/ray.hpp"
 #include "scene/interaction.hpp"

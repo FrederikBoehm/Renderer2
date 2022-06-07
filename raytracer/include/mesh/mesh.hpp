@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "utility/qualifiers.hpp"
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include "scene/types.hpp"
 #include <string>
 #include "intersect/aabb.hpp"

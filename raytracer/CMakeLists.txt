@@ -17,6 +17,7 @@ target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/glm")
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty")
 target_include_directories(cuda_to_ptx PRIVATE "../3rdparty/assimp/include")
 target_include_directories(cuda_to_ptx PRIVATE "${CMAKE_BINARY_DIR}/3rdparty/assimp/include")
+target_include_directories(cuda_to_ptx PRIVATE ${OptiX_INCLUDE})
 
 get_target_property(NANOVDB_INCLUDE_DEBUG lib_openvdb_external_dbg INCLUDE_DIRECTORIES)
 get_target_property(NANOVDB_INCLUDE_RELEASE lib_openvdb_external_rel INCLUDE_DIRECTORIES)
@@ -160,6 +161,7 @@ target_include_directories(raytracer PRIVATE "../3rdparty")
 target_include_directories(raytracer PRIVATE "../3rdparty/vcpkg/installed/x64-windows/include")
 target_include_directories(raytracer PRIVATE "../3rdparty/assimp/include")
 target_include_directories(raytracer PRIVATE "../3rdparty/cereal/include")
+target_include_directories(raytracer PRIVATE ${OptiX_INCLUDE})
 
 target_include_directories(raytracer PRIVATE $<$<CONFIG:Debug>:${NANOVDB_INCLUDE_DEBUG}>
 											 $<$<CONFIG:Release>:${NANOVDB_INCLUDE_RELEASE}>)

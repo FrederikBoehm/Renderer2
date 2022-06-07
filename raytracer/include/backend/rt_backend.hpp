@@ -1,6 +1,6 @@
 #ifndef RT_BACKEND_HPP
 #define RT_BACKEND_HPP
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include "utility/qualifiers.hpp"
 #include <vector>
 #include "types.hpp"

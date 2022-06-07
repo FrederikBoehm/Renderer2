@@ -7,7 +7,7 @@
 #include <nanovdb/util/CudaDeviceBuffer.h>
 #include <glm/glm.hpp>
 #include "medium.hpp"
-#include <optix/optix_types.h>
+#include <optix_types.h>
 
 #include "scene/types.hpp"
 #include "intersect/aabb.hpp"

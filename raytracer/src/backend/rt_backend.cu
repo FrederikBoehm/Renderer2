@@ -4,9 +4,9 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
-#include <optix/optix_stubs.h>
-#include <optix/optix_function_table_definition.h>
-#include <optix/optix_stack_size.h>
+#include <optix_stubs.h>
+#include <optix_function_table_definition.h>
+#include <optix_stack_size.h>
 
 
 

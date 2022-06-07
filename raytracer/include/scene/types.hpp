@@ -1,6 +1,6 @@
 #ifndef SCENE_TYPES_HPP
 #define SCENE_TYPES_HPP
-#include <optix/optix_types.h>
+#include <optix_types.h>
 #include <vector>
 namespace rt {
   // Wraps flags for OptixBuildInput. Pointers become invalid if SBuildInputWrapper leaves scope

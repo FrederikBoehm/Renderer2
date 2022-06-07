@@ -98,6 +98,7 @@ set(LTO false CACHE BOOL "Setup project with link time optimization")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Cmake install prefix" FORCE)
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING INTERNAL FORCE)
 set(CMAKE_BUILD_PARALLEL_LEVEL 4)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 set(SKIP_PERFORMANCE_COMPARISON TRUE) #Cereal
 
@@ -124,6 +125,8 @@ endif ()
 if (NOT TBB_BIN_DEBUG)
 	message(FATAL_ERROR "Could not initialize TBB_BIN_DEBUG")
 endif ()
+
+find_package(OptiX REQUIRED)
 
 add_library(lib_openvdb_external_dbg SHARED IMPORTED)
 add_dependencies(lib_openvdb_external_dbg openvdb_external_dbg)

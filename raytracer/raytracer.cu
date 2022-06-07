@@ -25,7 +25,7 @@
 #include "shapes/cuboid.hpp"
 #include "medium/nvdb_medium.hpp"
 #include "backend/rt_backend.hpp"
-#include <optix/optix_stubs.h>
+#include <optix_stubs.h>
 #include "backend/config_loader.hpp"
 #include "backend/asset_manager.hpp"
 

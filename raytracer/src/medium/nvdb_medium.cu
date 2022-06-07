@@ -13,7 +13,7 @@
 #include "medium/sggx_phase_function.hpp"
 #include "utility/debugging.hpp"
 #include "backend/rt_backend.hpp"
-#include <optix/optix_stubs.h>
+#include <optix_stubs.h>
 #include "medium/phase_function_impl.hpp"
 #include "backend/build_optix_accel.hpp"
 #include "filtering/filtered_data.hpp"
