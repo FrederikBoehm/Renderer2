@@ -25,9 +25,9 @@ namespace rt {
     uint16_t width;
     uint16_t height;
     uint8_t bpp;
-    float* data;
+    float* data; // image
     float* filtered;
-    uint8_t* dataBytes;
+    uint8_t* dataBytes; // image
 
     CDeviceScene* scene;
     CCamera* camera;

@@ -39,11 +39,11 @@ namespace rt {
    DH_CALLABLE inline glm::vec3 sphericalDirection(float sinTheta, float cosTheta, float phi) {
      return glm::vec3(sinTheta * glm::cos(phi),
                       sinTheta * glm::sin(phi),
-                      cosTheta); // TODO: Check if that is the right coordinate system
+                      cosTheta);
    }
 
    DH_CALLABLE inline glm::vec3 sphericalDirection(float sinTheta, float cosTheta, float phi, const glm::vec3& x, const glm::vec3& y, const glm::vec3& z) {
-     return sinTheta * glm::cos(phi) * x + sinTheta * glm::sin(phi) * y + cosTheta * z; // TODO: Check if that is the right coordinate system
+     return sinTheta * glm::cos(phi) * x + sinTheta * glm::sin(phi) * y + cosTheta * z;
    }
 
    template <glm::length_t L, typename T> DH_CALLABLE bool any(glm::vec<L, T>& vec, T v) {

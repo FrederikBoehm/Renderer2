@@ -16,7 +16,7 @@ namespace rt {
     H_CALLABLE CCamera();
 
     /*
-      Creates a Camera object
+      Creates a Camera object (pinhole camera)
       sensorWidth: width of the sensor in pixels
       sensorHeight: height of the sensor in pixels
       fov: horizontal fov in degrees

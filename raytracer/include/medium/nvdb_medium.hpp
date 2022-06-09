@@ -6,7 +6,6 @@
 #include <nanovdb/util/IO.h>
 #include <nanovdb/util/CudaDeviceBuffer.h>
 #include <glm/glm.hpp>
-#include "medium.hpp"
 #include <optix_types.h>
 
 #include "scene/types.hpp"

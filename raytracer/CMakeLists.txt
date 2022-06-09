@@ -40,17 +40,11 @@ set(SOURCE_FILES
 	src/shapes/circle.cu
 	src/shapes/cuboid.cu
 	src/shapes/rectangle.cu
-	src/material/lambertian_brdf.cu
-	src/material/blinn_phong_brdf.cu
 	src/material/material.cu
 	src/sampling/sampler.cu
 	src/sampling/distribution_1d.cu
 	src/sampling/distribution_2d.cu
-	#src/integrators/direct_lighting_integrator.cu
-	src/medium/homogeneous_medium.cu
 	src/medium/henyey_greenstein_phase_function.cu
-	src/medium/medium.cu
-	src/medium/heterogenous_medium.cu
 	src/medium/nvdb_medium.cu
 	src/medium/nvdb_medium.cpp
 	src/medium/sggx_phase_function.cu
@@ -58,7 +52,6 @@ set(SOURCE_FILES
 	src/texture/texture.cu
 	src/backend/rt_backend.cu
 	src/mesh/mesh.cu
-	#src/texture/texture_manager.cu
 	src/backend/config_loader.cu
 	src/backend/asset_manager.cu
 	src/backend/build_optix_accel.cu
@@ -94,8 +87,6 @@ set(HEADER_FILES
 	include/intersect/ray.hpp
 	include/intersect/hit_information.hpp
 	include/material/material.hpp
-	include/material/lambertian_brdf.hpp
-	include/material/blinn_phong_brdf.hpp
 	include/material/oren_nayar_brdf.hpp
 	include/material/brdf_functions.hpp
 	include/material/microfacet_brdf.hpp
@@ -105,25 +96,19 @@ set(HEADER_FILES
 	include/sampling/distribution_1d.hpp
 	include/sampling/mis.hpp
 	include/sampling/distribution_2d.hpp
-	#include/integrators/direct_lighting_integrator.hpp
 	include/integrators/path_integrator.hpp
 	include/integrators/objects.hpp
 	include/integrators/path_integrator_impl.hpp
-	include/medium/homogeneous_medium.hpp
 	include/medium/henyey_greenstein_phase_function.hpp
-	include/medium/medium.hpp
-	include/medium/heterogenous_medium.hpp
 	include/medium/nvdb_medium.hpp
 	include/medium/sggx_phase_function.hpp
 	include/medium/phase_function.hpp
-	include/medium/medium_impl.hpp
 	include/medium/phase_function_impl.hpp
 	include/medium/nvdb_medium_impl.hpp
 	include/texture/texture.hpp
 	include/backend/rt_backend.hpp
 	include/backend/types.hpp
 	include/mesh/mesh.hpp
-	#include/texture/texture_manager.hpp
 	include/backend/config_loader.hpp
 	config.json
 	scenedescription.json

@@ -15,7 +15,6 @@
 #include "sampling/sampler.hpp"
 
 #include "utility/performance_monitoring.hpp"
-#include "integrators/direct_lighting_integrator.hpp"
 #include "integrators/path_integrator.hpp"
 #include "camera/pixel_sampler.hpp"
 #include "scene/environmentmap.hpp"
@@ -48,85 +47,6 @@ namespace rt {
       frame->data[currentPixel + 0] = 0.f;
       frame->data[currentPixel + 1] = 0.f;
       frame->data[currentPixel + 2] = 0.f;
-    }
-  }
-
-  // Raytracing
-  __global__ void renderFrame(CDeviceScene* scene, CCamera* camera, CSampler* sampler, uint16_t numSamples, SDeviceFrame* frame) {
-    //uint16_t y = blockIdx.y;
-    //uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
-
-
-    //if (y < frame->height && x < frame->width) {
-    //  //extern __shared__ char sharedScene[];
-    //  //SSharedMemoryInitializer::copyScene(sharedScene, scene);
-
-    //  uint32_t currentPixel = frame->bpp * (y * frame->width + x);
-    //  uint32_t samplerId = y * frame->width + x;
-
-    //  CPixelSampler pixelSampler(camera, x, y, &(sampler[samplerId]));
-    //  //CPathIntegrator integrator((CDeviceScene*)sharedScene, &pixelSampler, &(sampler[samplerId]), numSamples);
-    //  CPathIntegrator integrator(scene, &pixelSampler, &(sampler[samplerId]), numSamples);
-    //  glm::vec3 L = integrator.Li();
-
-    //  frame->data[currentPixel + 0] += L.r;
-    //  frame->data[currentPixel + 1] += L.g;
-    //  frame->data[currentPixel + 2] += L.b;
-
-    //}
-  }
-
-  D_CALLABLE inline float computeTonemapFactor(SDeviceFrame* frame, uint16_t x, uint16_t y) {
-    constexpr uint8_t filterSize = 11;
-    float filterHalf = (float)filterSize / 2;
-    float alpha = -glm::log(0.5f) / (filterHalf * filterHalf); // 0.02: From webers law
-    float weights[filterSize][filterSize];
-    float sum = 0.f;
-    for (int8_t dX = 0; dX < filterSize; ++dX) {
-      for (int8_t dY = 0; dY < filterSize; ++dY) {
-        int32_t currX = x + dX - filterHalf;
-        int32_t currY = y + dY - filterHalf;
-        if (currX < 0 || currX >= frame->width || currY < 0 || currY >= frame->height) {
-          weights[dY][dX] = 0.f;
-        }
-        else {
-          float distance = (float)dX * dX + (float)dY * dY;
-          float weight = glm::exp(-alpha * distance);
-          sum += weight;
-          weights[dY][dX] = weight;
-        }
-      }
-    }
-
-    float sigma(0.f);
-    for (int8_t dX = 0; dX < filterSize; ++dX) {
-      for (int8_t dY = 0; dY < filterSize; ++dY) {
-        int32_t currX = x + dX - filterHalf;
-        int32_t currY = y + dY - filterHalf;
-        if (!(currX < 0 || currX >= frame->width || currY < 0 || currY >= frame->height)) {
-          uint32_t currentPixel = frame->bpp * (currY * frame->width + currX);
-
-          float r = frame->data[currentPixel + 0];
-          float g = frame->data[currentPixel + 1];
-          float b = frame->data[currentPixel + 2];
-          sigma += glm::log(r + g + b) * weights[dY][dX] / sum;
-        }
-        
-      }
-    }
-
-    return glm::exp(sigma);
-  }
-
-  __global__ void filterFrame(SDeviceFrame* frame) {
-    uint16_t y = blockIdx.y;
-    uint16_t x = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (y < frame->height && x < frame->width) {
-      uint32_t currentPixel = frame->bpp * (y * frame->width + x);
-      float sigma = computeTonemapFactor(frame, x, y);
-      
-      frame->filtered[currentPixel + 0] = sigma;
     }
   }
 
@@ -424,11 +344,9 @@ namespace rt {
   }
 
   void Raytracer::initDeviceData() {
-    //CPerformanceMonitoring::startMeasurement("init");
     dim3 grid(m_frameWidth / m_blockSize, m_frameHeight);
     init << <grid, m_blockSize >> > (m_deviceSampler, m_deviceFrame);
-    cudaError_t e = cudaDeviceSynchronize();
-    //CPerformanceMonitoring::endMeasurement("init");
+    cudaDeviceSynchronize();
   }
 
   void Raytracer::initOptix() {

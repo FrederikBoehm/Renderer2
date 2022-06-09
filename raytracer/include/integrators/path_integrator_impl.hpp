@@ -7,7 +7,6 @@
 #include "scene/interaction.hpp"
 #include "scene/device_scene_impl.hpp"
 #include "medium/phase_function_impl.hpp"
-#include "medium/medium_impl.hpp"
 #include "material/material.hpp"
 #include "utility/debugging.hpp"
 namespace rt {
@@ -43,7 +42,7 @@ namespace rt {
           rayLight = si.medium->moveToVoxelBorder(rayLight);
         }
         glm::vec3 trSecondary;
-        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary, useBrickGrid, numLookups); // TODO: Handle case that second hit is on volume
+        SInteraction siLight = scene.intersectTr(rayLight, sampler, &trSecondary, useBrickGrid, numLookups);
 
 
         glm::vec3 f(0.f);
@@ -133,8 +132,8 @@ namespace rt {
       SInteraction mi;
       if (si.medium) { //Bounding box hit
         if (ray.m_medium) { // Ray origin inside bb
-          if (si.medium && si.medium != ray.m_medium) {
-            break; // TODO: Fix ray offsetting
+          if (si.medium && si.medium != ray.m_medium) { // Workaround for infinite loop
+            break;
           }
           throughput *= ray.m_medium->sample(ray, *m_sampler, &mi, m_useBrickGrid, &numLookups);
         }
@@ -148,8 +147,8 @@ namespace rt {
           SInteraction siMediumEnd;
           m_scene->intersect(mediumRay, &siMediumEnd);
           if (siMediumEnd.hitInformation.hit) {
-            if (siMediumEnd.medium && si.medium != siMediumEnd.medium) {
-              break; // TODO: Fix ray offsetting
+            if (siMediumEnd.medium && si.medium != siMediumEnd.medium) { // Workaround for infinite loop
+              break; 
             }
             throughput *= mediumRay.m_medium->sample(mediumRay, *m_sampler, &mi, m_useBrickGrid, &numLookups);
           }

@@ -26,9 +26,6 @@ namespace rt {
 
   CDistribution2D::~CDistribution2D() {
 #ifndef __CUDA_ARCH__
-    //for (int i = m_height - 1; i >= 0; --i) { // TODO: clean up objects
-    //  m_rows[i].~CDistribution1D();
-    //}
     if (m_isHostObject) {
       operator delete[](m_rows);
     }

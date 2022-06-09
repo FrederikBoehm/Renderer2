@@ -139,7 +139,7 @@ namespace rt {
 
   void CMesh::buildOptixAccel() {
     if (m_deviceResource) {
-      CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceResource->d_vbo), m_vbo, sizeof(glm::vec3) * m_numVertices, cudaMemcpyHostToDevice)); // TODO: Find way to copy vertices and indices only once
+      CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceResource->d_vbo), m_vbo, sizeof(glm::vec3) * m_numVertices, cudaMemcpyHostToDevice));
       CUDA_ASSERT(cudaMemcpy(reinterpret_cast<void*>(m_deviceResource->d_ibo), m_ibo, sizeof(glm::uvec3) * m_numIndices, cudaMemcpyHostToDevice));
     }
     else {

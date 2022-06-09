@@ -12,7 +12,7 @@ namespace rt {
   class CSampler;
   class CPixelSampler;
 
-  class CPathIntegrator { // TODO: Make Integrator host callable
+  class CPathIntegrator { 
   public:
     D_CALLABLE CPathIntegrator(CDeviceScene* scene, CPixelSampler* pixelSampler, CSampler* sampler, uint16_t numSamples, bool useBrickGrid, EDebugMode debugMode);
     D_CALLABLE glm::vec3 Li() const;

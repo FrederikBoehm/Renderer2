@@ -274,7 +274,7 @@ namespace rt {
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitVolume, &stackSizes));
     OPTIX_ASSERT(optixUtilAccumulateStackSizes(m_programGroups.m_hitMesh, &stackSizes));
 
-    uint32_t maxTraceDepth = 4; // TODO: Is that the path tracing depth?
+    uint32_t maxTraceDepth = 4; 
     uint32_t maxCcDepth = 0;
     uint32_t maxDcDepth = 4;
     uint32_t directCallableStackSizeFromTraversal;
@@ -337,7 +337,7 @@ namespace rt {
     }
 
     {
-      const size_t hitgroupRecordSize = sizeof(SRecord<const CDeviceSceneobject*>); // TODO: Pass SInteraction
+      const size_t hitgroupRecordSize = sizeof(SRecord<const CDeviceSceneobject*>);
       const size_t hitgroupRecordBytes = hitgroupRecordSize * hitgroupRecords.size();
       CUDA_ASSERT(cudaMalloc(
         reinterpret_cast<void**>(&m_sbt.hitgroupRecordBase),

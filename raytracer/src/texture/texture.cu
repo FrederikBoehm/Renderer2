@@ -191,7 +191,7 @@ namespace rt {
   CTexture CTexture::copyToDevice() const {
     if (m_deviceResource) {
       const size_t spitch = m_width * sizeof(float) * 4;
-      CUDA_ASSERT(cudaMemcpy2DToArray(m_deviceResource->d_data, 0, 0, m_data, spitch, m_width * sizeof(float) * 4, m_height, cudaMemcpyHostToDevice)); // TODO: Can we ensure alignment without vec4 per pixel?
+      CUDA_ASSERT(cudaMemcpy2DToArray(m_deviceResource->d_data, 0, 0, m_data, spitch, m_width * sizeof(float) * 4, m_height, cudaMemcpyHostToDevice));
     }
 
     CTexture t;

@@ -29,7 +29,6 @@ namespace rt {
   };
 
   inline float CSampler::uniformSample01() { // produces random numbers in the interval [0, 1)
-    // TODO: Make sampler work on host
 #ifdef __CUDA_ARCH__
     return glm::clamp(curand_uniform(&m_curandState) / (1.f - FLT_EPSILON - FLT_MIN) - FLT_MIN, 0.f, 1.f - FLT_EPSILON); // Because curand_unfiform produces random numbers in (0.f, 1.f] we have to scale and shift to get numbers in [0.f, 1.f)
 #else 

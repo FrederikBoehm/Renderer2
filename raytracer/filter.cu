@@ -66,7 +66,7 @@ namespace filter {
 
   void CFilter::initDeviceData() const {
     const glm::ivec3& numVoxels = m_backend->numVoxelsMajorant();
-    dim3 grid(numVoxels.x, numVoxels.y, numVoxels.z); // TODO: Find way to fully utilize blocks with variable numVoxels
+    dim3 grid(numVoxels.x, numVoxels.y, numVoxels.z);
     init << <grid, 1 >> > (m_deviceSampler);
     CUDA_ASSERT(cudaDeviceSynchronize());
   }

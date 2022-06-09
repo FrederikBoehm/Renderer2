@@ -3,10 +3,8 @@
 
 #include "shapes/circle.hpp"
 #include "shapes/sphere.hpp"
-#include "medium/homogeneous_medium.hpp"
 #include "shapes/rectangle.hpp"
 #include "shapes/cuboid.hpp"
-#include "medium/heterogenous_medium.hpp"
 #include "medium/nvdb_medium.hpp"
 #include "backend/rt_backend.hpp"
 #include "utility/debugging.hpp"
@@ -236,7 +234,7 @@ namespace rt {
   }
 
   CHostSceneobject::~CHostSceneobject() {
-    if (m_shape) { // TODO: Find better way to clean up material if using primitive shape
+    if (m_shape) {
       delete m_material;
     }
   }

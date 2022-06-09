@@ -32,6 +32,7 @@ struct SConfig {
   SFilteringConfig filteringConfig;
 };
 
+// Loads config.json file to initialize renderer, scene, camera, ...
 class CConfigLoader {
 public:
   H_CALLABLE static SConfig loadConfig(const char* configPath);

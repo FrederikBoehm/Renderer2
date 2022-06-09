@@ -24,7 +24,7 @@ namespace rt {
                       m_worldPos.z - m_dimensions.z * 0.5f,
                       m_worldPos.x + m_dimensions.x * 0.5f,
                       m_worldPos.y + m_dimensions.y * 0.5f,
-                      m_worldPos.z + m_dimensions.z * 0.5f }; // TODO: account for rotation
+                      m_worldPos.z + m_dimensions.z * 0.5f };
   }
 
   SBuildInputWrapper CCuboid::getOptixBuildInput() {

@@ -100,7 +100,7 @@ namespace rt {
 
       SInteraction interaction;
       intersect(r, &interaction);
-      if (interaction.hitInformation.hit && r.m_medium && (!interaction.medium || interaction.medium == currentMedium)) { // TODO: Fix ray offsetting
+      if (interaction.hitInformation.hit && r.m_medium && (!interaction.medium || interaction.medium == currentMedium)) {
         *Tr *= r.m_medium->tr(r, sampler, useBrickGrid, numLookups);
       }
 
